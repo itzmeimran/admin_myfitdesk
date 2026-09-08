@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+:root {
+  /* "Clay & Rust" — copied verbatim from FitDeskApp/src/app/globals.css.
+     This admin app is the same design system, not a variant of it. */
+  --ink: #1b1512;
+  --paper: #f7f2ea;
+  --sand: #ede4d6;
+  --line: #e4dacb;
+  --mute: #6f6259;
+  --mute2: #8a7e73;
+  --mute3: #b3a99d;
+  --accent: #bf3b15;
+  --hi: #f2c14e;
+  --inkline: #3c332c;
+  --ink2: #302620;
+  --faint: #a9a69b;
+  --on-hi: #6b3b10;
+  --on-accent: #f7d6c6;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-sand: var(--sand);
+  --color-line: var(--line);
+  --color-mute: var(--mute);
+  --color-mute2: var(--mute2);
+  --color-mute3: var(--mute3);
+  --color-accent: var(--accent);
+  --color-hi: var(--hi);
+  --color-inkline: var(--inkline);
+  --color-ink2: var(--ink2);
+  --color-faint: var(--faint);
+  --color-on-hi: var(--on-hi);
+  --color-on-accent: var(--on-accent);
+  --font-display: var(--font-archivo-black);
+  --font-body: var(--font-space-grotesk);
+}
+
+body {
+  background: var(--sand);
+  color: var(--ink);
+  font-family: var(--font-body), sans-serif;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--sand) 25%, var(--line) 50%, var(--sand) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Shared tasteful micro-interactions — copied verbatim from FitDeskApp's
+   globals.css, gated behind prefers-reduced-motion in one place. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toast-in {
+    animation: toast-in 0.22s ease-out;
+  }
+  .fade-in {
+    animation: fade-in 0.18s ease-out;
+  }
+  .scale-in {
+    animation: scale-in 0.16s ease-out;
+  }
+  .sheet-slide-up {
+    animation: slide-up 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .press-scale {
+    transition: transform 0.1s ease-out;
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────
+   Admin-specific token extensions — per the design's "Tokens" spec
+   section, these are the *only* 4 deviations from FitDeskApp's own
+   globals.css. Everything else above this line is identical to the
+   tenant app on purpose: this is the same design system, not a fork of
+   it. Each utility below is a documented, deliberate addition, not a
+   place to add more app-specific tokens without updating this comment.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* 1. Bigger uppercase micro-labels — the tenant app's smallest uppercase
+   labels (table header cells, eyebrow text) run 9–10px; the admin design
+   consistently specs 10–11px for the same role (e.g. table headers at
+   10px/0.11em, section eyebrows at 11px/0.14em) since these screens are
+   read at a slight distance (an operator scanning a dense table) rather
+   than tapped on a phone. */
+.mfd-micro-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--mute2);
+}
+
+/* 2. 1280px max-width content cap — the tenant dashboard caps at 4xl
+   (896px) because it's read one member/payment at a time; the admin
+   screens are wide data tables and multi-column dashboards that need the
+   extra room. Applied as a utility class on each page's outer wrapper
+   rather than baked into the shell, so a future full-bleed section (e.g.
+   a table that outgrows even 1280px) isn't fighting the layout. */
+.mfd-content-cap {
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 3. 44px-tall table rows — the tenant app's tables (Payments, Members)
+   run closer to 36–40px because rows are tapped on mobile one at a time.
+   The admin Gyms/Revenue tables are scanned, not tapped, but still need a
+   44px *minimum* touch target for the row-level action button per the
+   design's own accessibility spec — this utility sets that floor on the
+   table cell, not just the button inside it, so the whole row's hit area
+   agrees with the button's. */
+.mfd-table-row {
+  min-height: 44px;
+}
+
+/* 4. 168px flex-basis for KPI tiles — the tenant app has no equivalent
+   "row of stat tiles" component to diverge from; this is a new size
+   introduced by the admin design (Overview's 5 tiles, Revenue's 4 tiles)
+   and documented here so every tile row in the app uses the same basis
+   rather than each page guessing a number. */
+.mfd-kpi-tile {
+  flex: 1 1 168px;
+  min-width: 0;
+}

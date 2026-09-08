@@ -52,10 +52,12 @@ export {
   LuCheck as ConfirmIcon,
   LuX as CancelIcon,
   LuLogOut as SignOutIcon,
+  LuLogIn as SignInIcon,
 
   // Data in / out
   LuDownload as ExportIcon,
   LuSearch as SearchIcon,
+  LuList as ListIcon,
   LuChevronLeft as PrevPageIcon,
   LuChevronRight as NextPageIcon,
   LuChevronDown as LoadMoreIcon,

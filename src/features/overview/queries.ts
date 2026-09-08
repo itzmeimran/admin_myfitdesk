@@ -125,17 +125,24 @@ async function fetchOverviewStats(
   prevStart: Date,
   prevEnd: Date,
 ): Promise<OverviewStats> {
-  const rpc = supabase.rpc as unknown as (
-    fn: "admin_overview_stats",
-    args: {
-      p_period_start: string;
-      p_period_end: string;
-      p_prev_start: string;
-      p_prev_end: string;
-    },
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
+  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
+  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
+  // comment on the same fix for the full story — this file had all 4 of
+  // its RPC calls written the broken way originally.
+  const typedSupabase = supabase as unknown as {
+    rpc(
+      fn: "admin_overview_stats",
+      args: {
+        p_period_start: string;
+        p_period_end: string;
+        p_prev_start: string;
+        p_prev_end: string;
+      },
+    ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  };
 
-  const { data, error } = await rpc("admin_overview_stats", {
+  const { data, error } = await typedSupabase.rpc("admin_overview_stats", {
     p_period_start: start.toISOString(),
     p_period_end: end.toISOString(),
     p_prev_start: prevStart.toISOString(),
@@ -146,13 +153,10 @@ async function fetchOverviewStats(
   // admin_overview_stats RETURNS jsonb (a scalar), not SETOF/TABLE, so
   // PostgREST — and therefore supabase-js's .rpc() — hands back the parsed
   // object directly as `data`, unlike the TABLE-returning functions below
-  // which come back as an array of rows. Verified structurally via
-  // `execute_sql` against the live project (confirms the object's shape
-  // and that the numbers are sane for the 4 real organizations there), but
-  // NOT through an actual authenticated `.rpc()` call — that would need
-  // signing in as the platform admin user, whose password this session
-  // doesn't have and isn't authorized to reset. Normalises both possible
-  // shapes defensively rather than assuming.
+  // which come back as an array of rows. Normalises both possible shapes
+  // defensively rather than assuming, now confirmed live (see the
+  // this-binding fix above — this whole function never actually ran
+  // end-to-end before that fix, so this defensive check earns its keep).
   const raw = Array.isArray(data) ? data[0] : data;
   if (!raw || typeof raw !== "object") {
     throw new Error("admin_overview_stats returned an unexpected shape");
@@ -161,10 +165,10 @@ async function fetchOverviewStats(
 }
 
 async function fetchPackageMix(supabase: SupabaseClient<Database>): Promise<AdminPackageMixRow[]> {
-  const rpc = supabase.rpc as unknown as (
-    fn: "admin_package_mix",
-  ) => Promise<{ data: AdminPackageMixRow[] | null; error: { message: string } | null }>;
-  const { data, error } = await rpc("admin_package_mix");
+  const typedSupabase = supabase as unknown as {
+    rpc(fn: "admin_package_mix"): PromiseLike<{ data: AdminPackageMixRow[] | null; error: { message: string } | null }>;
+  };
+  const { data, error } = await typedSupabase.rpc("admin_package_mix");
   if (error) throw new Error(`Failed to load package mix: ${error.message}`);
   return data ?? [];
 }
@@ -173,11 +177,13 @@ async function fetchGymsNearCap(
   supabase: SupabaseClient<Database>,
   limit: number,
 ): Promise<AdminGymsNearCapRow[]> {
-  const rpc = supabase.rpc as unknown as (
-    fn: "admin_gyms_near_cap",
-    args: { p_limit: number },
-  ) => Promise<{ data: AdminGymsNearCapRow[] | null; error: { message: string } | null }>;
-  const { data, error } = await rpc("admin_gyms_near_cap", { p_limit: limit });
+  const typedSupabase = supabase as unknown as {
+    rpc(
+      fn: "admin_gyms_near_cap",
+      args: { p_limit: number },
+    ): PromiseLike<{ data: AdminGymsNearCapRow[] | null; error: { message: string } | null }>;
+  };
+  const { data, error } = await typedSupabase.rpc("admin_gyms_near_cap", { p_limit: limit });
   if (error) throw new Error(`Failed to load gyms near their package caps: ${error.message}`);
   return data ?? [];
 }
@@ -186,11 +192,13 @@ async function fetchRevenueTrend(
   supabase: SupabaseClient<Database>,
   weeks: number,
 ): Promise<AdminRevenueTrendRow[]> {
-  const rpc = supabase.rpc as unknown as (
-    fn: "admin_revenue_trend",
-    args: { p_weeks: number },
-  ) => Promise<{ data: AdminRevenueTrendRow[] | null; error: { message: string } | null }>;
-  const { data, error } = await rpc("admin_revenue_trend", { p_weeks: weeks });
+  const typedSupabase = supabase as unknown as {
+    rpc(
+      fn: "admin_revenue_trend",
+      args: { p_weeks: number },
+    ): PromiseLike<{ data: AdminRevenueTrendRow[] | null; error: { message: string } | null }>;
+  };
+  const { data, error } = await typedSupabase.rpc("admin_revenue_trend", { p_weeks: weeks });
   if (error) throw new Error(`Failed to load the revenue trend: ${error.message}`);
   return data ?? [];
 }

@@ -107,11 +107,15 @@ function toGym(row: AdminGymRow, now: Date): Gym {
 }
 
 export async function listGyms(supabase: SupabaseClient<Database>): Promise<Gym[]> {
-  const rpc = supabase.rpc as unknown as (
-    fn: "admin_gym_directory",
-  ) => Promise<{ data: AdminGymRow[] | null; error: { message: string } | null }>;
+  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
+  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
+  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
+  // comment on the same fix for the full story.
+  const typedSupabase = supabase as unknown as {
+    rpc(fn: "admin_gym_directory"): PromiseLike<{ data: AdminGymRow[] | null; error: { message: string } | null }>;
+  };
 
-  const { data, error } = await rpc("admin_gym_directory");
+  const { data, error } = await typedSupabase.rpc("admin_gym_directory");
   if (error) throw new Error(`Failed to load the gym directory: ${error.message}`);
 
   const now = new Date();

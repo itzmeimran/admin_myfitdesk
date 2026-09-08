@@ -60,10 +60,21 @@ async function resolvePlatformAdminUncached(): Promise<PlatformAdminResult> {
   // (narrow, typed) cast rather than losing type-safety on the whole
   // client. Regenerate database.types.ts once 1001 is applied and this
   // cast can go away.
-  const rpc = supabase.rpc as unknown as (
-    fn: "is_platform_admin",
-  ) => Promise<{ data: unknown; error: { message: string } | null }>;
-  const rpcResult = await rpc("is_platform_admin");
+  //
+  // The cast is applied to `supabase` itself, not to `supabase.rpc` —
+  // extracting the method into its own variable (`const rpc = supabase.rpc`)
+  // detaches it from `this`, and supabase-js's rpc() implementation reads
+  // `this.rest` internally. Called that way it throws "Cannot read
+  // properties of undefined (reading 'rest')" at runtime — a real
+  // production bug this shape caused everywhere it was used (caught via
+  // Vercel's runtime logs after deploy; tsc/eslint/build all stay green
+  // for this mistake since it's a runtime `this`-binding issue, not a type
+  // error). Casting the client and keeping `supabase.rpc(...)` as a normal
+  // method call keeps `this` bound correctly.
+  const typedSupabase = supabase as unknown as {
+    rpc(fn: "is_platform_admin"): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  };
+  const rpcResult = await typedSupabase.rpc("is_platform_admin");
 
   if (rpcResult.error) {
     return { authorized: false, reason: rpcResult.error.message };

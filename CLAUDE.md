@@ -70,6 +70,20 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 
 ---
 
+## Production incident: every RPC call was broken (2026-09-08, found and fixed same day)
+
+**Symptom:** deployed to Vercel (`admin.myfitdesk.app`), env vars set correctly, user signed in as the real platform admin, `/admin` crashed with the generic Next.js error boundary ("Something went wrong").
+
+**Root cause:** every RPC call in the app used the pattern `const rpc = supabase.rpc as unknown as (...); await rpc(...)` — extracting `.rpc` into a standalone variable **detaches it from `this`**. Called that way, supabase-js's own `rpc()` implementation throws `TypeError: Cannot read properties of undefined (reading 'rest')` at runtime, because it internally reads `this.rest`. This is a pure runtime hazard: the `as unknown as` cast is type-safe nonsense that hides it completely from `tsc`, and `eslint`/`next build` have no way to catch a `this`-binding bug either. **Every "independently re-verified" build/typecheck/lint pass earlier in this file was genuinely clean and genuinely insufficient** — none of those tools can catch this class of bug.
+
+**How it was actually found:** the user hit the live Vercel deployment, got the crash, and I asked them to paste the Vercel Runtime Logs error. That's the only way this was caught — not by any check run in this repo. **Lesson for future sessions: a "verified" real-data feature that has never been exercised through an actual authenticated `.rpc()` call over the network is not verified, no matter how many static checks pass.** The earlier `execute_sql`-based RPC verification (used throughout the Packages CRUD milestone and the read-wiring milestone) checked the SQL/RLS/business-logic correctness of each function — genuinely useful — but never once went through the actual `supabase-js` client the app uses, so it could not have caught this.
+
+**Fix:** cast `supabase` itself to a narrow extended type, keep `supabase.rpc(...)` as a normal method call (preserves `this`). Applied to all 5 affected files: `core/auth/get-platform-admin.ts`, `features/{gyms,packages,overview}/queries.ts`, `features/packages/actions.ts` (8 call sites total).
+
+**Verification this time was real**: wrote a throwaway script (`node --env-file=.env.local -e "..."`, run via Bash, not the sandboxed preview tool) that (1) reproduced the exact same error with the old pattern using the real signed-in admin session, confirming the diagnosis, then (2) confirmed the fixed pattern returns correct data for `is_platform_admin`, `admin_gym_directory` (4 rows), `admin_package_mix` (6 rows), and `admin_overview_stats` (correct jsonb shape) — all against the live database, all as the real `ikik790@gmail.com` admin account. Then `tsc`/`eslint`/`build` clean on top of that, not instead of it.
+
+---
+
 ## Milestone: Packages CRUD (2026-09-08)
 
 The first real write path. Design choice: every mutation goes through a `SECURITY DEFINER` RPC that does the table write **and** the `admin_audit_log` entry in one transaction — not a blanket RLS write policy. Concretely, `supabase/migrations/1002_admin_read_functions.sql`'s `platform_packages_admin_write` policy (added but never used) is **dropped** in `1003_admin_package_write_rpcs.sql`: once real writes exist, a blanket "any admin can write any column" policy would let a direct REST call mutate the catalogue with zero audit trail, since the audit insert only happens because the RPC body does it. Closing that gap is the actual reason this migration exists, not just "add the CRUD".

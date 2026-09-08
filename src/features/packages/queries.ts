@@ -32,9 +32,13 @@ export async function listPackages(
 ): Promise<Package[]> {
   const billingPeriod = period === "Yearly" ? "yearly" : "monthly";
 
-  const rpc = supabase.rpc as unknown as (
-    fn: "admin_package_mix",
-  ) => Promise<{ data: AdminPackageMixRow[] | null; error: { message: string } | null }>;
+  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
+  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
+  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
+  // comment on the same fix for the full story.
+  const typedSupabase = supabase as unknown as {
+    rpc(fn: "admin_package_mix"): PromiseLike<{ data: AdminPackageMixRow[] | null; error: { message: string } | null }>;
+  };
 
   const [{ data: rows, error: rowsError }, { data: mix, error: mixError }] = await Promise.all([
     supabase
@@ -44,7 +48,7 @@ export async function listPackages(
       )
       .eq("billing_period", billingPeriod)
       .order("sort_order"),
-    rpc("admin_package_mix"),
+    typedSupabase.rpc("admin_package_mix"),
   ]);
 
   if (rowsError) throw new Error(`Failed to load the package catalogue: ${rowsError.message}`);

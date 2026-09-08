@@ -24,7 +24,13 @@ export const REV_TILES: RevenueTile[] = [
   { label: "Awaiting settlement", value: "₹1,298", hint: "2 orders created, not captured" },
 ];
 
-export type InvoiceStatus = "Succeeded" | "Failed" | "Refunded";
+/**
+ * "Pending" was added for real data (not in the original design canvas):
+ * platform_payments can genuinely sit at status `'created'` — checkout
+ * started, not yet resolved — which the design's own Succeeded/Failed/
+ * Refunded vocabulary has no state for. See src/features/revenue/queries.ts.
+ */
+export type InvoiceStatus = "Succeeded" | "Failed" | "Refunded" | "Pending";
 
 export type Invoice = {
   no: string;

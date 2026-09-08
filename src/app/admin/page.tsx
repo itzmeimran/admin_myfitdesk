@@ -1,32 +1,40 @@
-import { ATTENTION, TILES, MIX, RISK, LIMITS, SIGNUPS, HEALTH, trendBars } from "@/features/overview/mock-data";
+import { HEALTH } from "@/features/overview/mock-data";
+import { getOverviewData } from "@/features/overview/queries";
+import { createClient } from "@/core/db/server-client";
 import { OverviewView } from "./overview-view";
 
 /**
- * Server Component reading the mock-data module — swapping these array
- * imports for real `src/features/overview/queries.ts` reads is the only
- * change this page needs later (see design-audit.md's Data mapping
- * section, condensed again in mock-data.ts's own docblock).
+ * Server Component reading src/features/overview/queries.ts. HEALTH (the
+ * "Billing pipeline" dark panel) is the one section still on mock data —
+ * see the TODO(needs-service-role-or-new-rpc) comment at the bottom of
+ * queries.ts for why (payment_provider_events has no admin-readable
+ * policy by design).
  *
  * The design's loading/empty/error states are gated on a canvas-authoring
- * "data state" toggle (`isLoading`/`isEmpty`/`isError`, scoped to
- * screen === "overview") that exists only to demo those states in the
- * design tool — there's no real async fetch here yet to be loading, empty
- * or erroring, so this always renders the populated view. Per
- * design-audit.md's cross-page notes, wiring real loading/empty/error
- * handling is new work beyond what the design demonstrates, for whenever
- * this page reads from Supabase instead.
+ * "data state" toggle that exists only to demo those states in the design
+ * tool — this page always renders the populated view; wiring real
+ * loading/empty/error handling for a Supabase-backed page is separate work.
  */
-export default function OverviewPage() {
+export default async function OverviewPage() {
+  const supabase = await createClient();
+  const data = await getOverviewData(supabase);
+
   return (
     <OverviewView
-      attention={ATTENTION}
-      tiles={TILES}
-      mix={MIX}
-      risk={RISK}
-      limits={LIMITS}
-      signups={SIGNUPS}
+      attention={data.attention}
+      tiles={data.tiles}
+      mix={data.mix}
+      risk={data.risk}
+      limits={data.limits}
+      signups={data.signups}
       health={HEALTH}
-      trend={trendBars()}
+      trend={data.trend}
+      gymsEnrolledCount={data.gymsEnrolledCount}
+      headerLine={data.headerLine}
+      attentionCaption={data.attentionCaption}
+      signupsCaption={data.signupsCaption}
+      trendHeaderValue={data.trendHeaderValue}
+      trendHeaderHint={data.trendHeaderHint}
     />
   );
 }

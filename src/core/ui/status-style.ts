@@ -24,6 +24,11 @@ const PILL: Record<string, PillTone> = {
   Succeeded: { backgroundColor: "var(--sand)", color: "var(--ink)" },
   Failed: { backgroundColor: "var(--accent)", color: "var(--paper)" },
   Refunded: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
+  // Real-data addition (not in the original design): a platform_payments
+  // row genuinely sitting at status 'created' — checkout started, not yet
+  // resolved. Reuses Grace's amber/accent-wash tone since both mean "in
+  // flight, not resolved yet" — see revenue/mock-data.ts's InvoiceStatus.
+  Pending: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
 };
 
 /** Falls back to the neutral "Active" tone for any status string not in the

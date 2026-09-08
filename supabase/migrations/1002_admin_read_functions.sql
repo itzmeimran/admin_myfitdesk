@@ -86,6 +86,7 @@ create or replace function app.derive_subscription_state(
 ) returns text
 language sql
 stable
+set search_path = public, pg_temp
 as $$
   select case
     when p_status = 'cancelled' then 'cancelled'

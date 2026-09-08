@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import type { Package, FormField } from "@/features/packages/mock-data";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import type { Package } from "@/features/packages/mock-data";
+import { createPackage, updatePackage, setPackageStatus, type PackageFormState } from "@/features/packages/actions";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
 import { AddIcon, CalendarIcon, CalendarRangeIcon, EditIcon, ArchiveIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
@@ -36,29 +39,63 @@ function cardStyle(pkg: Package) {
 }
 
 /**
- * Owns the Monthly/Yearly toggle and the "New package" sheet — both real
- * useState-driven client behavior per the task brief. Submitting the form
- * is a deliberate client-side no-op: there is no platform_admins-gated
- * write path yet (see supabase/migrations/1001_platform_admins.sql's
- * header — not applied), so it shows a toast saying exactly that rather
- * than pretending to save.
+ * Owns the Monthly/Yearly toggle and the New/Edit package sheet — real
+ * writes now (src/features/packages/actions.ts → the admin_* RPCs in
+ * supabase/migrations/1003_admin_package_write_rpcs.sql). Archive/Restore
+ * call setPackageStatus directly (no form needed for a single-field
+ * change); both mutation paths call router.refresh() on success so the
+ * Server Component re-fetches immediately instead of waiting for the next
+ * navigation to pick up revalidatePath's effect.
  */
 export function PackagesView({
   monthly,
   yearly,
-  formFields,
   featureChips,
   autoOpenSheet,
 }: {
   monthly: Package[];
   yearly: Package[];
-  formFields: FormField[];
   featureChips: string[];
   autoOpenSheet: boolean;
 }) {
   const [period, setPeriod] = useState<Period>("Monthly");
   const [sheetOpen, setSheetOpen] = useState(autoOpenSheet);
+  const [editing, setEditing] = useState<Package | null>(null);
+  const [archiving, setArchiving] = useState<string | null>(null);
+  const router = useRouter();
+  const toast = useToast();
+  const [isPending, startTransition] = useTransition();
   const packages = period === "Yearly" ? yearly : monthly;
+
+  function openCreate() {
+    setEditing(null);
+    setSheetOpen(true);
+  }
+
+  function openEdit(pkg: Package) {
+    setEditing(pkg);
+    setSheetOpen(true);
+  }
+
+  function closeSheet() {
+    setSheetOpen(false);
+    setEditing(null);
+  }
+
+  function handleToggleArchive(pkg: Package) {
+    const nextStatus = pkg.state === "Archived" ? "active" : "archived";
+    setArchiving(pkg.raw.id);
+    startTransition(async () => {
+      const { error } = await setPackageStatus(pkg.raw.id, nextStatus);
+      setArchiving(null);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success(nextStatus === "archived" ? `${pkg.name} archived.` : `${pkg.name} restored.`);
+      router.refresh();
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -91,7 +128,7 @@ export function PackagesView({
         </div>
         <button
           type="button"
-          onClick={() => setSheetOpen(true)}
+          onClick={openCreate}
           className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
         >
           <AddIcon size={ICON_SIZE.button} aria-hidden />
@@ -102,6 +139,7 @@ export function PackagesView({
       <div className="flex flex-wrap gap-3">
         {packages.map((pkg) => {
           const s = cardStyle(pkg);
+          const isArchivingThis = isPending && archiving === pkg.raw.id;
           return (
             <div
               key={pkg.code}
@@ -161,9 +199,8 @@ export function PackagesView({
               <div className="mt-auto flex gap-2 border-t pt-3" style={{ borderColor: s.rule }}>
                 <button
                   type="button"
-                  disabled
-                  title="Not implemented yet"
-                  className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 border-[1.5px] text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-70"
+                  onClick={() => openEdit(pkg)}
+                  className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 border-[1.5px] text-[11px] font-bold"
                   style={{ borderColor: s.rule }}
                 >
                   <EditIcon size={13} aria-hidden />
@@ -171,13 +208,13 @@ export function PackagesView({
                 </button>
                 <button
                   type="button"
-                  disabled
-                  title="Not implemented yet"
-                  className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 border-[1.5px] text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-70"
+                  disabled={isArchivingThis}
+                  onClick={() => handleToggleArchive(pkg)}
+                  className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 border-[1.5px] text-[11px] font-bold disabled:cursor-wait disabled:opacity-60"
                   style={{ borderColor: s.rule }}
                 >
                   {pkg.secondary === "Restore" ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
-                  {pkg.secondary}
+                  {isArchivingThis ? "Working…" : pkg.secondary}
                 </button>
               </div>
             </div>
@@ -190,74 +227,219 @@ export function PackagesView({
         purchases but never deletes it — past invoices still reference it.
       </p>
 
-      <NewPackageSheet
+      <PackageSheet
         open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        formFields={formFields}
+        onClose={closeSheet}
         featureChips={featureChips}
+        editing={editing}
+        onSaved={() => {
+          closeSheet();
+          router.refresh();
+        }}
       />
     </div>
   );
 }
 
-function NewPackageSheet({
+const initialFormState: PackageFormState = { error: null };
+
+function PackageSheet({
   open,
   onClose,
-  formFields,
   featureChips,
+  editing,
+  onSaved,
 }: {
   open: boolean;
   onClose: () => void;
-  formFields: FormField[];
   featureChips: string[];
+  editing: Package | null;
+  onSaved: () => void;
 }) {
   const toast = useToast();
+  const action = editing ? updatePackage : createPackage;
+  const [state, formAction, isPending] = useActionState(action, initialFormState);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    toast.error("Not wired to Supabase yet — pending the platform_admins migration");
-    onClose();
+  // Surface the result as a toast, then close+refresh only on success —
+  // useActionState re-runs this component with the new state on every
+  // submit, so this fires exactly once per completed action.
+  const [lastHandledState, setLastHandledState] = useState(initialFormState);
+  if (state !== lastHandledState) {
+    setLastHandledState(state);
+    if (state.error) {
+      toast.error(state.error);
+    } else if (state !== initialFormState) {
+      toast.success(editing ? "Package updated." : "Package published.");
+      onSaved();
+    }
   }
 
+  const isEditing = !!editing;
+  const raw = editing?.raw;
+
   return (
-    <Sheet open={open} onClose={onClose} eyebrow="Writes one row to platform_packages" title="New package">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      eyebrow={isEditing ? "Updates one row in platform_packages" : "Writes one row to platform_packages"}
+      title={isEditing ? `Edit ${editing?.name}` : "New package"}
+    >
+      <form action={formAction} className="flex flex-col gap-3.5">
+        {isEditing && raw ? <input type="hidden" name="id" value={raw.id} /> : null}
         <div className="flex flex-wrap gap-3">
-          {formFields.map((f) => (
-            <label key={f.label} className="flex flex-col gap-1" style={{ flexBasis: f.basis, flexGrow: f.basis === "100%" ? 1 : 0 }}>
-              <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
-                {f.label}
-                {f.required ? <span className="text-accent"> *</span> : null}
-              </span>
-              {f.inputType === "select" ? (
-                <select
-                  defaultValue={f.value}
-                  required={f.required}
-                  className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-                >
-                  <option value="Monthly">Monthly</option>
-                  <option value="Yearly">Yearly</option>
-                </select>
-              ) : f.inputType === "textarea" ? (
-                <textarea
-                  defaultValue={f.value}
-                  placeholder={f.placeholder}
-                  required={f.required}
-                  rows={2}
-                  className="w-full resize-none border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-                />
-              ) : (
-                <input
-                  type={f.inputType}
-                  defaultValue={f.value}
-                  placeholder={f.placeholder}
-                  required={f.required}
-                  className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-                />
-              )}
-              <span className="text-[10.5px] text-mute3">{f.hint}</span>
-            </label>
-          ))}
+          <label className="flex flex-col gap-1" style={{ flexBasis: 220 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
+              Display name<span className="text-accent"> *</span>
+            </span>
+            <input
+              type="text"
+              name="name"
+              defaultValue={isEditing ? editing?.name : ""}
+              placeholder="Shown to gym owners"
+              required
+              className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">platform_packages.name</span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 220 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Code</span>
+            {isEditing ? (
+              <input
+                type="text"
+                defaultValue={editing?.code}
+                disabled
+                className="w-full border-[1.5px] border-line bg-sand px-2.5 py-2 text-[13px] text-mute outline-none"
+              />
+            ) : (
+              <input
+                type="text"
+                name="code"
+                placeholder="tier_period"
+                required
+                className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+              />
+            )}
+            <span className="text-[10.5px] text-mute3">
+              {isEditing ? "Never changes once a package exists." : "Stable machine name, unique, never reused"}
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
+              Price (₹)<span className="text-accent"> *</span>
+            </span>
+            <input
+              type="number"
+              name="price"
+              min="0"
+              step="1"
+              defaultValue={isEditing && raw ? String(raw.priceMinor / 100) : ""}
+              placeholder="549"
+              required
+              className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">Stored as price_minor — 549 becomes 54900</span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 170 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
+              Billing period<span className="text-accent"> *</span>
+            </span>
+            {isEditing ? (
+              <input
+                type="text"
+                defaultValue={editing?.per === "/ year" ? "Yearly" : "Monthly"}
+                disabled
+                className="w-full border-[1.5px] border-line bg-sand px-2.5 py-2 text-[13px] text-mute outline-none"
+              />
+            ) : (
+              <select
+                name="billingPeriod"
+                defaultValue="Monthly"
+                required
+                className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+              >
+                <option value="Monthly">Monthly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
+            )}
+            <span className="text-[10.5px] text-mute3">
+              {isEditing ? "Create a new package to change this." : "Yearly rows are priced at 10× monthly today"}
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
+              Duration (days)<span className="text-accent"> *</span>
+            </span>
+            <input
+              type="number"
+              name="durationDays"
+              min="1"
+              step="1"
+              defaultValue={isEditing && raw ? String(raw.durationDays) : "30"}
+              required
+              className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">Explicit, so a 3-for-2 offer is just a row</span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Max branches</span>
+            <input
+              type="number"
+              name="maxBranches"
+              min="1"
+              step="1"
+              defaultValue={isEditing && raw ? raw.maxBranches ?? "" : ""}
+              placeholder="Blank = unlimited"
+              className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">Enforced on branch creation</span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Max members</span>
+            <input
+              type="number"
+              name="maxMembers"
+              min="1"
+              step="1"
+              defaultValue={isEditing && raw ? raw.maxMembers ?? "" : ""}
+              placeholder="Blank = unlimited"
+              className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">Blocks new members at the cap</span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Max staff</span>
+            <input
+              type="number"
+              name="maxStaff"
+              min="1"
+              step="1"
+              defaultValue={isEditing && raw ? raw.maxStaff ?? "" : ""}
+              placeholder="Blank = unlimited"
+              className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">Counts staff and trainer logins</span>
+          </label>
+
+          <label className="flex flex-col gap-1" style={{ flexBasis: "100%", flexGrow: 1 }}>
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Description</span>
+            <textarea
+              name="description"
+              defaultValue={isEditing ? raw?.description : ""}
+              placeholder="One sentence"
+              rows={2}
+              className="w-full resize-none border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <span className="text-[10.5px] text-mute3">
+              Shown under the tier name on the owner&apos;s Subscription screen
+            </span>
+          </label>
         </div>
 
         <div className="flex flex-col gap-1.5 border-t border-line pt-3">
@@ -282,8 +464,9 @@ function NewPackageSheet({
         </div>
 
         <p className="border-t border-line pt-3 text-[11.5px] leading-relaxed text-mute">
-          Saving publishes this tier to every gym&apos;s Subscription screen immediately. Existing
-          subscriptions are untouched — a gym only moves on its next renewal.
+          {isEditing
+            ? "Updates the tier for every gym on it immediately — a gym's already-agreed price is untouched, only the catalogue entry changes."
+            : "Saving publishes this tier to every gym's Subscription screen immediately. Existing subscriptions are untouched — a gym only moves on its next renewal."}
         </p>
 
         <div className="flex gap-2">
@@ -296,10 +479,11 @@ function NewPackageSheet({
           </button>
           <button
             type="submit"
-            className="press-scale flex min-h-[44px] flex-1 items-center justify-center gap-2 bg-hi text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
+            disabled={isPending}
+            className="press-scale flex min-h-[44px] flex-1 items-center justify-center gap-2 bg-hi text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-wait disabled:opacity-70"
           >
             <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
-            Publish package
+            {isPending ? "Saving…" : isEditing ? "Save changes" : "Publish package"}
           </button>
         </div>
       </form>

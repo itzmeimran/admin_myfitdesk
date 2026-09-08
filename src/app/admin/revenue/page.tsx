@@ -1,4 +1,5 @@
-import { getRevenueTiles, listInvoices } from "@/features/revenue/mock-data";
+import { getRevenueTiles, listInvoices, getInvoiceCountThisMonth } from "@/features/revenue/queries";
+import { createClient } from "@/core/db/server-client";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { ExportIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
@@ -6,19 +7,24 @@ import { ICON_SIZE } from "@/core/ui/icon-size";
 /**
  * Entirely a Server Component — no interactive state on this page beyond
  * one disabled button, so unlike Gyms/Packages there's no client wrapper.
- * Swapping getRevenueTiles()/listInvoices() for real
- * src/features/revenue/queries.ts reads is the only change this page
- * needs later (see design-audit.md's Data mapping section).
+ * Reads src/features/revenue/queries.ts (platform_payments) instead of the
+ * old mock-data.ts module.
  */
 export default async function RevenuePage() {
-  const [tiles, invoices] = await Promise.all([getRevenueTiles(), listInvoices()]);
+  const supabase = await createClient();
+  const [tiles, invoices, invoiceCount] = await Promise.all([
+    getRevenueTiles(supabase),
+    listInvoices(supabase),
+    getInvoiceCountThisMonth(supabase),
+  ]);
+  const monthLabel = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
         <div className="mr-auto flex min-w-0 flex-col gap-1">
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Platform revenue</h1>
-          <p className="text-[12.5px] text-mute">Money gyms paid MyFitDesk · September 2026 · MFD invoice series</p>
+          <p className="text-[12.5px] text-mute">Money gyms paid MyFitDesk · {monthLabel} · MFD invoice series</p>
         </div>
         <button
           type="button"
@@ -63,7 +69,12 @@ export default async function RevenuePage() {
       <div className="border-[1.5px] border-ink bg-paper">
         <div className="flex items-baseline gap-2.5 border-b-[1.5px] border-ink px-4 py-3">
           <h2 className="font-display text-[16px] tracking-[-0.015em]">Invoices</h2>
-          <span className="text-[11.5px] text-mute">Latest 6 of 214 this month</span>
+          {/* invoices is the latest N overall (listInvoices has no month
+              filter, per the task brief); invoiceCount is scoped to this
+              calendar month. They can diverge if fewer than `invoices.length`
+              payments happened this month — acceptable for this read-only
+              pass, not worth a second, differently-scoped query. */}
+          <span className="text-[11.5px] text-mute">Latest {invoices.length} of {invoiceCount} this month</span>
         </div>
 
         <div className="hidden overflow-x-auto md:block">

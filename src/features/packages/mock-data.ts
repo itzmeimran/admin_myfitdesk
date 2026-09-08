@@ -18,6 +18,23 @@
 export type PackageCap = { k: string; v: string };
 export type PackageState = "Active" | "Archived";
 
+/** Raw, editable values behind the formatted display fields — populated by
+ * queries.ts (real data), needed so the Edit sheet can pre-fill real
+ * numbers instead of re-parsing display strings like "₹649" or "Unlimited"
+ * back into a form (see features/packages/actions.ts). Mock rows below
+ * carry a synthetic `raw` too, purely so this stays one shape — nothing in
+ * production ever edits a mock row. */
+export type PackageRaw = {
+  id: string;
+  description: string;
+  priceMinor: number;
+  currency: string;
+  durationDays: number;
+  maxBranches: number | null;
+  maxMembers: number | null;
+  maxStaff: number | null;
+};
+
 export type Package = {
   name: string;
   code: string;
@@ -31,6 +48,7 @@ export type Package = {
   caps: PackageCap[];
   featured?: boolean;
   secondary: "Archive" | "Restore";
+  raw: PackageRaw;
 };
 
 export const PACKAGES_M: Package[] = [
@@ -50,6 +68,7 @@ export const PACKAGES_M: Package[] = [
       { k: "Staff logins", v: "3" },
     ],
     secondary: "Archive",
+    raw: { id: "starter_monthly", description: "For a single-location gym just getting started.", priceMinor: 44900, currency: "INR", durationDays: 30, maxBranches: 1, maxMembers: 300, maxStaff: 3 },
   },
   {
     name: "Growth",
@@ -68,6 +87,7 @@ export const PACKAGES_M: Package[] = [
     ],
     featured: true,
     secondary: "Archive",
+    raw: { id: "growth_monthly", description: "For a two-location gym with a small team.", priceMinor: 64900, currency: "INR", durationDays: 30, maxBranches: 3, maxMembers: 500, maxStaff: 8 },
   },
   {
     name: "Pro",
@@ -85,6 +105,7 @@ export const PACKAGES_M: Package[] = [
       { k: "Staff logins", v: "Unlimited" },
     ],
     secondary: "Archive",
+    raw: { id: "pro_monthly", description: "For a multi-location gym with no caps to manage.", priceMinor: 84900, currency: "INR", durationDays: 30, maxBranches: null, maxMembers: null, maxStaff: null },
   },
 ];
 
@@ -105,6 +126,7 @@ export const PACKAGES_Y: Package[] = [
       { k: "Staff logins", v: "3" },
     ],
     secondary: "Archive",
+    raw: { id: "starter_yearly", description: "For a single-location gym just getting started.", priceMinor: 449000, currency: "INR", durationDays: 365, maxBranches: 1, maxMembers: 300, maxStaff: 3 },
   },
   {
     name: "Growth",
@@ -123,6 +145,7 @@ export const PACKAGES_Y: Package[] = [
     ],
     featured: true,
     secondary: "Archive",
+    raw: { id: "growth_yearly", description: "For a two-location gym with a small team.", priceMinor: 649000, currency: "INR", durationDays: 365, maxBranches: 3, maxMembers: 500, maxStaff: 8 },
   },
   {
     name: "Pro",
@@ -140,6 +163,7 @@ export const PACKAGES_Y: Package[] = [
       { k: "Staff logins", v: "Unlimited" },
     ],
     secondary: "Archive",
+    raw: { id: "pro_yearly", description: "For a multi-location gym with no caps to manage.", priceMinor: 849000, currency: "INR", durationDays: 365, maxBranches: null, maxMembers: null, maxStaff: null },
   },
   {
     name: "Pro annual (legacy)",
@@ -156,6 +180,7 @@ export const PACKAGES_Y: Package[] = [
       { k: "Members", v: "Unlimited" },
       { k: "Staff logins", v: "Unlimited" },
     ],
+    raw: { id: "pro_yearly_legacy", description: "Grandfathered pricing — no longer sold.", priceMinor: 599000, currency: "INR", durationDays: 365, maxBranches: null, maxMembers: null, maxStaff: null },
     secondary: "Restore",
   },
 ];

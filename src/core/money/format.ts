@@ -30,3 +30,17 @@ export function formatMinor(minor: number | bigint, currency = "INR"): string {
     maximumFractionDigits: EXPONENT,
   }).format(Number(minor) / 10 ** EXPONENT);
 }
+
+/** Whole-rupee display, no paise — matches the design's own money strings
+ * ("₹649", "₹27,389"), which never show a fractional amount. New addition
+ * (not part of the FitDeskApp-verbatim block above): every admin-screen
+ * amount in the design is whole rupees, and this product's own pricing
+ * (platform_packages.price_minor) is always a round-rupee figure in
+ * practice, so this is the display formatter these screens actually need. */
+export function formatMinorWhole(minor: number | bigint, currency = "INR"): string {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(Number(minor) / 10 ** EXPONENT);
+}

@@ -62,6 +62,12 @@ export function OverviewView({
   signups,
   health,
   trend,
+  gymsEnrolledCount,
+  headerLine,
+  attentionCaption,
+  signupsCaption,
+  trendHeaderValue,
+  trendHeaderHint,
 }: {
   attention: AttentionCell[];
   tiles: KpiTile[];
@@ -71,6 +77,17 @@ export function OverviewView({
   signups: SignupRow[];
   health: HealthRow[];
   trend: TrendBar[];
+  /** Real-data additions — these numbers used to be typed directly into
+   * this file's JSX (mock values like "128 gyms enrolled"), so wiring the
+   * rest of the page to real data left them stale unless they came in as
+   * props too (src/features/overview/queries.ts computes each of these
+   * from the same admin_overview_stats() call that backs `tiles`). */
+  gymsEnrolledCount: number;
+  headerLine: string;
+  attentionCaption: string;
+  signupsCaption: string;
+  trendHeaderValue: string;
+  trendHeaderHint: string;
 }) {
   // TODO(real-data): the period toggle doesn't re-query anything yet — all
   // mock arrays represent "This month" only. Wiring Quarter/Year means
@@ -83,7 +100,7 @@ export function OverviewView({
       <div className="flex flex-wrap items-end gap-3">
         <div className="mr-auto flex min-w-0 flex-col gap-1">
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Platform overview</h1>
-          <p className="text-[12.5px] text-mute">Monday, 7 September 2026 · 128 gyms enrolled · Asia/Kolkata</p>
+          <p className="text-[12.5px] text-mute">{headerLine}</p>
         </div>
         <div className="flex" role="group" aria-label="Period">
           {PERIODS.map((p) => {
@@ -121,7 +138,7 @@ export function OverviewView({
           <h2 id="mfd-attn" className="text-[11px] font-bold uppercase tracking-[0.14em]">
             Needs attention today
           </h2>
-          <span className="ml-auto text-[11.5px] text-mute3">18 gyms · ₹4,592 at risk</span>
+          <span className="ml-auto text-[11.5px] text-mute3">{attentionCaption}</span>
         </div>
         <div className="flex flex-wrap">
           {attention.map((a, i) => {
@@ -188,8 +205,8 @@ export function OverviewView({
                   Recurring revenue · last 12 weeks
                 </h2>
                 <span className="flex items-baseline gap-2">
-                  <span className="font-display text-[26px] tracking-[-0.02em]">₹75,472</span>
-                  <span className="text-[12px] font-bold">+₹4,190 vs August</span>
+                  <span className="font-display text-[26px] tracking-[-0.02em]">{trendHeaderValue}</span>
+                  <span className="text-[12px] font-bold">{trendHeaderHint}</span>
                 </span>
               </div>
               <span className="text-[11.5px] text-mute2">Yearly packages normalised to a monthly figure</span>
@@ -215,9 +232,16 @@ export function OverviewView({
                 </span>
               ))}
             </div>
+            {/* TODO(missing-narrative): the mock's per-week movement
+                sentence ("Growth came from 6 new gyms and 2 Starter→Growth
+                upgrades...") isn't derivable from admin_revenue_trend,
+                which returns a revenue total per week, not per-subscription
+                events — would need real week-over-week subscription-change
+                tracking. Left as a generic, non-fabricated note instead of
+                inventing specifics the data can't support (task brief). */}
             <p className="mt-3 text-[11.5px] leading-relaxed text-mute2">
-              Week of 1 Sep is in progress. Growth came from 6 new gyms and 2 Starter→Growth
-              upgrades; one Pro gym cancelled at period end.
+              The most recent week is still in progress — its bar will keep rising as more
+              invoices settle.
             </p>
           </section>
 
@@ -251,10 +275,15 @@ export function OverviewView({
                 </div>
               ))}
             </div>
-            <p className="text-[11.5px] leading-relaxed text-mute2">
-              2 gyms remain on the archived <span className="font-bold text-mute">Pro annual (legacy)</span> tier —
-              they keep it until their period ends.
-            </p>
+            {/* TODO(missing-narrative): the mock's "2 gyms remain on the
+                archived Pro annual (legacy) tier" line named a specific
+                archived tier by name. admin_package_mix() doesn't return
+                each package's `status` (active/archived), so this section
+                can't cheaply tell which of the grouped-by-name rows above
+                are archived without a second platform_packages fetch —
+                dropped rather than left stale/fabricated; the Packages
+                page itself (src/features/packages/queries.ts) is the
+                source of truth for archived tiers. */}
           </section>
 
           <section aria-labelledby="mfd-risk" className="border-[1.5px] border-line bg-paper">
@@ -264,7 +293,7 @@ export function OverviewView({
               </h2>
               <Link href="/admin/gyms" className="ml-auto flex items-center gap-1.5 text-[11.5px] font-bold text-accent">
                 <GymsIcon size={14} aria-hidden />
-                All 128 gyms
+                All {gymsEnrolledCount} gyms
               </Link>
             </div>
 
@@ -401,7 +430,7 @@ export function OverviewView({
               <h2 id="mfd-signups" className="text-[11px] font-bold uppercase tracking-[0.14em] text-mute">
                 New this week
               </h2>
-              <span className="ml-auto text-[11.5px] text-mute2">6 in September</span>
+              <span className="ml-auto text-[11.5px] text-mute2">{signupsCaption}</span>
             </div>
             {signups.map((s) => (
               <div key={s.gym} className="flex items-center gap-2.5 border-t border-line pt-2.5">

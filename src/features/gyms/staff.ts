@@ -4,7 +4,7 @@ import type { Database } from "@/core/db/database.types";
 import { formatShortDate } from "@/core/dates/format";
 
 /** Users & Staff tab (task brief §6) — `admin_gym_staff()` (supabase/
- * migrations/1006_admin_gym_detail.sql). Real PII per the product owner's
+ * migrations/1009_admin_gym_detail.sql). Real PII per the product owner's
  * explicit reversal of the platform-admin PII boundary for this feature
  * (see that migration's header). No `last_login` field: nothing in this
  * schema tracks it (neither staff_memberships nor an auth.users read is

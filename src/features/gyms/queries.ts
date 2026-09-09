@@ -245,7 +245,7 @@ type AdminGymsListRow = AdminGymRow & { owner_email: string | null; suspended_at
 
 /**
  * Server-side search + filter + sort + pagination for the Gyms table —
- * reads `admin_gyms_list()` (supabase/migrations/1006_admin_gym_detail.sql),
+ * reads `admin_gyms_list()` (supabase/migrations/1009_admin_gym_detail.sql),
  * which does the filtering, the allowlisted ORDER BY, and the LIMIT/OFFSET
  * in SQL and returns the filtered total via `count(*) over()` in the same
  * round trip. This is the real replacement for the old client-side

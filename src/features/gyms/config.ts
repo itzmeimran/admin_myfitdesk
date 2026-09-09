@@ -4,7 +4,7 @@ import type { Database } from "@/core/db/database.types";
 
 /** Settings tab's "Configuration" section (task brief §10) — connection
  * *status* only, never a key or secret. Reads `admin_gym_configuration()`
- * (supabase/migrations/1006_admin_gym_detail.sql), a curated SECURITY
+ * (supabase/migrations/1009_admin_gym_detail.sql), a curated SECURITY
  * DEFINER function, rather than a blanket RLS SELECT policy on
  * payment_gateway_integrations/whatsapp_integrations/notification_preferences
  * — see that migration's header for why a curated RPC beats a blanket

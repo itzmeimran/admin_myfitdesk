@@ -5,7 +5,7 @@ import type { GymStatus } from "./mock-data";
 
 /**
  * Gym Detail page (Platform Admin → Gyms → [Gym Name]) — reads
- * `admin_gym_detail()` (supabase/migrations/1006_admin_gym_detail.sql), one
+ * `admin_gym_detail()` (supabase/migrations/1009_admin_gym_detail.sql), one
  * jsonb round trip carrying the organization record, its owner, its
  * subscription, usage vs caps, lifetime platform revenue, and its plan's
  * feature list. Every tab under `/admin/gyms/[id]/*` reads this once (via

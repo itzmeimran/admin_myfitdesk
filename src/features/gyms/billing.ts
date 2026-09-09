@@ -7,7 +7,7 @@ import type { InvoiceStatus } from "../revenue/mock-data";
 
 /** Subscription & Billing tab (task brief §4) — platform_payments scoped to
  * one organization, via `admin_gym_billing_history()` (supabase/migrations/
- * 1006_admin_gym_detail.sql). Same status vocabulary as the Revenue page
+ * 1009_admin_gym_detail.sql). Same status vocabulary as the Revenue page
  * (revenue/queries.ts's STATUS_MAP) — platform_payments.status is a 4-value
  * CHECK constraint the generated types can't narrow, hence the same
  * `as keyof typeof STATUS_MAP` cast used there. */

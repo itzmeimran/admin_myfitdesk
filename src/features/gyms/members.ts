@@ -4,7 +4,7 @@ import type { Database } from "@/core/db/database.types";
 import { formatShortDate } from "@/core/dates/format";
 
 /** Members tab (task brief §7) — `admin_gym_members()` (supabase/
- * migrations/1006_admin_gym_detail.sql). Real PII per the product owner's
+ * migrations/1009_admin_gym_detail.sql). Real PII per the product owner's
  * explicit reversal of the platform-admin PII boundary for this feature. */
 export type MemberRow = {
   id: string;

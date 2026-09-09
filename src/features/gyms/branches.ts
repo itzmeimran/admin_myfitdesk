@@ -4,7 +4,7 @@ import type { Database } from "@/core/db/database.types";
 import { formatShortDate } from "@/core/dates/format";
 
 /** Branches tab (task brief §5) — `admin_gym_branches()` (supabase/
- * migrations/1006_admin_gym_detail.sql). "Status" is the branch's own
+ * migrations/1009_admin_gym_detail.sql). "Status" is the branch's own
  * `branches.status` column (already app-defined, e.g. active/archived) —
  * not invented here. */
 export type BranchRow = {

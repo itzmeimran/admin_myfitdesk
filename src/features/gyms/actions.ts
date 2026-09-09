@@ -68,7 +68,7 @@ export async function restoreSubscription(organizationId: string): Promise<Actio
 }
 
 /**
- * Hard-suspend (supabase/migrations/1006_admin_gym_detail.sql) — a new,
+ * Hard-suspend (supabase/migrations/1009_admin_gym_detail.sql) — a new,
  * separate concept from the subscription lifecycle above: it cuts a gym off
  * independent of billing state, via `organizations.suspended_at`, not
  * `organization_subscriptions.status`. See that migration's header for the
@@ -118,7 +118,7 @@ export type ProfileFormState = { error: string | null; success?: boolean };
 
 /**
  * Settings tab's "Edit gym" form (task brief §2/§10) —
- * `admin_update_organization_profile()` (supabase/migrations/1006_admin_
+ * `admin_update_organization_profile()` (supabase/migrations/1009_admin_
  * gym_detail.sql). Never touches secrets (payment/WhatsApp integration
  * tables aren't part of this RPC at all) — see that RPC's own comment.
  */

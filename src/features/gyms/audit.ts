@@ -4,7 +4,7 @@ import type { Database } from "@/core/db/database.types";
 import { formatShortDate } from "@/core/dates/format";
 
 /** Activity/Audit tab (task brief §9) — `admin_gym_audit_log()` (supabase/
- * migrations/1006_admin_gym_detail.sql), scoped to admin_audit_log rows
+ * migrations/1009_admin_gym_detail.sql), scoped to admin_audit_log rows
  * targeting this one organization. Every row already exists (this tab adds
  * no new writer) — subscription changes (1004), suspend/reactivate and
  * profile edits (1006) all insert here in the same transaction as the

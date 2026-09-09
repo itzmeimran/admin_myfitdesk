@@ -32,6 +32,15 @@ const PILL: Record<string, PillTone> = {
   // resolved. Reuses Grace's amber/accent-wash tone since both mean "in
   // flight, not resolved yet" — see revenue/mock-data.ts's InvoiceStatus.
   Pending: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
+  // Gym Detail additions (this app's own hard-suspend concept, and the
+  // Branches/Staff/Members tabs' own small status vocabularies) — kept in
+  // the same shared map so every pill across the app, list or detail page,
+  // reads consistently rather than each tab inventing its own tone.
+  Suspended: { backgroundColor: "var(--accent)", color: "var(--paper)" },
+  "Pending removal": { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
+  Expired: { backgroundColor: "var(--accent)", color: "var(--paper)" },
+  "Expiring soon": { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
+  "No plan": { backgroundColor: "var(--sand)", color: "var(--mute)" },
 };
 
 /** Falls back to the neutral "Active" tone for any status string not in the

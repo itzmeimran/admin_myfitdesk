@@ -80,6 +80,7 @@ export {
   LuSlidersHorizontal as ManageIcon,
   LuClock as TrialsIcon,
   LuLock as ReadOnlyIcon,
+  LuBan as SuspendIcon,
 
   // Period toggles
   LuCalendar as CalendarIcon,

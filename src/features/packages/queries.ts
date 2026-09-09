@@ -13,8 +13,8 @@ import type { Package, PackageCap, PackageState } from "./mock-data";
  * `public.admin_package_mix()` (supabase/migrations/1002_admin_read_
  * functions.sql) for gym_count/mrr_minor per tier.
  *
- * `database.types.ts` predates admin_package_mix(), hence the typed cast
- * below — same pattern as src/features/gyms/queries.ts.
+ * `billing_period` narrows the generated `string` return type back to its
+ * actual value set — same pattern as src/features/gyms/queries.ts.
  */
 type AdminPackageMixRow = {
   package_id: string;
@@ -32,14 +32,6 @@ export async function listPackages(
 ): Promise<Package[]> {
   const billingPeriod = period === "Yearly" ? "yearly" : "monthly";
 
-  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
-  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
-  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
-  // comment on the same fix for the full story.
-  const typedSupabase = supabase as unknown as {
-    rpc(fn: "admin_package_mix"): PromiseLike<{ data: AdminPackageMixRow[] | null; error: { message: string } | null }>;
-  };
-
   const [{ data: rows, error: rowsError }, { data: mix, error: mixError }] = await Promise.all([
     supabase
       .from("platform_packages")
@@ -48,13 +40,13 @@ export async function listPackages(
       )
       .eq("billing_period", billingPeriod)
       .order("sort_order"),
-    typedSupabase.rpc("admin_package_mix"),
+    supabase.rpc("admin_package_mix"),
   ]);
 
   if (rowsError) throw new Error(`Failed to load the package catalogue: ${rowsError.message}`);
   if (mixError) throw new Error(`Failed to load the package mix: ${mixError.message}`);
 
-  const mixRows = mix ?? [];
+  const mixRows = (mix ?? []) as AdminPackageMixRow[];
   const mixById = new Map(mixRows.map((m) => [m.package_id, m]));
   // Share is of platform recurring revenue as a WHOLE — the sum across
   // every package_mix row (both billing periods), not just this period's

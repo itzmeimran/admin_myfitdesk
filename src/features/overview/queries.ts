@@ -13,9 +13,7 @@ import type { AttentionCell, KpiTile, MixRow, RiskRow, LimitRow, SignupRow, Tren
  * bottom of this file. overview-view.tsx also gained a handful of new props
  * for headline numbers that were hardcoded directly in its JSX (gyms-
  * enrolled count, the attention-band caption, etc.) rather than passed as
- * props — see that file's diff. Every RPC call below uses the same typed-
- * cast pattern as src/features/gyms/queries.ts, since database.types.ts
- * predates all of supabase/migrations/1002_admin_read_functions.sql.
+ * props — see that file's diff.
  */
 
 type OverviewStats = {
@@ -125,24 +123,7 @@ async function fetchOverviewStats(
   prevStart: Date,
   prevEnd: Date,
 ): Promise<OverviewStats> {
-  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
-  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
-  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
-  // comment on the same fix for the full story — this file had all 4 of
-  // its RPC calls written the broken way originally.
-  const typedSupabase = supabase as unknown as {
-    rpc(
-      fn: "admin_overview_stats",
-      args: {
-        p_period_start: string;
-        p_period_end: string;
-        p_prev_start: string;
-        p_prev_end: string;
-      },
-    ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
-  };
-
-  const { data, error } = await typedSupabase.rpc("admin_overview_stats", {
+  const { data, error } = await supabase.rpc("admin_overview_stats", {
     p_period_start: start.toISOString(),
     p_period_end: end.toISOString(),
     p_prev_start: prevStart.toISOString(),
@@ -165,42 +146,27 @@ async function fetchOverviewStats(
 }
 
 async function fetchPackageMix(supabase: SupabaseClient<Database>): Promise<AdminPackageMixRow[]> {
-  const typedSupabase = supabase as unknown as {
-    rpc(fn: "admin_package_mix"): PromiseLike<{ data: AdminPackageMixRow[] | null; error: { message: string } | null }>;
-  };
-  const { data, error } = await typedSupabase.rpc("admin_package_mix");
+  const { data, error } = await supabase.rpc("admin_package_mix");
   if (error) throw new Error(`Failed to load package mix: ${error.message}`);
-  return data ?? [];
+  return (data ?? []) as AdminPackageMixRow[];
 }
 
 async function fetchGymsNearCap(
   supabase: SupabaseClient<Database>,
   limit: number,
 ): Promise<AdminGymsNearCapRow[]> {
-  const typedSupabase = supabase as unknown as {
-    rpc(
-      fn: "admin_gyms_near_cap",
-      args: { p_limit: number },
-    ): PromiseLike<{ data: AdminGymsNearCapRow[] | null; error: { message: string } | null }>;
-  };
-  const { data, error } = await typedSupabase.rpc("admin_gyms_near_cap", { p_limit: limit });
+  const { data, error } = await supabase.rpc("admin_gyms_near_cap", { p_limit: limit });
   if (error) throw new Error(`Failed to load gyms near their package caps: ${error.message}`);
-  return data ?? [];
+  return (data ?? []) as AdminGymsNearCapRow[];
 }
 
 async function fetchRevenueTrend(
   supabase: SupabaseClient<Database>,
   weeks: number,
 ): Promise<AdminRevenueTrendRow[]> {
-  const typedSupabase = supabase as unknown as {
-    rpc(
-      fn: "admin_revenue_trend",
-      args: { p_weeks: number },
-    ): PromiseLike<{ data: AdminRevenueTrendRow[] | null; error: { message: string } | null }>;
-  };
-  const { data, error } = await typedSupabase.rpc("admin_revenue_trend", { p_weeks: weeks });
+  const { data, error } = await supabase.rpc("admin_revenue_trend", { p_weeks: weeks });
   if (error) throw new Error(`Failed to load the revenue trend: ${error.message}`);
-  return data ?? [];
+  return (data ?? []) as AdminRevenueTrendRow[];
 }
 
 function buildTiles(stats: OverviewStats, monthName: string): KpiTile[] {

@@ -16,16 +16,16 @@ import type { Gym, GymStatus } from "./mock-data";
  * access to another gym's `members` table (see 1002's header comment on
  * the platform-plane/tenant-plane boundary this app draws).
  *
- * `database.types.ts` predates this RPC (same reason `get-platform-admin.ts`
- * casts around `is_platform_admin` — see that file's comment), hence the
- * typed cast below rather than `supabase.rpc("admin_gym_directory")`
- * directly.
+ * The generated `admin_gym_directory` return type widens several columns to
+ * plain `string`/`number` (Postgres text/int, no narrower codegen), so this
+ * narrows them back to the actual value sets the function guarantees.
  */
 type AdminGymRow = {
   organization_id: string;
   name: string;
   owner_name: string | null;
   city: string | null;
+  package_id: string | null;
   package_name: string | null;
   package_code: string | null;
   billing_period: "monthly" | "yearly" | null;
@@ -103,21 +103,46 @@ function toGym(row: AdminGymRow, now: Date): Gym {
     staff: String(row.staff_count),
     renews: formatRenews(row, now),
     ltv: formatMinorWhole(row.lifetime_paid_minor, row.currency ?? "INR"),
+    organizationId: row.organization_id,
+    packageId: row.package_id,
   };
 }
 
 export async function listGyms(supabase: SupabaseClient<Database>): Promise<Gym[]> {
-  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
-  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
-  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
-  // comment on the same fix for the full story.
-  const typedSupabase = supabase as unknown as {
-    rpc(fn: "admin_gym_directory"): PromiseLike<{ data: AdminGymRow[] | null; error: { message: string } | null }>;
-  };
-
-  const { data, error } = await typedSupabase.rpc("admin_gym_directory");
+  const { data, error } = await supabase.rpc("admin_gym_directory");
   if (error) throw new Error(`Failed to load the gym directory: ${error.message}`);
 
   const now = new Date();
-  return (data ?? []).map((row) => toGym(row, now));
+  return ((data ?? []) as AdminGymRow[]).map((row) => toGym(row, now));
+}
+
+export type AssignablePackage = {
+  id: string;
+  name: string;
+  code: string;
+  billingPeriod: "monthly" | "yearly";
+  price: string;
+};
+
+/** Backs the "change package" select in the Gyms manage-subscription sheet
+ * — active tiers only, matching what a gym could newly buy today (an
+ * archived tier stays valid for gyms already on it, but an admin
+ * reassigning a subscription shouldn't be able to move a gym onto one). */
+export async function listAssignablePackages(supabase: SupabaseClient<Database>): Promise<AssignablePackage[]> {
+  const { data, error } = await supabase
+    .from("platform_packages")
+    .select("id, name, code, billing_period, price_minor, currency")
+    .eq("status", "active")
+    .order("sort_order");
+  if (error) throw new Error(`Failed to load packages: ${error.message}`);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    // billing_period is `text` with a CHECK constraint, not a native enum —
+    // see the same note on platform_payments.status in revenue/queries.ts.
+    billingPeriod: row.billing_period as "monthly" | "yearly",
+    price: formatMinorWhole(row.price_minor, row.currency),
+  }));
 }

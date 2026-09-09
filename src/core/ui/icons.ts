@@ -70,6 +70,7 @@ export {
   LuPhone as CallIcon,
   LuBell as NudgeIcon,
   LuCalendarPlus as ExtendIcon,
+  LuSlidersHorizontal as ManageIcon,
   LuClock as TrialsIcon,
   LuLock as ReadOnlyIcon,
 

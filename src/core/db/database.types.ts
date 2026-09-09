@@ -1,807 +1,1917 @@
-// Copied verbatim from FitDeskApp/src/core/db/database.types.ts (same Supabase
-// project) as this repo's starting point. It predates this repo's own
-// supabase/migrations/1001_platform_admins.sql — the `platform_admins` and
-// `admin_audit_log` tables it adds are NOT reflected below. Regenerate this
-// file (or hand-add those two tables) once that migration is applied to the
-// live project; until then, code that reads/writes those tables must cast
-// around this file rather than relying on it for their shape.
-//
-// Hand-authored to match supabase/migrations/0001_init.sql.
-// Once the project is linked to the Supabase CLI, regenerate with:
-//   supabase gen types typescript --project-id <ref> > src/core/db/database.types.ts
-// and delete this comment.
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
-      organizations: {
+      admin_audit_log: {
         Row: {
-          id: string;
-          slug: string;
-          name: string;
-          default_currency: string;
-          default_timezone: string;
-          contact_phone: string | null;
-          contact_email: string | null;
-          opens_at: string | null;
-          closes_at: string | null;
-          address_line: string | null;
-          country: string | null;
-          state: string | null;
-          city: string | null;
-          postal_code: string | null;
-          grace_period_days: number;
-          week_start: "Monday" | "Sunday";
-          deletion_requested_at: string | null;
-          logo_url: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          action: string
+          admin_id: string | null
+          at: string
+          detail: Json | null
+          id: number
+          target_organization_id: string | null
+        }
         Insert: {
-          id?: string;
-          slug: string;
-          name: string;
-          default_currency?: string;
-          default_timezone?: string;
-          contact_phone?: string | null;
-          contact_email?: string | null;
-          opens_at?: string | null;
-          closes_at?: string | null;
-          address_line?: string | null;
-          country?: string | null;
-          state?: string | null;
-          city?: string | null;
-          postal_code?: string | null;
-          grace_period_days?: number;
-          week_start?: "Monday" | "Sunday";
-          deletion_requested_at?: string | null;
-          logo_url?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["organizations"]["Insert"]>;
-        Relationships: [];
-      };
-      gyms: {
+          action: string
+          admin_id?: string | null
+          at?: string
+          detail?: Json | null
+          id?: number
+          target_organization_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string | null
+          at?: string
+          detail?: Json | null
+          id?: number
+          target_organization_id?: string | null
+        }
+        Relationships: []
+      }
+      audit_log: {
         Row: {
-          id: string;
-          organization_id: string;
-          slug: string;
-          name: string;
-          created_at: string;
-          updated_at: string;
-        };
+          action: string
+          actor_id: string | null
+          after: Json | null
+          at: string
+          before: Json | null
+          changed_fields: string[] | null
+          id: number
+          organization_id: string
+          record_id: string | null
+          table_name: string
+        }
         Insert: {
-          id?: string;
-          organization_id: string;
-          slug: string;
-          name: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["gyms"]["Insert"]>;
-        Relationships: [];
-      };
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          changed_fields?: string[] | null
+          id?: number
+          organization_id: string
+          record_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          at?: string
+          before?: Json | null
+          changed_fields?: string[] | null
+          id?: number
+          organization_id?: string
+          record_id?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
-          id: string;
-          organization_id: string;
-          gym_id: string;
-          name: string;
-          timezone: string;
-          currency: string;
-          status: "active" | "archived";
-          created_at: string;
-          updated_at: string;
-        };
+          created_at: string
+          currency: string
+          gym_id: string
+          id: string
+          name: string
+          organization_id: string
+          status: string
+          timezone: string
+          updated_at: string
+        }
         Insert: {
-          id?: string;
-          organization_id: string;
-          gym_id: string;
-          name: string;
-          timezone?: string;
-          currency?: string;
-          status?: "active" | "archived";
-        };
-        Update: Partial<Database["public"]["Tables"]["branches"]["Insert"]>;
-        Relationships: [];
-      };
-      staff_memberships: {
-        Row: {
-          id: string;
-          organization_id: string;
-          user_id: string;
-          branch_id: string | null;
-          role: "owner" | "staff" | "trainer";
-          email: string;
-          first_name: string | null;
-          last_name: string | null;
-          phone_e164: string | null;
-          username: string | null;
-          must_change_password: boolean;
-          deletion_requested_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          user_id: string;
-          branch_id?: string | null;
-          role: "owner" | "staff" | "trainer";
-          email: string;
-          first_name?: string | null;
-          last_name?: string | null;
-          phone_e164?: string | null;
-          username?: string | null;
-          must_change_password?: boolean;
-          deletion_requested_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["staff_memberships"]["Insert"]>;
-        Relationships: [];
-      };
-      staff_invitations: {
-        Row: {
-          id: string;
-          organization_id: string;
-          organization_name_snapshot: string;
-          branch_id: string | null;
-          email: string;
-          role: "owner" | "staff" | "trainer";
-          status: "pending" | "accepted" | "revoked";
-          invited_by: string;
-          expires_at: string;
-          created_at: string;
-          accepted_at: string | null;
-          revoked_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          organization_name_snapshot: string;
-          branch_id?: string | null;
-          email: string;
-          role: "owner" | "staff" | "trainer";
-          status?: "pending" | "accepted" | "revoked";
-          invited_by: string;
-          expires_at?: string;
-          accepted_at?: string | null;
-          revoked_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["staff_invitations"]["Insert"]>;
-        Relationships: [];
-      };
-      members: {
-        Row: {
-          id: string;
-          organization_id: string;
-          branch_id: string;
-          first_name: string;
-          last_name: string | null;
-          phone_e164: string | null;
-          email: string | null;
-          status: "active" | "inactive" | "left";
-          joined_on: string;
-          avatar_url: string | null;
-          avatar_path: string | null;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          branch_id: string;
-          first_name: string;
-          last_name?: string | null;
-          phone_e164?: string | null;
-          email?: string | null;
-          status?: "active" | "inactive" | "left";
-          joined_on?: string;
-          avatar_url?: string | null;
-          avatar_path?: string | null;
-          deleted_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["members"]["Insert"]>;
-        Relationships: [];
-      };
-      membership_plans: {
-        Row: {
-          id: string;
-          organization_id: string;
-          gym_id: string;
-          name: string;
-          duration_days: number;
-          list_price_minor: number;
-          currency: string;
-          status: "active" | "archived";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          gym_id: string;
-          name: string;
-          duration_days: number;
-          list_price_minor: number;
-          currency?: string;
-          status?: "active" | "archived";
-        };
-        Update: Partial<Database["public"]["Tables"]["membership_plans"]["Insert"]>;
-        Relationships: [];
-      };
-      member_subscriptions: {
-        Row: {
-          id: string;
-          organization_id: string;
-          member_id: string;
-          branch_id: string;
-          plan_id: string | null;
-          plan_name_snapshot: string;
-          start_date: string;
-          end_date: string;
-          status: "active" | "frozen" | "expired" | "cancelled";
-          agreed_price_minor: number;
-          list_price_minor: number;
-          currency: string;
-          price_override_reason: string | null;
-          trainer_id: string | null;
-          frozen_at: string | null;
-          created_at: string;
-          updated_at: string;
-          deleted_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          member_id: string;
-          branch_id: string;
-          plan_id?: string | null;
-          plan_name_snapshot: string;
-          start_date: string;
-          end_date: string;
-          status?: "active" | "frozen" | "expired" | "cancelled";
-          agreed_price_minor: number;
-          list_price_minor: number;
-          currency?: string;
-          price_override_reason?: string | null;
-          trainer_id?: string | null;
-          frozen_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["member_subscriptions"]["Insert"]>;
-        Relationships: [];
-      };
-      platform_packages: {
-        Row: {
-          id: string;
-          code: string;
-          name: string;
-          description: string | null;
-          price_minor: number;
-          currency: string;
-          billing_period: "monthly" | "yearly";
-          duration_days: number;
-          max_branches: number | null;
-          max_members: number | null;
-          max_staff: number | null;
-          features: string[];
-          status: "active" | "archived";
-          sort_order: number;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          code: string;
-          name: string;
-          description?: string | null;
-          price_minor: number;
-          currency?: string;
-          billing_period: "monthly" | "yearly";
-          duration_days: number;
-          max_branches?: number | null;
-          max_members?: number | null;
-          max_staff?: number | null;
-          features?: string[];
-          status?: "active" | "archived";
-          sort_order?: number;
-        };
-        Update: Partial<Database["public"]["Tables"]["platform_packages"]["Insert"]>;
-        Relationships: [];
-      };
-      organization_subscriptions: {
-        Row: {
-          organization_id: string;
-          package_id: string | null;
-          status: "trialing" | "active" | "cancelled";
-          current_period_start: string | null;
-          current_period_end: string;
-          grace_days: number;
-          auto_renew: boolean;
-          provider_subscription_id: string | null;
-          provider_mandate_id: string | null;
-          cancelled_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          organization_id: string;
-          package_id?: string | null;
-          status?: "trialing" | "active" | "cancelled";
-          current_period_start?: string | null;
-          current_period_end: string;
-          grace_days?: number;
-          auto_renew?: boolean;
-          provider_subscription_id?: string | null;
-          provider_mandate_id?: string | null;
-          cancelled_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["organization_subscriptions"]["Insert"]>;
-        Relationships: [];
-      };
-      platform_payments: {
-        Row: {
-          id: string;
-          organization_id: string;
-          package_id: string | null;
-          amount_minor: number;
-          currency: string;
-          status: "created" | "succeeded" | "failed" | "refunded";
-          provider: "razorpay";
-          provider_order_id: string | null;
-          provider_payment_id: string | null;
-          provider_metadata: Record<string, unknown> | null;
-          invoice_number: string | null;
-          period_start: string | null;
-          period_end: string | null;
-          initiated_by: string | null;
-          paid_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          package_id?: string | null;
-          amount_minor: number;
-          currency?: string;
-          status?: "created" | "succeeded" | "failed" | "refunded";
-          provider?: "razorpay";
-          provider_order_id?: string | null;
-          provider_payment_id?: string | null;
-          provider_metadata?: Record<string, unknown> | null;
-          invoice_number?: string | null;
-          period_start?: string | null;
-          period_end?: string | null;
-          initiated_by?: string | null;
-          paid_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["platform_payments"]["Insert"]>;
-        Relationships: [];
-      };
-      payments: {
-        Row: {
-          id: string;
-          organization_id: string;
-          branch_id: string;
-          member_id: string;
-          subscription_id: string | null;
-          amount_minor: number;
-          currency: string;
-          method: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
-          status: "pending_confirmation" | "succeeded" | "cancelled" | "refunded";
-          reference: string | null;
-          paid_at: string;
-          recorded_by: string | null;
-          confirmed_by: string | null;
-          confirmed_at: string | null;
-          refunded_by: string | null;
-          refunded_at: string | null;
-          created_at: string;
-          provider: "razorpay" | "phonepe" | null;
-          provider_payment_id: string | null;
-          provider_order_id: string | null;
-          provider_metadata: Record<string, unknown> | null;
-          payment_link_id: string | null;
-          payment_link_url: string | null;
-          invoice_number: string | null;
-          /** migration 0043 — the membership this payment is buying, held on
-           * the payment row until the money is actually confirmed. Null on
-           * every payment that buys no membership, and cleared the moment the
-           * term is created (see materialiseRenewalIntent). */
-          renewal_plan_id: string | null;
-          renewal_plan_name: string | null;
-          renewal_duration_days: number | null;
-          renewal_start_date: string | null;
-          renewal_price_minor: number | null;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          branch_id: string;
-          member_id: string;
-          subscription_id?: string | null;
-          amount_minor: number;
-          currency?: string;
-          method: "cash" | "upi" | "card" | "bank_transfer" | "cheque";
-          status?: "pending_confirmation" | "succeeded" | "cancelled" | "refunded";
-          reference?: string | null;
-          paid_at?: string;
-          recorded_by?: string | null;
-          confirmed_by?: string | null;
-          confirmed_at?: string | null;
-          refunded_by?: string | null;
-          refunded_at?: string | null;
-          provider?: "razorpay" | "phonepe" | null;
-          provider_payment_id?: string | null;
-          provider_order_id?: string | null;
-          provider_metadata?: Record<string, unknown> | null;
-          payment_link_id?: string | null;
-          payment_link_url?: string | null;
-          invoice_number?: string | null;
-          renewal_plan_id?: string | null;
-          renewal_plan_name?: string | null;
-          renewal_duration_days?: number | null;
-          renewal_start_date?: string | null;
-          renewal_price_minor?: number | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["payments"]["Insert"]>;
-        Relationships: [];
-      };
-      notification_preferences: {
-        Row: {
-          organization_id: string;
-          renewal_reminders_enabled: boolean;
-          payment_reminders_enabled: boolean;
-          weekly_digest_enabled: boolean;
-          default_channel: "WhatsApp" | "SMS";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          organization_id: string;
-          renewal_reminders_enabled?: boolean;
-          payment_reminders_enabled?: boolean;
-          weekly_digest_enabled?: boolean;
-          default_channel?: "WhatsApp" | "SMS";
-        };
-        Update: Partial<Database["public"]["Tables"]["notification_preferences"]["Insert"]>;
-        Relationships: [];
-      };
-      whatsapp_integrations: {
-        Row: {
-          id: string;
-          organization_id: string;
-          status: "connected" | "disconnected" | "error";
-          waba_id: string | null;
-          phone_number_id: string | null;
-          business_name: string | null;
-          phone_number_e164: string | null;
-          access_token_encrypted: string | null;
-          token_expires_at: string | null;
-          last_error: string | null;
-          connected_by: string | null;
-          connected_at: string | null;
-          disconnected_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          status?: "connected" | "disconnected" | "error";
-          waba_id?: string | null;
-          phone_number_id?: string | null;
-          business_name?: string | null;
-          phone_number_e164?: string | null;
-          access_token_encrypted?: string | null;
-          token_expires_at?: string | null;
-          last_error?: string | null;
-          connected_by?: string | null;
-          connected_at?: string | null;
-          disconnected_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["whatsapp_integrations"]["Insert"]>;
-        Relationships: [];
-      };
-      whatsapp_messages: {
-        Row: {
-          id: string;
-          organization_id: string;
-          member_id: string | null;
-          phone_number_e164: string;
-          template_name: string | null;
-          message_type: "template" | "text";
-          direction: "outbound" | "inbound";
-          status: "queued" | "sent" | "delivered" | "read" | "failed";
-          meta_message_id: string | null;
-          error_code: string | null;
-          error_message: string | null;
-          sent_at: string | null;
-          delivered_at: string | null;
-          read_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          member_id?: string | null;
-          phone_number_e164: string;
-          template_name?: string | null;
-          message_type?: "template" | "text";
-          direction?: "outbound" | "inbound";
-          status?: "queued" | "sent" | "delivered" | "read" | "failed";
-          meta_message_id?: string | null;
-          error_code?: string | null;
-          error_message?: string | null;
-          sent_at?: string | null;
-          delivered_at?: string | null;
-          read_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["whatsapp_messages"]["Insert"]>;
-        Relationships: [];
-      };
-      email_log: {
-        Row: {
-          id: string;
-          organization_id: string;
-          member_id: string | null;
-          recipient: string;
-          email_type:
-            | "welcome_member"
-            | "membership_created"
-            | "membership_renewal_reminder"
-            | "membership_expired"
-            | "payment_successful"
-            | "payment_failed"
-            | "payment_receipt"
-            | "gym_owner_notification"
-            | "test";
-          subject: string;
-          status: "sent" | "failed";
-          provider_message_id: string | null;
-          error_message: string | null;
-          sent_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          member_id?: string | null;
-          recipient: string;
-          email_type:
-            | "welcome_member"
-            | "membership_created"
-            | "membership_renewal_reminder"
-            | "membership_expired"
-            | "payment_successful"
-            | "payment_failed"
-            | "payment_receipt"
-            | "gym_owner_notification"
-            | "test";
-          subject: string;
-          status: "sent" | "failed";
-          provider_message_id?: string | null;
-          error_message?: string | null;
-          sent_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["email_log"]["Insert"]>;
-        Relationships: [];
-      };
-      notifications: {
-        Row: {
-          id: string;
-          organization_id: string;
-          branch_id: string | null;
-          type: string;
-          title: string;
-          description: string | null;
-          entity_type: string | null;
-          entity_id: string | null;
-          created_by: string | null;
-          read_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          branch_id?: string | null;
-          type: string;
-          title: string;
-          description?: string | null;
-          entity_type?: string | null;
-          entity_id?: string | null;
-          created_by?: string | null;
-          read_at?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
-        Relationships: [];
-      };
-      notification_reads: {
-        Row: {
-          notification_id: string;
-          user_id: string;
-          read_at: string;
-        };
-        Insert: {
-          notification_id: string;
-          user_id: string;
-          read_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["notification_reads"]["Insert"]>;
-        // The FK has to be described here (not left as []) or postgrest-js
-        // can't resolve the `notifications -> notification_reads` embed and
-        // collapses the row type to `never` — see CLAUDE.md's note on this
-        // file being hand-authored.
+          created_at?: string
+          currency?: string
+          gym_id: string
+          id?: string
+          name: string
+          organization_id: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          gym_id?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "notification_reads_notification_id_fkey";
-            columns: ["notification_id"];
-            isOneToOne: false;
-            referencedRelation: "notifications";
-            referencedColumns: ["id"];
+            foreignKeyName: "branches_gym_id_organization_id_fkey"
+            columns: ["gym_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id", "organization_id"]
           },
-        ];
-      };
-      payment_gateway_integrations: {
-        Row: {
-          id: string;
-          organization_id: string;
-          provider: "razorpay" | "phonepe";
-          status: "connected" | "disconnected" | "error";
-          key_id: string | null;
-          key_secret_encrypted: string | null;
-          webhook_secret_encrypted: string | null;
-          last_error: string | null;
-          connected_by: string | null;
-          connected_at: string | null;
-          disconnected_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          organization_id: string;
-          provider: "razorpay" | "phonepe";
-          status?: "connected" | "disconnected" | "error";
-          key_id?: string | null;
-          key_secret_encrypted?: string | null;
-          webhook_secret_encrypted?: string | null;
-          last_error?: string | null;
-          connected_by?: string | null;
-          connected_at?: string | null;
-          disconnected_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["payment_gateway_integrations"]["Insert"]>;
-        Relationships: [];
-      };
+        ]
+      }
       document_sequences: {
         Row: {
-          organization_id: string;
-          branch_id: string;
-          doc_type: string;
-          period_key: string;
-          prefix: string;
-          next_value: number;
-          padding: number;
-        };
+          branch_id: string
+          doc_type: string
+          next_value: number
+          organization_id: string
+          padding: number
+          period_key: string
+          prefix: string
+        }
         Insert: {
-          organization_id: string;
-          branch_id: string;
-          doc_type: string;
-          period_key?: string;
-          prefix: string;
-          next_value?: number;
-          padding?: number;
-        };
-        Update: Partial<Database["public"]["Tables"]["document_sequences"]["Insert"]>;
-        Relationships: [];
-      };
+          branch_id: string
+          doc_type: string
+          next_value?: number
+          organization_id: string
+          padding?: number
+          period_key?: string
+          prefix: string
+        }
+        Update: {
+          branch_id?: string
+          doc_type?: string
+          next_value?: number
+          organization_id?: string
+          padding?: number
+          period_key?: string
+          prefix?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_sequences_branch_id_organization_id_fkey"
+            columns: ["branch_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      email_log: {
+        Row: {
+          email_type: string
+          error_message: string | null
+          id: string
+          member_id: string | null
+          organization_id: string
+          provider_message_id: string | null
+          recipient: string
+          sent_at: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          email_type: string
+          error_message?: string | null
+          id?: string
+          member_id?: string | null
+          organization_id: string
+          provider_message_id?: string | null
+          recipient: string
+          sent_at?: string
+          status: string
+          subject: string
+        }
+        Update: {
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          member_id?: string | null
+          organization_id?: string
+          provider_message_id?: string | null
+          recipient?: string
+          sent_at?: string
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_log_member_id_organization_id_fkey"
+            columns: ["member_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "email_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gyms: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gyms_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_subscriptions: {
+        Row: {
+          agreed_price_minor: number
+          branch_id: string
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          end_date: string
+          frozen_at: string | null
+          id: string
+          list_price_minor: number
+          member_id: string
+          organization_id: string
+          plan_id: string | null
+          plan_name_snapshot: string
+          price_override_reason: string | null
+          start_date: string
+          status: string
+          trainer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agreed_price_minor: number
+          branch_id: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          end_date: string
+          frozen_at?: string | null
+          id?: string
+          list_price_minor: number
+          member_id: string
+          organization_id: string
+          plan_id?: string | null
+          plan_name_snapshot: string
+          price_override_reason?: string | null
+          start_date: string
+          status?: string
+          trainer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agreed_price_minor?: number
+          branch_id?: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          end_date?: string
+          frozen_at?: string | null
+          id?: string
+          list_price_minor?: number
+          member_id?: string
+          organization_id?: string
+          plan_id?: string | null
+          plan_name_snapshot?: string
+          price_override_reason?: string | null
+          start_date?: string
+          status?: string
+          trainer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_subscriptions_branch_id_organization_id_fkey"
+            columns: ["branch_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "member_subscriptions_member_id_organization_id_fkey"
+            columns: ["member_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "member_subscriptions_plan_id_organization_id_fkey"
+            columns: ["plan_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "membership_plans"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "member_subscriptions_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "staff_memberships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      members: {
+        Row: {
+          avatar_path: string | null
+          avatar_url: string | null
+          branch_id: string
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          first_name: string
+          id: string
+          joined_on: string
+          last_name: string | null
+          organization_id: string
+          phone_e164: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_path?: string | null
+          avatar_url?: string | null
+          branch_id: string
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          first_name: string
+          id?: string
+          joined_on?: string
+          last_name?: string | null
+          organization_id: string
+          phone_e164?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_path?: string | null
+          avatar_url?: string | null
+          branch_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          email?: string | null
+          first_name?: string
+          id?: string
+          joined_on?: string
+          last_name?: string | null
+          organization_id?: string
+          phone_e164?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "members_branch_id_organization_id_fkey"
+            columns: ["branch_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      membership_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          duration_days: number
+          gym_id: string
+          id: string
+          list_price_minor: number
+          name: string
+          organization_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          duration_days: number
+          gym_id: string
+          id?: string
+          list_price_minor: number
+          name: string
+          organization_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          duration_days?: number
+          gym_id?: string
+          id?: string
+          list_price_minor?: number
+          name?: string
+          organization_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_plans_gym_id_organization_id_fkey"
+            columns: ["gym_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          default_channel: string
+          digest_last_sent_on: string | null
+          organization_id: string
+          payment_reminders_enabled: boolean
+          reminders_last_run_at: string | null
+          renewal_reminders_enabled: boolean
+          updated_at: string
+          weekly_digest_enabled: boolean
+        }
+        Insert: {
+          created_at?: string
+          default_channel?: string
+          digest_last_sent_on?: string | null
+          organization_id: string
+          payment_reminders_enabled?: boolean
+          reminders_last_run_at?: string | null
+          renewal_reminders_enabled?: boolean
+          updated_at?: string
+          weekly_digest_enabled?: boolean
+        }
+        Update: {
+          created_at?: string
+          default_channel?: string
+          digest_last_sent_on?: string | null
+          organization_id?: string
+          payment_reminders_enabled?: boolean
+          reminders_last_run_at?: string | null
+          renewal_reminders_enabled?: boolean
+          updated_at?: string
+          weekly_digest_enabled?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_reads: {
+        Row: {
+          notification_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          notification_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          notification_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_reads_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          organization_id: string
+          read_at: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_id: string
+          read_at?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          organization_id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_subscriptions: {
+        Row: {
+          auto_renew: boolean
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string | null
+          grace_days: number
+          organization_id: string
+          package_id: string | null
+          provider_mandate_id: string | null
+          provider_subscription_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end: string
+          current_period_start?: string | null
+          grace_days?: number
+          organization_id: string
+          package_id?: string | null
+          provider_mandate_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_renew?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string | null
+          grace_days?: number
+          organization_id?: string
+          package_id?: string | null
+          provider_mandate_id?: string | null
+          provider_subscription_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "platform_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          address_line: string | null
+          city: string | null
+          closes_at: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          default_currency: string
+          default_timezone: string
+          deletion_requested_at: string | null
+          grace_period_days: number
+          id: string
+          logo_url: string | null
+          name: string
+          opens_at: string | null
+          postal_code: string | null
+          slug: string
+          state: string | null
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          address_line?: string | null
+          city?: string | null
+          closes_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          default_currency?: string
+          default_timezone?: string
+          deletion_requested_at?: string | null
+          grace_period_days?: number
+          id?: string
+          logo_url?: string | null
+          name: string
+          opens_at?: string | null
+          postal_code?: string | null
+          slug: string
+          state?: string | null
+          updated_at?: string
+          week_start?: string
+        }
+        Update: {
+          address_line?: string | null
+          city?: string | null
+          closes_at?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          default_currency?: string
+          default_timezone?: string
+          deletion_requested_at?: string | null
+          grace_period_days?: number
+          id?: string
+          logo_url?: string | null
+          name?: string
+          opens_at?: string | null
+          postal_code?: string | null
+          slug?: string
+          state?: string | null
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      payment_gateway_integrations: {
+        Row: {
+          connected_at: string | null
+          connected_by: string | null
+          created_at: string
+          disconnected_at: string | null
+          id: string
+          key_id: string | null
+          last_error: string | null
+          organization_id: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          key_id?: string | null
+          last_error?: string | null
+          organization_id: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          key_id?: string | null
+          last_error?: string | null
+          organization_id?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_gateway_secrets: {
+        Row: {
+          key_secret_encrypted: string | null
+          organization_id: string
+          updated_at: string
+          webhook_secret_encrypted: string | null
+        }
+        Insert: {
+          key_secret_encrypted?: string | null
+          organization_id: string
+          updated_at?: string
+          webhook_secret_encrypted?: string | null
+        }
+        Update: {
+          key_secret_encrypted?: string | null
+          organization_id?: string
+          updated_at?: string
+          webhook_secret_encrypted?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_secrets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "payment_gateway_integrations"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
       payment_provider_events: {
         Row: {
-          id: string;
-          provider: string;
-          provider_event_id: string;
-          event_type: string;
-          payload: Record<string, unknown>;
-          signature_verified: boolean;
-          organization_id: string | null;
-          processed_at: string | null;
-          processing_error: string | null;
-          attempts: number;
-          received_at: string;
-        };
+          attempts: number
+          event_type: string
+          id: string
+          organization_id: string | null
+          payload: Json
+          processed_at: string | null
+          processing_error: string | null
+          provider: string
+          provider_event_id: string
+          received_at: string
+          signature_verified: boolean
+        }
         Insert: {
-          id?: string;
-          provider: string;
-          provider_event_id: string;
-          event_type: string;
-          payload: Record<string, unknown>;
-          signature_verified: boolean;
-          organization_id?: string | null;
-          processed_at?: string | null;
-          processing_error?: string | null;
-          attempts?: number;
-          received_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["payment_provider_events"]["Insert"]>;
-        Relationships: [];
-      };
-    };
-    // postgrest-js's GenericSchema requires these keys to exist even when
-    // empty — omitting them silently collapses every row type to `never`.
-    Views: Record<string, never>;
+          attempts?: number
+          event_type: string
+          id?: string
+          organization_id?: string | null
+          payload: Json
+          processed_at?: string | null
+          processing_error?: string | null
+          provider: string
+          provider_event_id: string
+          received_at?: string
+          signature_verified: boolean
+        }
+        Update: {
+          attempts?: number
+          event_type?: string
+          id?: string
+          organization_id?: string | null
+          payload?: Json
+          processed_at?: string | null
+          processing_error?: string | null
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+          signature_verified?: boolean
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount_minor: number
+          branch_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string | null
+          member_id: string
+          method: string
+          organization_id: string
+          paid_at: string
+          payment_link_id: string | null
+          payment_link_url: string | null
+          provider: string | null
+          provider_metadata: Json | null
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          recorded_by: string | null
+          reference: string | null
+          refunded_at: string | null
+          refunded_by: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          renewal_duration_days: number | null
+          renewal_plan_id: string | null
+          renewal_plan_name: string | null
+          renewal_price_minor: number | null
+          renewal_start_date: string | null
+          status: string
+          subscription_id: string | null
+        }
+        Insert: {
+          amount_minor: number
+          branch_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string | null
+          member_id: string
+          method: string
+          organization_id: string
+          paid_at?: string
+          payment_link_id?: string | null
+          payment_link_url?: string | null
+          provider?: string | null
+          provider_metadata?: Json | null
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          renewal_duration_days?: number | null
+          renewal_plan_id?: string | null
+          renewal_plan_name?: string | null
+          renewal_price_minor?: number | null
+          renewal_start_date?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Update: {
+          amount_minor?: number
+          branch_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string | null
+          member_id?: string
+          method?: string
+          organization_id?: string
+          paid_at?: string
+          payment_link_id?: string | null
+          payment_link_url?: string | null
+          provider?: string | null
+          provider_metadata?: Json | null
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          recorded_by?: string | null
+          reference?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          renewal_duration_days?: number | null
+          renewal_plan_id?: string | null
+          renewal_plan_name?: string | null
+          renewal_price_minor?: number | null
+          renewal_start_date?: string | null
+          status?: string
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_branch_id_organization_id_fkey"
+            columns: ["branch_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "payments_member_id_organization_id_fkey"
+            columns: ["member_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "payments_subscription_id_organization_id_fkey"
+            columns: ["subscription_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "member_subscriptions"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          email: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          email: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_document_sequences: {
+        Row: {
+          doc_type: string
+          next_value: number
+          padding: number
+          prefix: string
+        }
+        Insert: {
+          doc_type: string
+          next_value?: number
+          padding?: number
+          prefix: string
+        }
+        Update: {
+          doc_type?: string
+          next_value?: number
+          padding?: number
+          prefix?: string
+        }
+        Relationships: []
+      }
+      platform_packages: {
+        Row: {
+          billing_period: string
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          duration_days: number
+          features: string[]
+          id: string
+          max_branches: number | null
+          max_members: number | null
+          max_staff: number | null
+          name: string
+          price_minor: number
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          billing_period: string
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_days: number
+          features?: string[]
+          id?: string
+          max_branches?: number | null
+          max_members?: number | null
+          max_staff?: number | null
+          name: string
+          price_minor: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          billing_period?: string
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_days?: number
+          features?: string[]
+          id?: string
+          max_branches?: number | null
+          max_members?: number | null
+          max_staff?: number | null
+          name?: string
+          price_minor?: number
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_payments: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          initiated_by: string | null
+          invoice_number: string | null
+          organization_id: string
+          package_id: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          provider: string
+          provider_metadata: Json | null
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          status: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency?: string
+          id?: string
+          initiated_by?: string | null
+          invoice_number?: string | null
+          organization_id: string
+          package_id?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider?: string
+          provider_metadata?: Json | null
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          initiated_by?: string | null
+          invoice_number?: string | null
+          organization_id?: string
+          package_id?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider?: string
+          provider_metadata?: Json | null
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_payments_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "platform_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      query_perf_events: {
+        Row: {
+          api: string
+          bytes: number | null
+          captured_at: string
+          client: string
+          columns: string | null
+          duration_ms: number
+          embeds: string[]
+          error_code: string | null
+          error_message: string | null
+          filters: string[]
+          id: number
+          ok: boolean
+          operation: string
+          request_id: string | null
+          resource: string
+          route: string | null
+          row_count: number | null
+          seq: number
+          signature: string
+          span_id: string
+          started_at: string
+          status: number | null
+          total_count: number | null
+        }
+        Insert: {
+          api: string
+          bytes?: number | null
+          captured_at?: string
+          client: string
+          columns?: string | null
+          duration_ms: number
+          embeds?: string[]
+          error_code?: string | null
+          error_message?: string | null
+          filters?: string[]
+          id?: number
+          ok: boolean
+          operation: string
+          request_id?: string | null
+          resource: string
+          route?: string | null
+          row_count?: number | null
+          seq?: number
+          signature: string
+          span_id: string
+          started_at: string
+          status?: number | null
+          total_count?: number | null
+        }
+        Update: {
+          api?: string
+          bytes?: number | null
+          captured_at?: string
+          client?: string
+          columns?: string | null
+          duration_ms?: number
+          embeds?: string[]
+          error_code?: string | null
+          error_message?: string | null
+          filters?: string[]
+          id?: number
+          ok?: boolean
+          operation?: string
+          request_id?: string | null
+          resource?: string
+          route?: string | null
+          row_count?: number | null
+          seq?: number
+          signature?: string
+          span_id?: string
+          started_at?: string
+          status?: number | null
+          total_count?: number | null
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          reset_at: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          reset_at: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          reset_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reminder_dispatches: {
+        Row: {
+          created_at: string
+          due_date: string
+          error_message: string | null
+          id: string
+          kind: string
+          member_id: string
+          organization_id: string
+          recipient: string | null
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          error_message?: string | null
+          id?: string
+          kind: string
+          member_id: string
+          organization_id: string
+          recipient?: string | null
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          error_message?: string | null
+          id?: string
+          kind?: string
+          member_id?: string
+          organization_id?: string
+          recipient?: string | null
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_dispatches_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_dispatches_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminder_dispatches_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "member_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_invitations: {
+        Row: {
+          accepted_at: string | null
+          branch_id: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          organization_name_snapshot: string
+          revoked_at: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          branch_id?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          organization_name_snapshot: string
+          revoked_at?: string | null
+          role: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          branch_id?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          organization_name_snapshot?: string
+          revoked_at?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_invitations_branch_id_organization_id_fkey"
+            columns: ["branch_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "staff_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_memberships: {
+        Row: {
+          branch_id: string | null
+          created_at: string
+          deletion_requested_at: string | null
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          must_change_password: boolean
+          organization_id: string
+          phone_e164: string | null
+          role: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string
+          deletion_requested_at?: string | null
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          must_change_password?: boolean
+          organization_id: string
+          phone_e164?: string | null
+          role: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string
+          deletion_requested_at?: string | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          must_change_password?: boolean
+          organization_id?: string
+          phone_e164?: string | null
+          role?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_integrations: {
+        Row: {
+          business_name: string | null
+          connected_at: string | null
+          connected_by: string | null
+          created_at: string
+          disconnected_at: string | null
+          id: string
+          last_error: string | null
+          organization_id: string
+          phone_number_e164: string | null
+          phone_number_id: string | null
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          waba_id: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          last_error?: string | null
+          organization_id: string
+          phone_number_e164?: string | null
+          phone_number_id?: string | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          waba_id?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string
+          disconnected_at?: string | null
+          id?: string
+          last_error?: string | null
+          organization_id?: string
+          phone_number_e164?: string | null
+          phone_number_id?: string | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          waba_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          member_id: string | null
+          message_type: string
+          meta_message_id: string | null
+          organization_id: string
+          phone_number_e164: string
+          read_at: string | null
+          sent_at: string | null
+          status: string
+          template_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          member_id?: string | null
+          message_type?: string
+          meta_message_id?: string | null
+          organization_id: string
+          phone_number_e164: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          template_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          member_id?: string | null
+          message_type?: string
+          meta_message_id?: string | null
+          organization_id?: string
+          phone_number_e164?: string
+          read_at?: string | null
+          sent_at?: string | null
+          status?: string
+          template_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_member_id_organization_id_fkey"
+            columns: ["member_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_secrets: {
+        Row: {
+          access_token_encrypted: string | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_secrets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "whatsapp_integrations"
+            referencedColumns: ["organization_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
     Functions: {
-      clear_must_change_password: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
-      request_own_staff_deletion: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
-      clear_own_staff_deletion: {
-        Args: Record<PropertyKey, never>;
-        Returns: undefined;
-      };
+      admin_cancel_subscription: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
+      admin_change_subscription_package: {
+        Args: { p_organization_id: string; p_package_id: string }
+        Returns: undefined
+      }
+      admin_create_package: {
+        Args: {
+          p_billing_period: string
+          p_code: string
+          p_currency: string
+          p_description: string
+          p_duration_days: number
+          p_features?: string[]
+          p_max_branches: number
+          p_max_members: number
+          p_max_staff: number
+          p_name: string
+          p_price_minor: number
+        }
+        Returns: string
+      }
+      admin_extend_subscription: {
+        Args: { p_days: number; p_organization_id: string }
+        Returns: undefined
+      }
+      admin_gym_directory: {
+        Args: never
+        Returns: {
+          billing_period: string
+          branch_cap: number
+          branch_count: number
+          city: string
+          created_at: string
+          currency: string
+          current_period_end: string
+          grace_days: number
+          lifetime_paid_minor: number
+          member_cap: number
+          member_count: number
+          name: string
+          organization_id: string
+          owner_name: string
+          package_code: string
+          package_id: string
+          package_name: string
+          price_minor: number
+          staff_cap: number
+          staff_count: number
+          state: string
+        }[]
+      }
+      admin_gyms_near_cap: {
+        Args: { p_limit?: number }
+        Returns: {
+          cap_count: number
+          name: string
+          organization_id: string
+          pct: number
+          resource: string
+          used_count: number
+        }[]
+      }
+      admin_overview_stats: {
+        Args: {
+          p_period_end: string
+          p_period_start: string
+          p_prev_end: string
+          p_prev_start: string
+        }
+        Returns: Json
+      }
+      admin_package_mix: {
+        Args: never
+        Returns: {
+          billing_period: string
+          code: string
+          gym_count: number
+          mrr_minor: number
+          name: string
+          package_id: string
+          price_minor: number
+        }[]
+      }
+      admin_restore_subscription: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
+      admin_revenue_trend: {
+        Args: { p_weeks?: number }
+        Returns: {
+          revenue_minor: number
+          week_start: string
+        }[]
+      }
+      admin_set_package_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_update_package: {
+        Args: {
+          p_description: string
+          p_duration_days: number
+          p_features: string[]
+          p_id: string
+          p_max_branches: number
+          p_max_members: number
+          p_max_staff: number
+          p_name: string
+          p_price_minor: number
+        }
+        Returns: undefined
+      }
+      attach_invoice_number: {
+        Args: { p_payment_id: string; p_prefix: string }
+        Returns: string
+      }
+      clear_must_change_password: { Args: never; Returns: undefined }
+      clear_own_staff_deletion: { Args: never; Returns: undefined }
       complete_gym_signup: {
         Args: {
-          p_org_name: string;
-          p_org_slug: string;
-          p_gym_name: string;
-          p_first_name: string;
-          p_last_name: string | null;
-          p_branch_name?: string;
-          p_owner_phone?: string | null;
-        };
-        Returns: string;
-      };
-      unread_notification_count: {
-        Args: { p_org: string };
-        Returns: number;
-      };
+          p_branch_name?: string
+          p_first_name: string
+          p_gym_name: string
+          p_last_name: string
+          p_org_name: string
+          p_org_slug: string
+          p_owner_phone?: string
+        }
+        Returns: string
+      }
+      consume_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window_ms: number }
+        Returns: boolean
+      }
+      is_platform_admin: { Args: never; Returns: boolean }
       next_invoice_number: {
         Args: {
-          p_organization_id: string;
-          p_branch_id: string;
-          p_prefix: string;
-        };
-        Returns: string;
-      };
-      next_platform_invoice_number: {
-        Args: Record<PropertyKey, never>;
-        Returns: string;
-      };
-      /** migration 0039 — true when the call may proceed, false when the key
-       * is over its limit for the current window. service_role only. */
-      consume_rate_limit: {
-        Args: {
-          p_key: string;
-          p_limit: number;
-          p_window_ms: number;
-        };
-        Returns: boolean;
-      };
-      prune_rate_limits: {
-        Args: Record<PropertyKey, never>;
-        Returns: number;
-      };
-      /** migration 0041 — yes/no only. Lets a staff member be warned about a
-       * duplicate a colleague recorded, without widening payments_select. */
+          p_branch_id: string
+          p_organization_id: string
+          p_prefix: string
+        }
+        Returns: string
+      }
+      next_platform_invoice_number: { Args: never; Returns: string }
+      org_staff_directory: {
+        Args: { p_org: string }
+        Returns: {
+          branch_id: string
+          first_name: string
+          id: string
+          last_name: string
+          role: string
+          user_id: string
+        }[]
+      }
+      plan_resource_count: {
+        Args: { p_org: string; p_resource: string }
+        Returns: number
+      }
+      prune_audit_log: { Args: { p_keep_days?: number }; Returns: number }
+      prune_payment_provider_events: {
+        Args: { p_keep_days?: number }
+        Returns: number
+      }
+      prune_query_perf_events: {
+        Args: { p_keep_days?: number }
+        Returns: number
+      }
+      prune_rate_limits: { Args: never; Returns: number }
+      prune_reminder_dispatches: {
+        Args: { p_keep_days?: number }
+        Returns: number
+      }
       recent_duplicate_payment_exists: {
         Args: {
-          p_member_id: string;
-          p_amount_minor: number;
-          p_method: string;
-          p_window_minutes?: number;
-        };
-        Returns: boolean;
-      };
-      /** migration 0043 — how much succeeded money is attached to one
-       * subscription. An aggregate, not rows: since 0025 a staff member
-       * cannot read a colleague's payments, so summing client-side would
-       * silently under-report what a membership has been paid. */
+          p_amount_minor: number
+          p_member_id: string
+          p_method: string
+          p_window_minutes?: number
+        }
+        Returns: boolean
+      }
+      request_own_staff_deletion: { Args: never; Returns: undefined }
+      run_retention: { Args: never; Returns: Json }
+      sell_membership_write: {
+        Args: {
+          p_agreed_price_minor: number
+          p_branch_id: string
+          p_currency: string
+          p_end_date: string
+          p_list_price_minor: number
+          p_member_id: string
+          p_organization_id: string
+          p_plan_id: string
+          p_plan_name_snapshot: string
+          p_price_override_reason: string
+          p_start_date: string
+          p_superseded_ids: string[]
+          p_trainer_id: string
+        }
+        Returns: string
+      }
       subscription_paid_minor: {
-        Args: { p_subscription_id: string };
-        Returns: number;
-      };
-    };
-    Enums: Record<string, never>;
-    CompositeTypes: Record<string, never>;
-  };
-};
+        Args: { p_subscription_id: string }
+        Returns: number
+      }
+      unread_notification_count: { Args: { p_org: string }; Returns: number }
+      unresolved_gateway_events: {
+        Args: { p_org: string }
+        Returns: {
+          attempts: number
+          event_type: string
+          id: string
+          processing_error: string
+          provider: string
+          received_at: string
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

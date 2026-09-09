@@ -26,10 +26,10 @@ export type PlatformAdminResult =
  *    defines the real predicate, `app.is_platform_admin()`, matching
  *    FitDeskApp's convention of keeping RLS-predicate logic in the `app`
  *    schema — the public wrapper exists only because PostgREST/`.rpc()`
- *    can't reach a non-public schema directly). **That migration is not
- *    yet applied to the live project** (see its own header comment and
- *    CLAUDE.md's D-1) — so today, in every environment, this RPC call
- *    fails with "function does not exist" and every user is denied.
+ *    can't reach a non-public schema directly). Applied to the live
+ *    project (CLAUDE.md's D-1); `platform_admins` still needs a row
+ *    inserted (service-role only, by design) before anyone can pass this
+ *    check.
  *
  * Fail-closed by design — the deliberate opposite of FitDeskApp's billing
  * check (`resolveBillingAccess`, which degrades OPEN on a missing table or
@@ -53,34 +53,13 @@ async function resolvePlatformAdminUncached(): Promise<PlatformAdminResult> {
 
   const email = (claimsData?.claims?.email as string | undefined) ?? null;
 
-  // database.types.ts predates migration 1001 and its own header comment
-  // says to cast around it rather than hand-edit it for the tables/
-  // functions that migration adds — `is_platform_admin` isn't a key of
-  // Database["public"]["Functions"] yet, so `.rpc()` needs an explicit
-  // (narrow, typed) cast rather than losing type-safety on the whole
-  // client. Regenerate database.types.ts once 1001 is applied and this
-  // cast can go away.
-  //
-  // The cast is applied to `supabase` itself, not to `supabase.rpc` —
-  // extracting the method into its own variable (`const rpc = supabase.rpc`)
-  // detaches it from `this`, and supabase-js's rpc() implementation reads
-  // `this.rest` internally. Called that way it throws "Cannot read
-  // properties of undefined (reading 'rest')" at runtime — a real
-  // production bug this shape caused everywhere it was used (caught via
-  // Vercel's runtime logs after deploy; tsc/eslint/build all stay green
-  // for this mistake since it's a runtime `this`-binding issue, not a type
-  // error). Casting the client and keeping `supabase.rpc(...)` as a normal
-  // method call keeps `this` bound correctly.
-  const typedSupabase = supabase as unknown as {
-    rpc(fn: "is_platform_admin"): PromiseLike<{ data: unknown; error: { message: string } | null }>;
-  };
-  const rpcResult = await typedSupabase.rpc("is_platform_admin");
+  const { data, error } = await supabase.rpc("is_platform_admin");
 
-  if (rpcResult.error) {
-    return { authorized: false, reason: rpcResult.error.message };
+  if (error) {
+    return { authorized: false, reason: error.message };
   }
-  if (rpcResult.data !== true) {
-    return { authorized: false, reason: `is_platform_admin returned ${JSON.stringify(rpcResult.data)}, not true` };
+  if (data !== true) {
+    return { authorized: false, reason: `is_platform_admin returned ${JSON.stringify(data)}, not true` };
   }
 
   return { authorized: true, context: { userId, email } };

@@ -15,8 +15,12 @@ import { toMinorUnits } from "@/core/money/format";
  * migration's header comment for why the blanket RLS write policy was
  * dropped in favor of this).
  *
- * `database.types.ts` predates these RPCs, hence the typed casts — same
- * pattern as every queries.ts in this app.
+ * The generated Args types for admin_create_package/admin_update_package
+ * type p_max_branches/p_max_members/p_max_staff as plain `number` — Postgres
+ * codegen doesn't infer nullability for function parameters, even though
+ * the underlying columns (and this app's "blank = unlimited" convention)
+ * are nullable. Each call site below casts just that `null` literal to
+ * `number` to match, rather than widening the whole client's types.
  */
 
 const createSchema = z.object({
@@ -74,30 +78,8 @@ export async function createPackage(_prev: PackageFormState, formData: FormData)
   }
 
   const supabase = await createClient();
-  // Cast `supabase` itself, not `supabase.rpc` — extracting the method
-  // detaches it from `this` and breaks at runtime (supabase-js's rpc()
-  // reads `this.rest` internally). See core/auth/get-platform-admin.ts's
-  // comment on the same fix for the full story.
-  const typedSupabase = supabase as unknown as {
-    rpc(
-      fn: "admin_create_package",
-      args: {
-        p_code: string;
-        p_name: string;
-        p_description: string;
-        p_price_minor: number;
-        p_currency: string;
-        p_billing_period: string;
-        p_duration_days: number;
-        p_max_branches: number | null;
-        p_max_members: number | null;
-        p_max_staff: number | null;
-        p_features: string[];
-      },
-    ): PromiseLike<{ error: { message: string } | null }>;
-  };
 
-  const { error } = await typedSupabase.rpc("admin_create_package", {
+  const { error } = await supabase.rpc("admin_create_package", {
     p_code: parsed.data.code,
     p_name: parsed.data.name,
     p_description: parsed.data.description,
@@ -105,9 +87,9 @@ export async function createPackage(_prev: PackageFormState, formData: FormData)
     p_currency: "INR",
     p_billing_period: parsed.data.billingPeriod.toLowerCase(),
     p_duration_days: parsed.data.durationDays,
-    p_max_branches: maxBranches,
-    p_max_members: maxMembers,
-    p_max_staff: maxStaff,
+    p_max_branches: maxBranches as number,
+    p_max_members: maxMembers as number,
+    p_max_staff: maxStaff as number,
     p_features: [],
   });
 
@@ -150,34 +132,16 @@ export async function updatePackage(_prev: PackageFormState, formData: FormData)
   }
 
   const supabase = await createClient();
-  // Cast `supabase` itself, not `supabase.rpc` — see admin_create_package's
-  // comment above for why (this-binding, not just typing).
-  const typedSupabase = supabase as unknown as {
-    rpc(
-      fn: "admin_update_package",
-      args: {
-        p_id: string;
-        p_name: string;
-        p_description: string;
-        p_price_minor: number;
-        p_duration_days: number;
-        p_max_branches: number | null;
-        p_max_members: number | null;
-        p_max_staff: number | null;
-        p_features: string[];
-      },
-    ): PromiseLike<{ error: { message: string } | null }>;
-  };
 
-  const { error } = await typedSupabase.rpc("admin_update_package", {
+  const { error } = await supabase.rpc("admin_update_package", {
     p_id: parsed.data.id,
     p_name: parsed.data.name,
     p_description: parsed.data.description,
     p_price_minor: priceMinor,
     p_duration_days: parsed.data.durationDays,
-    p_max_branches: maxBranches,
-    p_max_members: maxMembers,
-    p_max_staff: maxStaff,
+    p_max_branches: maxBranches as number,
+    p_max_members: maxMembers as number,
+    p_max_staff: maxStaff as number,
     p_features: [],
   });
 
@@ -193,16 +157,8 @@ export async function setPackageStatus(
   status: "active" | "archived",
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  // Cast `supabase` itself, not `supabase.rpc` — see admin_create_package's
-  // comment above for why (this-binding, not just typing).
-  const typedSupabase = supabase as unknown as {
-    rpc(
-      fn: "admin_set_package_status",
-      args: { p_id: string; p_status: string },
-    ): PromiseLike<{ error: { message: string } | null }>;
-  };
 
-  const { error } = await typedSupabase.rpc("admin_set_package_status", { p_id: id, p_status: status });
+  const { error } = await supabase.rpc("admin_set_package_status", { p_id: id, p_status: status });
   if (error) return { error: error.message };
 
   revalidatePath("/admin/packages");

@@ -60,7 +60,11 @@ export async function listInvoices(supabase: SupabaseClient<Database>): Promise<
         ? `${row.platform_packages.name} ${row.platform_packages.billing_period}`
         : "—",
       period: formatInvoicePeriod(row.period_start, row.period_end, now),
-      status: STATUS_MAP[row.status],
+      // platform_payments.status is `text` with a CHECK constraint limiting
+      // it to these 4 values, not a native Postgres enum — codegen can only
+      // narrow enum columns, so this is `string` in database.types.ts even
+      // though the DB guarantees the narrower set.
+      status: STATUS_MAP[row.status as keyof typeof STATUS_MAP],
       amount: formatMinorWhole(row.amount_minor, row.currency),
     };
   });

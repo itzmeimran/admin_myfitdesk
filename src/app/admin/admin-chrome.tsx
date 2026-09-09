@@ -91,7 +91,7 @@ export function AdminChrome({
         {initials}
       </span>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t-[1.5px] border-ink bg-paper md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t-[1.5px] border-ink bg-paper md:hidden">
         {NAV_ITEMS.map((item) => {
           const badge = badgeFor(item.href);
           return (

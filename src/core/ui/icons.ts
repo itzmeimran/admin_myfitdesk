@@ -37,6 +37,7 @@ export {
   LuLayoutDashboard as OverviewIcon,
   LuBuilding2 as GymsIcon,
   LuPackage as PackagesIcon,
+  LuLayers as PlansIcon,
   LuReceiptIndianRupee as RevenueIcon,
   LuSettings as SettingsIcon,
   LuMenu as MenuIcon,
@@ -47,6 +48,12 @@ export {
   LuPencil as EditIcon,
   LuArchive as ArchiveIcon,
   LuRotateCcw as RestoreIcon,
+  LuUserX as RevokeIcon,
+  LuTrash2 as DeleteIcon,
+  LuGripVertical as DragHandleIcon,
+  LuTag as OfferIcon,
+  LuToggleLeft as ToggleOffIcon,
+  LuToggleRight as ToggleOnIcon,
 
   // Confirm / dismiss
   LuCheck as ConfirmIcon,

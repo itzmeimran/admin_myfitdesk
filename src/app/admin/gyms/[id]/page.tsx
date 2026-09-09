@@ -4,6 +4,7 @@ import { getGymDetail } from "@/features/gyms/detail";
 import { UsageBar } from "@/components/UsageBar";
 import { formatMinorWhole } from "@/core/money/format";
 import { formatShortDate, daysBetween } from "@/core/dates/format";
+import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
 /**
  * Overview tab (task brief §3) — usage vs caps, current subscription,
@@ -44,7 +45,7 @@ export default async function GymOverviewPage({ params }: { params: Promise<{ id
                 k="Price"
                 v={sub.priceMinor !== null ? formatMinorWhole(sub.priceMinor, sub.currency ?? "INR") : "—"}
               />
-              <Row k="Billing cycle" v={sub.billingPeriod === "yearly" ? "Yearly" : sub.billingPeriod === "monthly" ? "Monthly" : "—"} />
+              <Row k="Billing cycle" v={capitalizeBillingPeriod(sub.billingPeriod)} />
               <Row k="Status" v={gym.status} />
               <Row k="Auto-renew" v={sub.autoRenew ? "On" : "Off"} />
               <Row

@@ -29,6 +29,7 @@ type OverviewStats = {
   platform_revenue_previous_minor: number;
   mrr_minor: number;
   trials_ending_7d: number;
+  renewals_due_7d: number;
   in_grace_count: number;
   read_only_count: number;
   failed_charges_current: { count: number; amount_minor: number };
@@ -39,7 +40,12 @@ type AdminPackageMixRow = {
   package_id: string;
   code: string;
   name: string;
-  billing_period: "monthly" | "yearly";
+  // Widened from "monthly" | "yearly" — a dynamic plan cycle (supabase/
+  // migrations/1008_plans_schema_and_rpcs.sql) can carry any admin-defined
+  // label. buildMix() below still special-cases "monthly"/"yearly" for its
+  // 2-column display but no longer silently collides two different labels
+  // into the same slot (see that function's own comment).
+  billing_period: string;
   price_minor: number;
   gym_count: number;
   mrr_minor: number;
@@ -304,20 +310,9 @@ function buildTiles(stats: OverviewStats, periodLabel: string): KpiTile[] {
     },
     {
       label: "Renewals due in 7 days",
-      // TODO(missing-metric): admin_overview_stats has no distinct count
-      // of non-trial subscriptions renewing within 7 days — only
-      // trials_ending_7d, which is trial-specific and already surfaced in
-      // the "Needs attention today" band. Misusing that number here would
-      // silently mislabel it, so this tile shows a flagged placeholder
-      // instead. Fixing it needs a new jsonb key on admin_overview_stats:
-      // count(organization_subscriptions) where the derived state is
-      // 'active'/'grace' and current_period_end falls within 7 days —
-      // small, but a live-project migration wasn't applied for it this
-      // pass without more confidence under time pressure (task brief,
-      // option (a)).
-      value: "—",
-      hint: "Not tracked yet",
-      accentValue: true,
+      value: String(stats.renewals_due_7d),
+      hint: "Active or grace, period ending soon",
+      accentValue: stats.renewals_due_7d > 0,
     },
   ];
 }
@@ -362,22 +357,38 @@ function buildAttention(stats: OverviewStats): AttentionCell[] {
 function buildMix(mixRows: AdminPackageMixRow[], stats: OverviewStats): MixRow[] {
   const totalMrrMinor = mixRows.reduce((sum, m) => sum + m.mrr_minor, 0);
 
-  const byName = new Map<string, { monthly?: AdminPackageMixRow; yearly?: AdminPackageMixRow }>();
+  // monthly/yearly stay their own named slots (the legacy convention this
+  // was originally built for); anything else — a dynamic plan's "Quarterly"
+  // etc — goes into `others` rather than being force-fit into one of those
+  // two and silently overwriting a genuine monthly/yearly row sharing the
+  // same plan name. Not a full generalization of this widget to N arbitrary
+  // cycles (out of scope for this pass — Overview is read-only reporting,
+  // not a purchase path) but no longer capable of losing data.
+  const byName = new Map<
+    string,
+    { monthly?: AdminPackageMixRow; yearly?: AdminPackageMixRow; others: AdminPackageMixRow[] }
+  >();
   for (const row of mixRows) {
-    const entry = byName.get(row.name) ?? {};
+    const entry = byName.get(row.name) ?? { others: [] };
     if (row.billing_period === "yearly") entry.yearly = row;
-    else entry.monthly = row;
+    else if (row.billing_period === "monthly") entry.monthly = row;
+    else entry.others.push(row);
     byName.set(row.name, entry);
   }
 
-  const rows: MixRow[] = Array.from(byName.entries()).map(([name, { monthly, yearly }]) => {
-    const gyms = (monthly?.gym_count ?? 0) + (yearly?.gym_count ?? 0);
-    const mrrMinor = (monthly?.mrr_minor ?? 0) + (yearly?.mrr_minor ?? 0);
+  const rows: MixRow[] = Array.from(byName.entries()).map(([name, { monthly, yearly, others }]) => {
+    const gyms =
+      (monthly?.gym_count ?? 0) + (yearly?.gym_count ?? 0) + others.reduce((sum, r) => sum + r.gym_count, 0);
+    const mrrMinor =
+      (monthly?.mrr_minor ?? 0) + (yearly?.mrr_minor ?? 0) + others.reduce((sum, r) => sum + r.mrr_minor, 0);
     const pct = totalMrrMinor > 0 ? Math.round((mrrMinor / totalMrrMinor) * 100) : 0;
 
     const priceParts: string[] = [];
     if (monthly) priceParts.push(`${formatMinorWhole(monthly.price_minor)} / mo`);
     if (yearly) priceParts.push(`${formatMinorWhole(yearly.price_minor)} / yr`);
+    for (const other of others) {
+      priceParts.push(`${formatMinorWhole(other.price_minor)} / ${other.billing_period.toLowerCase()}`);
+    }
 
     return {
       name,

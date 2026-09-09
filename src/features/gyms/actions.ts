@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
+import { listGymsPage, type GymListParams } from "./queries";
 
 /**
  * Subscription management on the Gyms directory (CLAUDE.md's Plan, P1 item
@@ -161,4 +162,59 @@ export async function updateGymProfile(_prev: ProfileFormState, formData: FormDa
   revalidateGyms();
   revalidatePath("/admin/gyms/[id]", "layout");
   return { error: null, success: true };
+}
+
+export type ExportGymsResult = { rows: string[][] } | { error: string };
+
+export const GYMS_CSV_HEADERS = [
+  "Gym",
+  "Owner",
+  "Owner email",
+  "City",
+  "Package",
+  "Billing period",
+  "Status",
+  "Members",
+  "Member cap",
+  "Branches",
+  "Staff",
+  "Renews",
+  "Lifetime paid",
+  "Created",
+];
+
+/**
+ * Export CSV, ported to the server-paginated Gyms list (main's own version
+ * of this feature exported `filtered` straight out of client state, which
+ * only worked because that page loaded every gym into the browser — this
+ * page deliberately doesn't, per the redesign's whole point). Re-runs the
+ * same admin_gyms_list() query with the caller's current filters and a
+ * generous limit instead of the page size, so "export CSV" means "export
+ * everything matching your filters," not just the current page.
+ */
+export async function exportGymsCsv(params: GymListParams): Promise<ExportGymsResult> {
+  try {
+    const supabase = await createClient();
+    const { rows } = await listGymsPage(supabase, { ...params, limit: 5000, offset: 0 });
+    return {
+      rows: rows.map((g) => [
+        g.name,
+        g.ownerName,
+        g.ownerEmail,
+        g.city,
+        g.packageName,
+        g.period,
+        g.status,
+        g.members,
+        g.cap,
+        g.branches,
+        g.staff,
+        g.renews,
+        g.ltv,
+        new Date(g.createdAt).toLocaleDateString("en-IN"),
+      ]),
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to export gyms." };
+  }
 }

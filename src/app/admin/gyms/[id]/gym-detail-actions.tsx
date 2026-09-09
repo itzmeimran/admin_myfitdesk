@@ -8,6 +8,7 @@ import { ManageSubscriptionSheet, type SubscriptionSheetGym } from "@/features/g
 import { SuspendSheet, ReactivateConfirm } from "../gym-row-actions";
 import { EditIcon, PackagesIcon, AlertIcon, RestoreIcon } from "@/core/ui/icons";
 import { formatMinorWhole } from "@/core/money/format";
+import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
 /**
  * Section 2's header quick actions: Edit gym / Manage subscription /
@@ -32,7 +33,7 @@ export function GymDetailActions({ gym, packages }: { gym: GymDetail; packages: 
   const packageLabel = sub?.packageName ?? "No package";
   const periodLabel = sub
     ? sub.priceMinor !== null
-      ? `${sub.billingPeriod === "yearly" ? "Yearly" : "Monthly"} · ${formatMinorWhole(sub.priceMinor, sub.currency ?? "INR")}`
+      ? `${capitalizeBillingPeriod(sub.billingPeriod)} · ${formatMinorWhole(sub.priceMinor, sub.currency ?? "INR")}`
       : "Trial"
     : "No subscription";
   const renewsLabel = sub?.currentPeriodEnd

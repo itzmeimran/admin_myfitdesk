@@ -8,6 +8,7 @@ import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon } from "@/core/ui/icons";
+import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
 /** Normalized view of "a gym you can manage the subscription of" — the
  * Gyms list row and the Gym Detail header describe a gym with different
@@ -116,7 +117,7 @@ export function ManageSubscriptionSheet({
             </option>
             {packages.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} · {p.billingPeriod === "yearly" ? "Yearly" : "Monthly"} · {p.price}
+                {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
               </option>
             ))}
           </select>

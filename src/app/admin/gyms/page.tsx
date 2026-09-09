@@ -14,8 +14,8 @@ import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { GymRowActions } from "./gym-row-actions";
+import { ExportGymsButton } from "./export-gyms-button";
 import {
-  ExportIcon,
   InviteIcon,
   ListIcon,
   CalendarCheckIcon,
@@ -143,15 +143,17 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
             · {summary.totalMembers.toLocaleString("en-IN")} members across the platform
           </p>
         </div>
-        <button
-          type="button"
-          disabled
-          title="Not implemented yet"
-          className="flex min-h-[36px] items-center gap-2 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <ExportIcon size={ICON_SIZE.button} aria-hidden />
-          Export CSV
-        </button>
+        <ExportGymsButton
+          params={{
+            search,
+            status: FILTER_TO_STATE[filter],
+            packageId: packageId || undefined,
+            billingPeriod,
+            minBranches: minBranches && minBranches > 0 ? minBranches : undefined,
+            sortCol,
+            sortDir,
+          }}
+        />
         <button
           type="button"
           disabled

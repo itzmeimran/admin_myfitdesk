@@ -5,6 +5,7 @@ import { getGymDetail } from "@/features/gyms/detail";
 import { listAssignablePackages } from "@/features/gyms/queries";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { BackIcon } from "@/core/ui/icons";
+import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { GymDetailActions } from "./gym-detail-actions";
 import { GymDetailTabs } from "./gym-detail-tabs";
 
@@ -32,7 +33,7 @@ export default async function GymDetailLayout({
   const location = [gym.city, gym.state].filter(Boolean).join(", ") || "—";
   const sub = gym.subscription;
   const planLabel = sub?.packageName ?? (gym.status === "Trialing" ? "Trial (no package)" : "No package");
-  const billingLabel = sub?.billingPeriod ? (sub.billingPeriod === "yearly" ? "Yearly" : "Monthly") : "—";
+  const billingLabel = capitalizeBillingPeriod(sub?.billingPeriod);
 
   return (
     <div className="flex flex-col gap-4">

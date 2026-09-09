@@ -9,6 +9,7 @@ import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { formatMinorWhole } from "@/core/money/format";
+import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import Link from "next/link";
 
 const SORT_ALLOWLIST = new Set(["created_at", "amount_minor", "status", "paid_at"]);
@@ -70,7 +71,7 @@ export default async function GymBillingPage({
       <section className="flex flex-wrap gap-x-6 gap-y-2 border-[1.5px] border-line bg-paper p-4 text-[12.5px]">
         <Detail k="Plan" v={sub?.packageName ?? "No package"} />
         <Detail k="Price" v={sub?.priceMinor != null ? formatMinorWhole(sub.priceMinor, sub.currency ?? "INR") : "—"} />
-        <Detail k="Billing cycle" v={sub?.billingPeriod === "yearly" ? "Yearly" : sub?.billingPeriod === "monthly" ? "Monthly" : "—"} />
+        <Detail k="Billing cycle" v={capitalizeBillingPeriod(sub?.billingPeriod)} />
         <Detail k="Status" v={gym.status} />
         <Detail k="Auto-renew" v={sub?.autoRenew ? "On" : "Off"} />
       </section>

@@ -44,7 +44,10 @@ type AdminGymDetailJson = {
     package_id: string | null;
     package_name: string | null;
     package_code: string | null;
-    billing_period: "monthly" | "yearly" | null;
+    // Widened from "monthly" | "yearly" — dynamic plan cycles (supabase/
+    // migrations/1008_plans_schema_and_rpcs.sql) carry an arbitrary
+    // admin-defined label, not just the legacy two.
+    billing_period: string | null;
     price_minor: number | null;
     currency: string | null;
     status: string;
@@ -105,7 +108,7 @@ export type GymDetail = {
     packageId: string | null;
     packageName: string | null;
     packageCode: string | null;
-    billingPeriod: "monthly" | "yearly" | null;
+    billingPeriod: string | null;
     priceMinor: number | null;
     currency: string | null;
     status: string;

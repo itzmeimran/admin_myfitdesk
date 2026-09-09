@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { OverviewPeriod } from "@/features/overview/queries";
 import type {
   AttentionCell,
   KpiTile,
@@ -44,6 +45,20 @@ const PERIOD_ICON: Record<Period, IconType> = {
   Year: CalendarCheckIcon,
 };
 
+/** Display label (this file's own `Period`, from the design's mock-data.ts)
+ * ↔ the `?period=` query value (`OverviewPeriod`, from queries.ts) the
+ * Server Component actually re-fetches on. */
+const PERIOD_TO_QUERY: Record<Period, OverviewPeriod> = {
+  "This month": "month",
+  Quarter: "quarter",
+  Year: "year",
+};
+const QUERY_TO_PERIOD: Record<OverviewPeriod, Period> = {
+  month: "This month",
+  quarter: "Quarter",
+  year: "Year",
+};
+
 const ATTENTION_ICON: IconType[] = [RemindIcon, ReadOnlyIcon, RevenueIcon, TrialsIcon];
 
 const RISK_ACTION_ICON: Record<string, IconType> = {
@@ -54,6 +69,7 @@ const RISK_ACTION_ICON: Record<string, IconType> = {
 };
 
 export function OverviewView({
+  period: periodParam,
   attention,
   tiles,
   mix,
@@ -69,6 +85,11 @@ export function OverviewView({
   trendHeaderValue,
   trendHeaderHint,
 }: {
+  /** From the `?period=` query param (admin/page.tsx) — this is what
+   * actually drove this render's data, unlike the old local `useState`
+   * that only relabeled the button while every number stayed on "This
+   * month". */
+  period: OverviewPeriod;
   attention: AttentionCell[];
   tiles: KpiTile[];
   mix: MixRow[];
@@ -89,11 +110,8 @@ export function OverviewView({
   trendHeaderValue: string;
   trendHeaderHint: string;
 }) {
-  // TODO(real-data): the period toggle doesn't re-query anything yet — all
-  // mock arrays represent "This month" only. Wiring Quarter/Year means
-  // parameterising every query in design-audit.md's Data mapping section
-  // by a date range, not just re-labeling this state.
-  const [period, setPeriod] = useState<Period>("This month");
+  const router = useRouter();
+  const period = QUERY_TO_PERIOD[periodParam];
 
   return (
     <div className="flex flex-col gap-4">
@@ -111,7 +129,7 @@ export function OverviewView({
                 key={p}
                 type="button"
                 aria-pressed={on}
-                onClick={() => setPeriod(p)}
+                onClick={() => router.push(`/admin?period=${PERIOD_TO_QUERY[p]}`)}
                 className={`-ml-[1.5px] flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[11.5px] font-bold first:ml-0 ${
                   on ? "bg-ink text-hi" : "bg-paper text-ink"
                 }`}

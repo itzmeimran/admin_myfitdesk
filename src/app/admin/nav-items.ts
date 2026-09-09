@@ -21,17 +21,15 @@ export type NavItem = {
   href: string;
   label: string;
   icon: IconType;
-  /** Static per the design mock (NAV's `badge: "18"` on Gyms only) — not
-   * derived from anything live yet. */
-  badge?: string;
 };
 
+// The design mock had a static `badge: "18"` on Gyms only — that's now a
+// live count(organizations) instead (AdminChromeCounts.gymsCount, threaded
+// in from admin/layout.tsx), so it's computed at render time in
+// admin-sidebar.tsx/admin-chrome.tsx rather than stored here.
 export const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: OverviewIcon },
-  // TODO(real-data): badge should be a live count once Gyms reads from
-  // organizations — see design-audit.md's Data mapping section
-  // ("count(organizations) where deleted_at is null").
-  { href: "/admin/gyms", label: "Gyms", icon: GymsIcon, badge: "18" },
+  { href: "/admin/gyms", label: "Gyms", icon: GymsIcon },
   { href: "/admin/packages", label: "Packages", icon: PackagesIcon },
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },

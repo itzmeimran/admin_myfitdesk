@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { resolvePlatformAdmin } from "@/core/auth/get-platform-admin";
+import { getAdminChromeCounts } from "@/features/overview/queries";
+import { createClient } from "@/core/db/server-client";
 import { ToastProvider } from "@/components/Toast";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminChrome } from "./admin-chrome";
@@ -52,15 +54,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const email = result.context.email ?? "platform admin";
+  const supabase = await createClient();
+  const { gymsCount, alertsCount } = await getAdminChromeCounts(supabase);
 
   return (
     <ToastProvider>
       <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
-        <AdminSidebar email={email} />
+        <AdminSidebar email={email} gymsCount={gymsCount} />
 
         <div className="flex h-dvh flex-1 flex-col md:ml-[236px] md:min-w-0">
           <header className="flex flex-shrink-0 items-center gap-3 border-b-[1.5px] border-ink bg-paper px-4 py-3 md:px-6">
-            <AdminChrome email={email} />
+            <AdminChrome email={email} gymsCount={gymsCount} alertsCount={alertsCount} />
           </header>
 
           <main className="flex-1 overflow-y-auto bg-paper pb-24 md:pb-8">

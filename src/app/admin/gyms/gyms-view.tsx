@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Gym, GymFilter } from "@/features/gyms/mock-data";
 import { GYM_FILTERS } from "@/features/gyms/mock-data";
-import type { AssignablePackage } from "@/features/gyms/queries";
+import type { AssignablePackage, GymsSummary } from "@/features/gyms/queries";
 import {
   extendSubscription,
   changeSubscriptionPackage,
@@ -66,10 +66,12 @@ function renewTone(renews: string) {
 export function GymsView({
   gyms,
   packages,
+  summary,
   initialFilter,
 }: {
   gyms: Gym[];
   packages: AssignablePackage[];
+  summary: GymsSummary;
   initialFilter: GymFilter;
 }) {
   const [filter, setFilter] = useState<GymFilter>(initialFilter);
@@ -94,8 +96,11 @@ export function GymsView({
       <div className="flex flex-wrap items-end gap-3">
         <div className="mr-auto flex min-w-0 flex-col gap-1">
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Gyms</h1>
-          {/* TODO(real-data): count(organizations), count(branches), count(members) — see design-audit.md's Data mapping section. */}
-          <p className="text-[12.5px] text-mute">128 enrolled · 214 branches · 41,382 members across the platform</p>
+          <p className="text-[12.5px] text-mute">
+            {summary.enrolledCount.toLocaleString("en-IN")} enrolled ·{" "}
+            {summary.branchCount.toLocaleString("en-IN")} branches ·{" "}
+            {summary.memberCount.toLocaleString("en-IN")} members across the platform
+          </p>
         </div>
         <button
           type="button"
@@ -222,7 +227,7 @@ export function GymsView({
         </table>
         <div className="flex items-center justify-between border-t border-line px-4 py-2.5 text-[11.5px] text-mute">
           <span>
-            Showing {filtered.length} of 128 gyms
+            Showing {filtered.length} of {summary.enrolledCount} gyms
           </span>
           <div className="flex gap-2">
             <button

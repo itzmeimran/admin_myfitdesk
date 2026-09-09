@@ -5,15 +5,17 @@ import { formatMinorWhole } from "@/core/money/format";
 import { formatShortDate } from "@/core/dates/format";
 import { listGyms } from "@/features/gyms/queries";
 import type { Gym } from "@/features/gyms/mock-data";
-import type { AttentionCell, KpiTile, MixRow, RiskRow, LimitRow, SignupRow, TrendBar } from "./mock-data";
+import type { AttentionCell, KpiTile, MixRow, RiskRow, LimitRow, SignupRow, HealthRow, TrendBar } from "./mock-data";
 
 /**
- * Real replacement for most of mock-data.ts's arrays (ATTENTION/TILES/MIX/
- * RISK/LIMITS/SIGNUPS/TREND) — HEALTH stays mock, see the comment at the
- * bottom of this file. overview-view.tsx also gained a handful of new props
- * for headline numbers that were hardcoded directly in its JSX (gyms-
- * enrolled count, the attention-band caption, etc.) rather than passed as
- * props — see that file's diff.
+ * Real replacement for every mock-data.ts array (ATTENTION/TILES/MIX/
+ * RISK/LIMITS/SIGNUPS/TREND/HEALTH). HEALTH was the last one left on mock
+ * data (see fetchBillingPipeline's docblock below for why it needed a new
+ * RPC) — now wired via supabase/migrations/1005_admin_billing_pipeline.sql.
+ * overview-view.tsx also gained a handful of new props for headline numbers
+ * that were hardcoded directly in its JSX (gyms-enrolled count, the
+ * attention-band caption, etc.) rather than passed as props — see that
+ * file's diff.
  */
 
 type OverviewStats = {
@@ -54,6 +56,8 @@ type AdminGymsNearCapRow = {
 
 type AdminRevenueTrendRow = { week_start: string; revenue_minor: number };
 
+type AdminBillingPipeline = { webhooks_ok_24h: number; signature_failures_24h: number };
+
 export type OverviewData = {
   attention: AttentionCell[];
   tiles: KpiTile[];
@@ -61,6 +65,7 @@ export type OverviewData = {
   risk: RiskRow[];
   limits: LimitRow[];
   signups: SignupRow[];
+  health: HealthRow[];
   trend: TrendBar[];
   /** New props overview-view.tsx needed for numbers that used to be typed
    * directly into its JSX (see that file). */
@@ -72,11 +77,43 @@ export type OverviewData = {
   trendHeaderHint: string;
 };
 
-function monthRange(now: Date): { start: Date; end: Date; prevStart: Date; prevEnd: Date } {
+export type OverviewPeriod = "month" | "quarter" | "year";
+
+/** Current vs previous window for each of the period toggle's 3 options —
+ * admin_overview_stats() already takes arbitrary start/end bounds (it was
+ * built accepting them from day one), so wiring Quarter/Year is this
+ * function plus threading `period` through, not a new RPC. `label` feeds
+ * every "N new in <label>" caption below. */
+function periodRange(period: OverviewPeriod, now: Date): { start: Date; end: Date; prevStart: Date; prevEnd: Date; label: string } {
+  if (period === "year") {
+    const y = now.getFullYear();
+    return {
+      start: new Date(y, 0, 1),
+      end: new Date(y + 1, 0, 1),
+      prevStart: new Date(y - 1, 0, 1),
+      prevEnd: new Date(y, 0, 1),
+      label: String(y),
+    };
+  }
+  if (period === "quarter") {
+    const q = Math.floor(now.getMonth() / 3);
+    const start = new Date(now.getFullYear(), q * 3, 1);
+    return {
+      start,
+      end: new Date(now.getFullYear(), q * 3 + 3, 1),
+      prevStart: new Date(now.getFullYear(), q * 3 - 3, 1),
+      prevEnd: start,
+      label: `Q${q + 1} ${now.getFullYear()}`,
+    };
+  }
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return { start, end, prevStart, prevEnd: start };
+  return {
+    start,
+    end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+    prevStart: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+    prevEnd: start,
+    label: now.toLocaleDateString("en-IN", { month: "long" }),
+  };
 }
 
 /** First letters of up to 2 words, uppercased — this app's own derivation
@@ -169,19 +206,90 @@ async function fetchRevenueTrend(
   return (data ?? []) as AdminRevenueTrendRow[];
 }
 
-function buildTiles(stats: OverviewStats, monthName: string): KpiTile[] {
+/**
+ * The only piece of the "Billing pipeline" panel that actually needs a new
+ * RPC — payment_provider_events (the Razorpay webhook inbox) has zero RLS
+ * policies (confirmed live), service-role-only by design. The other 2 rows
+ * (orders stuck as created, refunds this month) come from platform_payments
+ * directly below, same table revenue/queries.ts's getRevenueTiles() already
+ * reads via its existing admin-select policy — no RPC needed for those.
+ */
+async function fetchBillingPipeline(supabase: SupabaseClient<Database>): Promise<AdminBillingPipeline> {
+  const { data, error } = await supabase.rpc("admin_billing_pipeline");
+  if (error) throw new Error(`Failed to load the billing pipeline: ${error.message}`);
+
+  const raw = Array.isArray(data) ? data[0] : data;
+  if (!raw || typeof raw !== "object") {
+    throw new Error("admin_billing_pipeline returned an unexpected shape");
+  }
+  return raw as AdminBillingPipeline;
+}
+
+/** "Orders stuck as created" / "Refunds this month" — same cutoff and
+ * calendar-month window revenue/queries.ts's getRevenueTiles() uses for its
+ * Awaiting settlement/Net of refunds tiles, recomputed here rather than
+ * imported since this panel always means calendar month (its own label
+ * says so) regardless of Overview's separate period toggle above it. */
+async function fetchMonthlyPaymentHealth(
+  supabase: SupabaseClient<Database>,
+  now: Date,
+): Promise<{ stuckCount: number; refundedCount: number; refundedMinor: number; currency: string }> {
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const { data, error } = await supabase
+    .from("platform_payments")
+    .select("amount_minor, currency, status, created_at")
+    .gte("created_at", start.toISOString())
+    .lt("created_at", end.toISOString());
+  if (error) throw new Error(`Failed to load this month's payment health: ${error.message}`);
+
+  const rows = data ?? [];
+  const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+  const stuck = rows.filter((r) => r.status === "created" && new Date(r.created_at) < oneHourAgo);
+  const refunded = rows.filter((r) => r.status === "refunded");
+
+  return {
+    stuckCount: stuck.length,
+    refundedCount: refunded.length,
+    refundedMinor: refunded.reduce((sum, r) => sum + r.amount_minor, 0),
+    currency: rows[0]?.currency ?? "INR",
+  };
+}
+
+function buildHealth(
+  pipeline: AdminBillingPipeline,
+  paymentHealth: { stuckCount: number; refundedMinor: number; currency: string },
+): HealthRow[] {
+  return [
+    { label: "Razorpay webhooks, 24h", value: `${pipeline.webhooks_ok_24h} ok` },
+    {
+      label: "Signature failures",
+      value: String(pipeline.signature_failures_24h),
+      warn: pipeline.signature_failures_24h > 0,
+    },
+    {
+      label: "Orders stuck as created",
+      value: String(paymentHealth.stuckCount),
+      warn: paymentHealth.stuckCount > 0,
+    },
+    { label: "Refunds this month", value: formatMinorWhole(paymentHealth.refundedMinor, paymentHealth.currency) },
+  ];
+}
+
+function buildTiles(stats: OverviewStats, periodLabel: string): KpiTile[] {
   const trialing = stats.tenant_counts.trialing ?? 0;
   const paidGyms = stats.total_gyms - trialing;
 
   return [
-    { label: "Gyms enrolled", value: String(stats.total_gyms), hint: `+${stats.new_signups_current} in ${monthName}` },
+    { label: "Gyms enrolled", value: String(stats.total_gyms), hint: `+${stats.new_signups_current} in ${periodLabel}` },
     {
       label: "Recurring revenue",
       value: formatMinorWhole(stats.mrr_minor),
-      // Deliberately not a "vs last month" delta — admin_overview_stats
+      // Deliberately not a "vs last period" delta — admin_overview_stats
       // doesn't compute a previous-period MRR figure (only current), and
       // fabricating one wasn't worth the risk (task brief).
-      hint: `${stats.new_signups_current} new this month`,
+      hint: `${stats.new_signups_current} new in ${periodLabel}`,
       emphasis: true,
     },
     {
@@ -334,31 +442,40 @@ function buildLimits(rows: AdminGymsNearCapRow[]): LimitRow[] {
   });
 }
 
+/**
+ * Returns both the (top-4) rows to render AND the true count of last-7-day
+ * signups — the caption above this list ("New this week") needs the real
+ * total, not the period toggle's count (that's a different window: the
+ * toggle can be Quarter/Year while this section always means "last 7
+ * days," so reusing stats.new_signups_current here would mislabel it).
+ */
 function buildSignups(
   gyms: Gym[],
   orgRows: { name: string; created_at: string }[],
   now: Date,
-): SignupRow[] {
+): { rows: SignupRow[]; count: number } {
   const createdAtByName = new Map(orgRows.map((o) => [o.name, o.created_at]));
   const sevenDaysAgoMs = now.getTime() - 7 * 24 * 60 * 60 * 1000;
 
-  return gyms
+  const recent = gyms
     .map((gym) => ({ gym, createdAt: createdAtByName.get(gym.name) }))
     .filter(
       (x): x is { gym: Gym; createdAt: string } =>
         !!x.createdAt && new Date(x.createdAt).getTime() >= sevenDaysAgoMs,
     )
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 4)
-    .map(({ gym, createdAt }) => {
-      const label = gym.package === "No package" ? "Trial" : riskPackageLabel(gym);
-      return {
-        initials: initials(gym.name),
-        gym: gym.name,
-        detail: `${label} · ${gym.city} · ${formatShortDate(new Date(createdAt), now)}`,
-        pill: gym.package === "No package" ? "Trial" : "Paid",
-      };
-    });
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const rows: SignupRow[] = recent.slice(0, 4).map(({ gym, createdAt }) => {
+    const label = gym.package === "No package" ? "Trial" : riskPackageLabel(gym);
+    return {
+      initials: initials(gym.name),
+      gym: gym.name,
+      detail: `${label} · ${gym.city} · ${formatShortDate(new Date(createdAt), now)}`,
+      pill: gym.package === "No package" ? "Trial" : "Paid",
+    };
+  });
+
+  return { rows, count: recent.length };
 }
 
 function buildTrend(rows: AdminRevenueTrendRow[], now: Date): TrendBar[] {
@@ -379,11 +496,11 @@ function buildTrend(rows: AdminRevenueTrendRow[], now: Date): TrendBar[] {
   });
 }
 
-export async function getOverviewData(supabase: SupabaseClient<Database>): Promise<OverviewData> {
+export async function getOverviewData(supabase: SupabaseClient<Database>, period: OverviewPeriod = "month"): Promise<OverviewData> {
   const now = new Date();
-  const { start, end, prevStart, prevEnd } = monthRange(now);
+  const { start, end, prevStart, prevEnd, label: periodLabel } = periodRange(period, now);
 
-  const [stats, mixRows, nearCapRows, trendRows, gyms, orgRows] = await Promise.all([
+  const [stats, mixRows, nearCapRows, trendRows, gyms, orgRows, pipeline, paymentHealth] = await Promise.all([
     fetchOverviewStats(supabase, start, end, prevStart, prevEnd),
     fetchPackageMix(supabase),
     fetchGymsNearCap(supabase, 3),
@@ -396,9 +513,9 @@ export async function getOverviewData(supabase: SupabaseClient<Database>): Promi
         if (error) throw new Error(`Failed to load organizations: ${error.message}`);
         return data ?? [];
       }),
+    fetchBillingPipeline(supabase),
+    fetchMonthlyPaymentHealth(supabase, now),
   ]);
-
-  const monthName = now.toLocaleDateString("en-IN", { month: "long" });
 
   const atRiskGyms = gyms.filter((g) => g.status === "Grace" || g.status === "Read-only");
   const atRiskAmountMinor = atRiskGyms.reduce(
@@ -406,13 +523,16 @@ export async function getOverviewData(supabase: SupabaseClient<Database>): Promi
     0,
   );
 
+  const signups = buildSignups(gyms, orgRows, now);
+
   return {
     attention: buildAttention(stats),
-    tiles: buildTiles(stats, monthName),
+    tiles: buildTiles(stats, periodLabel),
     mix: buildMix(mixRows, stats),
     risk: buildRisk(gyms),
     limits: buildLimits(nearCapRows),
-    signups: buildSignups(gyms, orgRows, now),
+    signups: signups.rows,
+    health: buildHealth(pipeline, paymentHealth),
     trend: buildTrend(trendRows, now),
     gymsEnrolledCount: stats.total_gyms,
     headerLine: `${now.toLocaleDateString("en-IN", {
@@ -422,19 +542,43 @@ export async function getOverviewData(supabase: SupabaseClient<Database>): Promi
       year: "numeric",
     })} · ${stats.total_gyms} gyms enrolled · Asia/Kolkata`,
     attentionCaption: `${stats.in_grace_count + stats.read_only_count} gyms · ${formatMinorWhole(atRiskAmountMinor)} at risk`,
-    signupsCaption: `${stats.new_signups_current} in ${monthName}`,
+    signupsCaption: `${signups.count} in the last 7 days`,
     trendHeaderValue: formatMinorWhole(stats.mrr_minor),
-    trendHeaderHint: `${stats.new_signups_current} new this month`,
+    trendHeaderHint: `${stats.new_signups_current} new in ${periodLabel}`,
   };
 }
 
-// TODO(needs-service-role-or-new-rpc): the "Billing pipeline" dark panel
-// (HEALTH in mock-data.ts) is intentionally left on mock data — its real
-// source per design-audit.md is `payment_provider_events` (the Razorpay
-// webhook inbox), which has no admin-readable RLS policy by design
-// (service-role only, see that table's own migration comment; 1002 does
-// not add one). Surfacing it for real needs either a new SECURITY DEFINER
-// aggregate RPC (counts only, same pattern as admin_overview_stats etc.)
-// or a route handler reading it via the service client — not a plain
-// RLS-scoped read from this module. Flagging rather than guessing at a
-// migration for this under time pressure.
+export type AdminChromeCounts = {
+  /** Total organizations — backs the Gyms nav item's badge (previously a
+   * hardcoded "18" in nav-items.ts). */
+  gymsCount: number;
+  /** Grace + read-only subscriptions — the same "needs attention now"
+   * signal Overview's attention band uses (attentionCaption above), reused
+   * here for the header bell's badge (previously a hardcoded "5"). Both
+   * fields are period-independent point-in-time counts, unlike
+   * failed_charges_current/trials_ending_7d, so they don't need a real
+   * date range — deliberately not folding those two in, since doing that
+   * honestly would require the bell to carry the same "this month" period
+   * semantics the rest of Overview has, for a badge with no dropdown behind
+   * it yet to explain that scoping. */
+  alertsCount: number;
+};
+
+/** Rendered in the admin layout on every page, not just Overview — reuses
+ * admin_overview_stats() rather than a new RPC, passing a zero-width period
+ * window since neither field this reads depends on it. */
+export async function getAdminChromeCounts(supabase: SupabaseClient<Database>): Promise<AdminChromeCounts> {
+  const now = new Date().toISOString();
+  const { data, error } = await supabase.rpc("admin_overview_stats", {
+    p_period_start: now,
+    p_period_end: now,
+    p_prev_start: now,
+    p_prev_end: now,
+  });
+  if (error) throw new Error(`Failed to load admin chrome counts: ${error.message}`);
+
+  const raw = (Array.isArray(data) ? data[0] : data) as Pick<OverviewStats, "total_gyms" | "in_grace_count" | "read_only_count"> | null;
+  if (!raw) throw new Error("admin_overview_stats returned an unexpected shape");
+
+  return { gymsCount: raw.total_gyms, alertsCount: raw.in_grace_count + raw.read_only_count };
+}

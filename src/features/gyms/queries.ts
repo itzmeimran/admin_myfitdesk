@@ -108,12 +108,47 @@ function toGym(row: AdminGymRow, now: Date): Gym {
   };
 }
 
-export async function listGyms(supabase: SupabaseClient<Database>): Promise<Gym[]> {
+async function fetchAdminGymRows(supabase: SupabaseClient<Database>): Promise<AdminGymRow[]> {
   const { data, error } = await supabase.rpc("admin_gym_directory");
   if (error) throw new Error(`Failed to load the gym directory: ${error.message}`);
+  return (data ?? []) as AdminGymRow[];
+}
 
+export async function listGyms(supabase: SupabaseClient<Database>): Promise<Gym[]> {
+  const rows = await fetchAdminGymRows(supabase);
   const now = new Date();
-  return ((data ?? []) as AdminGymRow[]).map((row) => toGym(row, now));
+  return rows.map((row) => toGym(row, now));
+}
+
+export type GymsSummary = {
+  enrolledCount: number;
+  branchCount: number;
+  memberCount: number;
+};
+
+/**
+ * Gyms page header ("128 enrolled · 214 branches · 41,382 members") used to
+ * be hardcoded straight from the design mock (design-audit.md's Data
+ * mapping section flagged this as TODO(real-data) from the start). Derived
+ * from the same admin_gym_directory() rows the table itself renders — one
+ * RPC call, not a second query — branch_count/member_count per row already
+ * match this function's own active-branches/non-deleted-members definition
+ * (see that RPC's SQL), so summing them is exact, not an approximation.
+ */
+export async function getGymsDirectory(supabase: SupabaseClient<Database>): Promise<{ gyms: Gym[]; summary: GymsSummary }> {
+  const rows = await fetchAdminGymRows(supabase);
+  const now = new Date();
+
+  const summary = rows.reduce<GymsSummary>(
+    (acc, row) => ({
+      enrolledCount: acc.enrolledCount + 1,
+      branchCount: acc.branchCount + row.branch_count,
+      memberCount: acc.memberCount + row.member_count,
+    }),
+    { enrolledCount: 0, branchCount: 0, memberCount: 0 },
+  );
+
+  return { gyms: rows.map((row) => toGym(row, now)), summary };
 }
 
 export type AssignablePackage = {

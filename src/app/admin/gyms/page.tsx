@@ -1,5 +1,5 @@
 import { isGymFilter } from "@/features/gyms/mock-data";
-import { listGyms, listAssignablePackages } from "@/features/gyms/queries";
+import { getGymsDirectory, listAssignablePackages } from "@/features/gyms/queries";
 import { createClient } from "@/core/db/server-client";
 import { GymsView } from "./gyms-view";
 
@@ -22,7 +22,12 @@ export default async function GymsPage({
 }) {
   const { filter } = await searchParams;
   const supabase = await createClient();
-  const [gyms, packages] = await Promise.all([listGyms(supabase), listAssignablePackages(supabase)]);
+  const [{ gyms, summary }, packages] = await Promise.all([
+    getGymsDirectory(supabase),
+    listAssignablePackages(supabase),
+  ]);
 
-  return <GymsView gyms={gyms} packages={packages} initialFilter={isGymFilter(filter) ? filter : "All"} />;
+  return (
+    <GymsView gyms={gyms} packages={packages} summary={summary} initialFilter={isGymFilter(filter) ? filter : "All"} />
+  );
 }

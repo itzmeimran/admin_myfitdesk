@@ -25,11 +25,20 @@ import { NAV_ITEMS } from "./nav-items";
  * faking a filter or a dropdown that doesn't exist yet, per the "don't fake
  * unwired functionality" rule.
  */
-export function AdminChrome({ email }: { email: string }) {
+export function AdminChrome({
+  email,
+  gymsCount,
+  alertsCount,
+}: {
+  email: string;
+  gymsCount: number;
+  alertsCount: number;
+}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
+  const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : undefined);
 
   return (
     <>
@@ -61,19 +70,21 @@ export function AdminChrome({ email }: { email: string }) {
 
       <button
         type="button"
-        aria-label="Alerts, 5 unread"
+        aria-label={`Alerts, ${alertsCount} unread`}
         disabled
         title="Not implemented yet"
         className="relative flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink bg-paper text-ink disabled:cursor-not-allowed disabled:opacity-90"
       >
         <NudgeIcon size={16} aria-hidden />
-        {/* TODO(real-data): count should come from an unresolved-alerts
-            query (failed webhooks, accounts past grace, etc.) once that
-            exists — see design-audit.md's Data mapping / Billing pipeline
-            notes. Hardcoded to match the design mock exactly for now. */}
-        <span className="absolute -right-[7px] -top-[7px] flex h-[17px] min-w-[17px] items-center justify-center bg-accent px-1 text-[9.5px] font-bold text-paper">
-          5
-        </span>
+        {/* Grace + read-only subscriptions (AdminChromeCounts.alertsCount) —
+            there's no alerts dropdown behind this yet (button stays
+            disabled), so the badge only shows when there's actually
+            something to flag rather than always rendering a number. */}
+        {alertsCount > 0 ? (
+          <span className="absolute -right-[7px] -top-[7px] flex h-[17px] min-w-[17px] items-center justify-center bg-accent px-1 text-[9.5px] font-bold text-paper">
+            {alertsCount}
+          </span>
+        ) : null}
       </button>
 
       <span className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink text-[11px] font-bold md:hidden">
@@ -81,26 +92,29 @@ export function AdminChrome({ email }: { email: string }) {
       </span>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t-[1.5px] border-ink bg-paper md:hidden">
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={isActive(item.href) ? "page" : undefined}
-            className={`relative flex min-h-[54px] flex-col items-center justify-center gap-1 px-0.5 ${
-              isActive(item.href) ? "bg-ink text-hi" : "text-mute"
-            }`}
-          >
-            <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
-            <span className="text-[9.5px] font-bold leading-none">
-              {item.label === "Platform revenue" ? "Revenue" : item.label}
-            </span>
-            {item.badge ? (
-              <span className="absolute right-2 top-1 flex h-[14px] min-w-[14px] items-center justify-center bg-accent px-[3px] text-[8px] font-bold text-paper">
-                {item.badge}
+        {NAV_ITEMS.map((item) => {
+          const badge = badgeFor(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive(item.href) ? "page" : undefined}
+              className={`relative flex min-h-[54px] flex-col items-center justify-center gap-1 px-0.5 ${
+                isActive(item.href) ? "bg-ink text-hi" : "text-mute"
+              }`}
+            >
+              <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
+              <span className="text-[9.5px] font-bold leading-none">
+                {item.label === "Platform revenue" ? "Revenue" : item.label}
               </span>
-            ) : null}
-          </Link>
-        ))}
+              {badge ? (
+                <span className="absolute right-2 top-1 flex h-[14px] min-w-[14px] items-center justify-center bg-accent px-[3px] text-[8px] font-bold text-paper">
+                  {badge}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
       </nav>
 
       {menuOpen ? (
@@ -130,6 +144,7 @@ export function AdminChrome({ email }: { email: string }) {
               <div className="flex flex-col gap-0.5">
                 {NAV_ITEMS.map((item) => {
                   const active = isActive(item.href);
+                  const badge = badgeFor(item.href);
                   return (
                     <Link
                       key={item.href}
@@ -143,9 +158,9 @@ export function AdminChrome({ email }: { email: string }) {
                     >
                       <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
                       <span className="flex-1">{item.label}</span>
-                      {item.badge ? (
+                      {badge ? (
                         <span className="flex h-[17px] min-w-[17px] flex-shrink-0 items-center justify-center bg-accent px-1 text-[9px] font-bold text-paper">
-                          {item.badge}
+                          {badge}
                         </span>
                       ) : null}
                     </Link>

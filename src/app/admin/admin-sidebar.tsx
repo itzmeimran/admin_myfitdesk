@@ -29,10 +29,11 @@ import { NAV_ITEMS } from "./nav-items";
  * list describes finer per-section reflow (e.g. tile/card wrap counts),
  * not a different chrome cutoff.
  */
-export function AdminSidebar({ email }: { email: string }) {
+export function AdminSidebar({ email, gymsCount }: { email: string; gymsCount: number }) {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
+  const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : undefined);
 
   return (
     <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex md:h-dvh md:w-[236px] md:flex-shrink-0 md:flex-col md:justify-between md:overflow-y-auto md:border-r-[1.5px] md:border-ink md:bg-ink md:p-3.5 md:text-paper">
@@ -54,6 +55,7 @@ export function AdminSidebar({ email }: { email: string }) {
         <nav className="flex flex-col gap-0.5" aria-label="Platform sections">
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.href);
+            const badge = badgeFor(item.href);
             return (
               <Link
                 key={item.href}
@@ -67,9 +69,9 @@ export function AdminSidebar({ email }: { email: string }) {
               >
                 <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
                 <span className="flex-1 truncate">{item.label}</span>
-                {item.badge ? (
+                {badge ? (
                   <span className="flex h-[18px] min-w-[18px] flex-shrink-0 items-center justify-center bg-accent px-1 text-[9.5px] font-bold text-paper">
-                    {item.badge}
+                    {badge}
                   </span>
                 ) : null}
               </Link>

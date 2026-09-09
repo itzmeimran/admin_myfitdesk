@@ -1562,6 +1562,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_billing_pipeline: { Args: never; Returns: Json }
       admin_cancel_subscription: {
         Args: { p_organization_id: string }
         Returns: undefined

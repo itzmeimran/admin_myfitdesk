@@ -47,6 +47,7 @@ export {
   LuPencil as EditIcon,
   LuArchive as ArchiveIcon,
   LuRotateCcw as RestoreIcon,
+  LuUserX as RevokeIcon,
 
   // Confirm / dismiss
   LuCheck as ConfirmIcon,

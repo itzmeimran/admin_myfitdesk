@@ -59,14 +59,24 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 5. ✅ **Subscription management on the Gyms directory — done and verified 2026-09-09.** See "Milestone: Subscription management" below.
 
 **P2 — remaining page completeness**
-6. "Renewals due in 7 days" Overview tile has no backing metric — extend `admin_overview_stats` with a real jsonb key (count of active/grace subscriptions renewing within 7 days), apply carefully via MCP, re-check advisors after. Still the one remaining known-fake number in the app (shows "—"/"Not tracked yet", not a wrong number — honest placeholder, not a fabricated one).
+6. ✅ **Done 2026-09-09.** "Renewals due in 7 days" Overview tile now backed by real data — see "Milestone: Renewals due in 7 days metric" below.
 7. ✅ **"Billing pipeline" panel — done and verified 2026-09-09.** See "Milestone: Real numbers everywhere" below.
-8. Settings page — currently a static placeholder, matching the design's own stated scope ("out of scope for this handoff"). Decide if/when it's built: grace-period default, invoice prefix, webhook endpoints, admin roster management UI (currently `platform_admins` can only be granted/revoked via `scripts/grant-platform-admin.mjs`, no UI).
-9. Gyms: pagination, "Load more", Export CSV, Invite gym owner are all inert placeholders — decide which are worth building vs. genuinely deferring.
+8. ✅ **Partially done 2026-09-09.** Product owner chose admin roster UI of the 4 candidates — see "Milestone: Admin roster UI" below. Grace-period default, invoice prefix, and webhook endpoints remain undecided and unbuilt.
+9. ✅ **Partially done 2026-09-09.** Product owner chose Export CSV only — see "Milestone: Gyms Export CSV" below. Invite gym owner, pagination, and Load more remain deliberately deferred (Invite needs new infra; pagination has nothing real to page through with 4 live gyms).
 10. ✅ **Overview's period toggle (This month/Quarter/Year) — done and verified 2026-09-09.** See "Milestone: Real numbers everywhere" below.
 
 **P3 — polish**
 11. Responsive/visual QA pass in an actual browser against the reference design for the now-real-data pages — blocked on item 2 above for anything beyond mock-data screens (already visually verified once, pre-wiring).
+
+---
+
+## Known issue, diagnosed not fixed: /admin session-expiry race (2026-09-09)
+
+**Symptom (live Vercel logs):** a request logs several `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` warnings immediately followed by `Error: Failed to load the gym directory: permission denied for function admin_gym_directory`.
+
+**Root cause:** not a grants bug — live grants on `admin_gym_directory` are correct (`authenticated`: yes, `anon`/`public`: no, verified directly against the DB). `app/admin/layout.tsx`'s `resolvePlatformAdmin()` correctly `redirect("/login")`s on an invalid session, but `app/admin/gyms/page.tsx` runs its own independent `createClient()` + `admin_gym_directory()` RPC call rather than depending on the layout's result. Next.js renders nested Server Components concurrently, so with an expired/invalid refresh token both fire at once: the layout's redirect eventually wins, but the page's own RPC call goes out first under the now-unauthenticated (effectively `anon`) session and Postgres correctly denies it — surfacing as an unconditional throw in `getGymsDirectory()` before the redirect lands. Same class of gap in every other `admin/*/page.tsx` that calls `createClient()` independently of the layout (packages, revenue, overview), not gyms-specific.
+
+**Status:** diagnosed 2026-09-09, user opted not to fix yet (just wanted the cause). If this recurs or gets prioritized, the fix is to make RPC error handling in `features/*/queries.ts` detect an auth-failure-shaped Postgres error (`42501`/`insufficient_privilege` alongside a missing/invalid session) and `redirect("/login")` instead of throwing to the error boundary — across all admin query files, not just gyms, since the race is structural to the layout/page split.
 
 ---
 
@@ -81,6 +91,45 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 **Fix:** cast `supabase` itself to a narrow extended type, keep `supabase.rpc(...)` as a normal method call (preserves `this`). Applied to all 5 affected files: `core/auth/get-platform-admin.ts`, `features/{gyms,packages,overview}/queries.ts`, `features/packages/actions.ts` (8 call sites total).
 
 **Verification this time was real**: wrote a throwaway script (`node --env-file=.env.local -e "..."`, run via Bash, not the sandboxed preview tool) that (1) reproduced the exact same error with the old pattern using the real signed-in admin session, confirming the diagnosis, then (2) confirmed the fixed pattern returns correct data for `is_platform_admin`, `admin_gym_directory` (4 rows), `admin_package_mix` (6 rows), and `admin_overview_stats` (correct jsonb shape) — all against the live database, all as the real `ikik790@gmail.com` admin account. Then `tsc`/`eslint`/`build` clean on top of that, not instead of it.
+
+---
+
+## Milestone: Gyms Export CSV (2026-09-09)
+
+P2 #9. Of Gyms' 4 inert placeholders (Export CSV, Invite gym owner, pagination, Load more), asked the product owner which to build; they chose Export CSV only. Invite gym owner needs new infra this pass doesn't have (email sending, an invite-token flow linking to `complete_gym_signup` or a new flow); pagination/Load more have nothing real to page through yet (4 gyms on the live project) — both stay deferred, not built.
+
+- **Pure client-side, no new RPC or migration**: `src/core/csv.ts` (`downloadCsv(filename, headers, rows)` — RFC 4180 field quoting, Blob + object URL + synthetic `<a download>` click) and `gyms-view.tsx`'s Export CSV button now calls it with exactly the rows the table currently shows — i.e. it respects the active status filter and search box, never a silent "export everything" behind a "export what you see" label.
+- **Not verified in an actual browser**, and for a different reason than the two prior real-data milestones: this feature needed a real signed-in session to reach `/admin/gyms` at all, so a disposable admin account was created (same throwaway-user pattern as every RPC verification this session) specifically to sign in through this session's Browser pane at `localhost:3000` (the other session's server — this session's own `preview_start` still can't get a port, per the ongoing conflict). Sign-in failed with "That email or password doesn't match an account" even after confirming via direct SQL that the account existed with the right email, a confirmed email, and a set password — strongly suggesting that dev server instance is pointed at a different Supabase project/branch than this session's `.env.local`/MCP connection, not a bug in this change. Did not investigate further since it's another session's environment; disposable accounts were deleted immediately after (confirmed via `auth.users` query, zero residue).
+- Confidence here rests on: `tsc`/`eslint`/`build` clean, and the implementation being a well-understood, low-risk pattern (map known-good display strings already rendered in the table into CSV rows, trigger a standard browser download) rather than anything touching the database or auth.
+
+---
+
+## Milestone: Admin roster UI (2026-09-09)
+
+P2 #8 (Settings page). The design's own placeholder copy named 4 candidate features (grace-period default, invoice prefix, webhook endpoints, admin accounts); asked the product owner which to build, and they chose the admin roster only — the other three stay a static gap, not built, not decided.
+
+- **DB**: `supabase/migrations/1007_admin_roster_rpcs.sql` — three new `SECURITY DEFINER` RPCs, no blanket write policy added to `platform_admins` (it still has none, by 1001's original design; same "narrow audited RPC, not a blanket policy" choice 1003 made for `platform_packages`).
+  - `admin_list_platform_admins()` — the roster, joined back to `auth.users` for `granted_by_email`, with an `is_self` flag so the UI can disable self-revoke.
+  - `admin_grant_platform_admin(p_email)` — upserts on `user_id`, so granting and reactivating a revoked admin are the same call. **Real scope boundary, not a bug**: only works for an email that already has a Supabase Auth account — creating a brand-new one needs GoTrue's Admin API (service-role only), which a plain Postgres function can't reach. A genuinely new admin still needs `scripts/grant-platform-admin.mjs`; the UI covers everything after that account exists.
+  - `admin_revoke_platform_admin(p_user_id)` — soft-revoke only (matches the table's no-hard-delete design). **Refuses self-revoke** — there's no recovery flow on this app (no signup, no password-reset UI), so a self-revoke could strand the caller or, if they're the only admin, the whole product.
+- **App**: `src/features/settings/{queries,actions}.ts`, `src/app/admin/settings/{page,settings-view}.tsx` replace the old static placeholder — a grant-by-email form plus a roster table (email, Active/Revoked pill, granted date, granted-by, Revoke/Reactivate). One new icon alias, `RevokeIcon` (`LuUserX`), added to `core/ui/icons.ts`; one new pill tone, `Revoked`, added to `core/ui/status-style.ts` (same muted tone as `Cancelled`).
+- **Verified end-to-end against live data** with a disposable-actor + disposable-target pair (not just a service-role smoke test — signed in as the actor with the publishable key, same as every prior milestone): rejected a grant for a nonexistent email with the intended message, granted the target, confirmed the roster lists it correctly (`is_self` true only for the actor, `granted_by_email` correct), rejected a self-revoke attempt, revoked the target, rejected a double-revoke, reactivated via the same grant RPC, and confirmed all 4 resulting `admin_audit_log` rows (`admin.grant` ×2, `admin.revoke` ×1) landed correctly — all against the real production `ikik790@gmail.com` admin's own roster row (present, undisturbed, read correctly in the listing). Zero residue after cleanup, confirmed by a direct count query on both `platform_admins` and `admin_audit_log`.
+- `get_advisors` (security) re-checked post-migration: clean — only the 3 expected new `authenticated`-callable flags, same category as every other `admin_*` RPC.
+- `tsc --noEmit` / `eslint .` / `npm run build` all clean.
+- **Not verified in an actual browser**, same as the Renewals due in 7 days milestone directly below: another session already had `next dev` running on port 3000 both times this session tried `preview_start`, and the sandbox can't reach Supabase anyway (P0 #2, unresolved). Real-RPC verification above is the substitute.
+
+---
+
+## Milestone: Renewals due in 7 days metric (2026-09-09)
+
+The last remaining known-fake tile (P2 #6) — Overview's "Renewals due in 7 days" had shown a flagged placeholder ("—" / "Not tracked yet") since the Real numbers everywhere milestone, because `admin_overview_stats` only had `trials_ending_7d` (trial-specific).
+
+- **DB**: `supabase/migrations/1006_admin_renewals_due_metric.sql` — `admin_overview_stats` gains one new jsonb key, `renewals_due_7d`: count of subscriptions whose derived state is `active`/`grace` and whose `current_period_end` falls within the next 7 days. `CREATE OR REPLACE` was sufficient (jsonb return type unchanged, unlike 1004's `admin_gym_directory` column addition which needed a `DROP FUNCTION` first).
+- **App**: `src/features/overview/queries.ts` — `OverviewStats` type gained the field, `buildTiles()` now renders the real count instead of the `TODO(missing-metric)` placeholder it had carried since the previous milestone.
+- **Verified against live data twice**: (1) a direct ground-truth query confirmed all 4 live subscriptions have `current_period_end` far in the future, so the correct answer today is 0; (2) a disposable-admin script (same pattern as every prior milestone — create a throwaway auth user, grant `platform_admins`, sign in with the publishable key, call `.rpc("admin_overview_stats", ...)` for real, then delete everything) confirmed `renewals_due_7d` is present in the real RPC response and equals 0, matching the ground truth. Zero residue after cleanup, confirmed by a direct count query.
+- `get_advisors` (security) re-checked post-migration: clean, no new findings beyond the same pre-existing `admin_overview_stats` authenticated-callable flag.
+- `tsc --noEmit` / `eslint .` / `npm run build` all clean.
+- **Not verified in an actual browser**: the preview sandbox's own dev server can't reach Supabase (P0 #2, still unresolved) and, separately this session, another session already had `next dev` running on port 3000, so this session's `preview_start` attempt exited immediately (Next.js's single-instance lock) rather than reaching the network limitation itself. Real-RPC verification above is the substitute, per this project's own established practice.
 
 ---
 

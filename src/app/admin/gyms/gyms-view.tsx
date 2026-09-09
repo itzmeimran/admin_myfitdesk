@@ -13,6 +13,7 @@ import {
 } from "@/features/gyms/actions";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
+import { downloadCsv } from "@/core/csv";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import {
   ExportIcon,
@@ -54,14 +55,38 @@ function renewTone(renews: string) {
   return renews.startsWith("Overdue") || renews.startsWith("Trial") ? ACCENT : MUTE;
 }
 
+const CSV_HEADERS = [
+  "Gym",
+  "Owner",
+  "City",
+  "Package",
+  "Billing period",
+  "Status",
+  "Members",
+  "Member cap",
+  "Branches",
+  "Staff",
+  "Renews",
+  "Lifetime paid",
+];
+
+function gymToCsvRow(g: Gym): string[] {
+  return [g.name, g.owner, g.city, g.package, g.period, g.status, g.members, g.cap, g.branches, g.staff, g.renews, g.ltv];
+}
+
 /**
  * Filter chips and the search box are both real client-side state applied
  * to the list — the design mockup tracked `filter` but never applied it
  * (design-audit.md's cross-page notes); wiring it is trivial against a
  * static array, so it's wired for real here rather than left cosmetic.
- * Export CSV, Invite gym owner, and pagination are visual-only in the
- * design with no handler — left disabled/inert per that same audit rather
- * than inventing behavior the design never specified.
+ * Export CSV (CLAUDE.md's Plan, P2 #9 — the one Gyms placeholder the
+ * product owner chose to build) exports exactly the rows the table
+ * currently shows, i.e. respects the active filter/search — never a
+ * silent "export everything" behind a "export what you see" label.
+ * Invite gym owner and pagination/Load more stay inert placeholders,
+ * deliberately deferred (P2 #9): Invite needs new infra (email sending,
+ * an invite-token flow) beyond this pass's scope, and pagination has
+ * nothing real to page through yet (4 gyms on the live project).
  */
 export function GymsView({
   gyms,
@@ -77,6 +102,7 @@ export function GymsView({
   const [filter, setFilter] = useState<GymFilter>(initialFilter);
   const [search, setSearch] = useState("");
   const [managing, setManaging] = useState<Gym | null>(null);
+  const toast = useToast();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -104,9 +130,14 @@ export function GymsView({
         </div>
         <button
           type="button"
-          disabled
-          title="Not implemented yet"
-          className="flex min-h-[36px] items-center gap-2 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={() => {
+            if (filtered.length === 0) {
+              toast.error("No gyms to export.");
+              return;
+            }
+            downloadCsv("gyms.csv", CSV_HEADERS, filtered.map(gymToCsvRow));
+          }}
+          className="flex min-h-[36px] items-center gap-2 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
         >
           <ExportIcon size={ICON_SIZE.button} aria-hidden />
           Export CSV

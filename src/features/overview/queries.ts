@@ -29,6 +29,7 @@ type OverviewStats = {
   platform_revenue_previous_minor: number;
   mrr_minor: number;
   trials_ending_7d: number;
+  renewals_due_7d: number;
   in_grace_count: number;
   read_only_count: number;
   failed_charges_current: { count: number; amount_minor: number };
@@ -304,20 +305,9 @@ function buildTiles(stats: OverviewStats, periodLabel: string): KpiTile[] {
     },
     {
       label: "Renewals due in 7 days",
-      // TODO(missing-metric): admin_overview_stats has no distinct count
-      // of non-trial subscriptions renewing within 7 days — only
-      // trials_ending_7d, which is trial-specific and already surfaced in
-      // the "Needs attention today" band. Misusing that number here would
-      // silently mislabel it, so this tile shows a flagged placeholder
-      // instead. Fixing it needs a new jsonb key on admin_overview_stats:
-      // count(organization_subscriptions) where the derived state is
-      // 'active'/'grace' and current_period_end falls within 7 days —
-      // small, but a live-project migration wasn't applied for it this
-      // pass without more confidence under time pressure (task brief,
-      // option (a)).
-      value: "—",
-      hint: "Not tracked yet",
-      accentValue: true,
+      value: String(stats.renewals_due_7d),
+      hint: "Active or grace, period ending soon",
+      accentValue: stats.renewals_due_7d > 0,
     },
   ];
 }

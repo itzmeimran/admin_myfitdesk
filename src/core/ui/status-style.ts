@@ -21,6 +21,9 @@ const PILL: Record<string, PillTone> = {
   Grace: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
   "Read-only": { backgroundColor: "var(--accent)", color: "var(--paper)" },
   Cancelled: { backgroundColor: "var(--sand)", color: "var(--mute)" },
+  // Admin roster (Settings page) — a revoked platform_admins row, same
+  // muted tone as Cancelled since both mean "no longer has access".
+  Revoked: { backgroundColor: "var(--sand)", color: "var(--mute)" },
   Succeeded: { backgroundColor: "var(--sand)", color: "var(--ink)" },
   Failed: { backgroundColor: "var(--accent)", color: "var(--paper)" },
   Refunded: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },

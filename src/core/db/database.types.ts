@@ -1591,6 +1591,10 @@ export type Database = {
         Args: { p_days: number; p_organization_id: string }
         Returns: undefined
       }
+      admin_grant_platform_admin: {
+        Args: { p_email: string }
+        Returns: undefined
+      }
       admin_gym_directory: {
         Args: never
         Returns: {
@@ -1628,6 +1632,17 @@ export type Database = {
           used_count: number
         }[]
       }
+      admin_list_platform_admins: {
+        Args: never
+        Returns: {
+          email: string
+          granted_at: string
+          granted_by_email: string
+          is_self: boolean
+          revoked_at: string
+          user_id: string
+        }[]
+      }
       admin_overview_stats: {
         Args: {
           p_period_end: string
@@ -1659,6 +1674,10 @@ export type Database = {
           revenue_minor: number
           week_start: string
         }[]
+      }
+      admin_revoke_platform_admin: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
       admin_set_package_status: {
         Args: { p_id: string; p_status: string }

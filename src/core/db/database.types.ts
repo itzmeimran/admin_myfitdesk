@@ -656,6 +656,9 @@ export type Database = {
           postal_code: string | null
           slug: string
           state: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
           updated_at: string
           week_start: string
         }
@@ -678,6 +681,9 @@ export type Database = {
           postal_code?: string | null
           slug: string
           state?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           week_start?: string
         }
@@ -700,6 +706,9 @@ export type Database = {
           postal_code?: string | null
           slug?: string
           state?: string | null
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           week_start?: string
         }
@@ -1591,6 +1600,85 @@ export type Database = {
         Args: { p_days: number; p_organization_id: string }
         Returns: undefined
       }
+      admin_gym_audit_log: {
+        Args: {
+          p_action?: string
+          p_actor_id?: string
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_search?: string
+          p_sort_dir?: string
+        }
+        Returns: {
+          action: string
+          admin_email: string
+          admin_id: string
+          at: string
+          detail: Json
+          id: number
+          total_count: number
+        }[]
+      }
+      admin_gym_billing_history: {
+        Args: {
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_provider?: string
+          p_sort_col?: string
+          p_sort_dir?: string
+          p_status?: string
+        }
+        Returns: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string
+          package_name: string
+          paid_at: string
+          period_end: string
+          period_start: string
+          provider: string
+          status: string
+          total_count: number
+        }[]
+      }
+      admin_gym_branches: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_search?: string
+          p_sort_col?: string
+          p_sort_dir?: string
+          p_status?: string
+        }
+        Returns: {
+          created_at: string
+          currency: string
+          id: string
+          member_count: number
+          name: string
+          staff_count: number
+          status: string
+          timezone: string
+          total_count: number
+        }[]
+      }
+      admin_gym_configuration: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      admin_gym_detail: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
       admin_gym_directory: {
         Args: never
         Returns: {
@@ -1617,6 +1705,101 @@ export type Database = {
           state: string
         }[]
       }
+      admin_gym_members: {
+        Args: {
+          p_branch_id?: string
+          p_expiry_state?: string
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_plan_name?: string
+          p_search?: string
+          p_sort_col?: string
+          p_sort_dir?: string
+          p_status?: string
+        }
+        Returns: {
+          branch_id: string
+          branch_name: string
+          created_at: string
+          email: string
+          expiry_state: string
+          first_name: string
+          id: string
+          joined_on: string
+          last_name: string
+          phone_e164: string
+          plan_name: string
+          status: string
+          subscription_end_date: string
+          total_count: number
+        }[]
+      }
+      admin_gym_staff: {
+        Args: {
+          p_branch_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_role?: string
+          p_search?: string
+          p_sort_col?: string
+          p_sort_dir?: string
+          p_status?: string
+        }
+        Returns: {
+          branch_id: string
+          branch_name: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone_e164: string
+          role: string
+          status: string
+          total_count: number
+        }[]
+      }
+      admin_gyms_list: {
+        Args: {
+          p_billing_period?: string
+          p_limit?: number
+          p_min_branches?: number
+          p_offset?: number
+          p_package_id?: string
+          p_search?: string
+          p_sort_col?: string
+          p_sort_dir?: string
+          p_status?: string
+        }
+        Returns: {
+          billing_period: string
+          branch_cap: number
+          branch_count: number
+          city: string
+          created_at: string
+          currency: string
+          current_period_end: string
+          grace_days: number
+          lifetime_paid_minor: number
+          member_cap: number
+          member_count: number
+          name: string
+          organization_id: string
+          owner_email: string
+          owner_name: string
+          package_code: string
+          package_id: string
+          package_name: string
+          price_minor: number
+          staff_cap: number
+          staff_count: number
+          state: string
+          suspended_at: string
+          total_count: number
+        }[]
+      }
       admin_gyms_near_cap: {
         Args: { p_limit?: number }
         Returns: {
@@ -1628,6 +1811,7 @@ export type Database = {
           used_count: number
         }[]
       }
+      admin_gyms_summary: { Args: never; Returns: Json }
       admin_overview_stats: {
         Args: {
           p_period_end: string
@@ -1649,6 +1833,10 @@ export type Database = {
           price_minor: number
         }[]
       }
+      admin_reactivate_organization: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       admin_restore_subscription: {
         Args: { p_organization_id: string }
         Returns: undefined
@@ -1662,6 +1850,27 @@ export type Database = {
       }
       admin_set_package_status: {
         Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_suspend_organization: {
+        Args: { p_organization_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      admin_update_organization_profile: {
+        Args: {
+          p_address_line?: string
+          p_city?: string
+          p_contact_email?: string
+          p_contact_phone?: string
+          p_country?: string
+          p_default_currency?: string
+          p_default_timezone?: string
+          p_grace_period_days: number
+          p_name: string
+          p_organization_id: string
+          p_postal_code?: string
+          p_state?: string
+        }
         Returns: undefined
       }
       admin_update_package: {

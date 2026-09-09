@@ -14,7 +14,7 @@
  * - Paid to date: sum of platform_payments for the gym.
  */
 
-export type GymStatus = "Active" | "Trialing" | "Grace" | "Read-only" | "Cancelled";
+export type GymStatus = "Active" | "Trialing" | "Grace" | "Read-only" | "Cancelled" | "Suspended";
 
 export type Gym = {
   name: string;
@@ -57,7 +57,7 @@ export async function listGyms(): Promise<Gym[]> {
   return GYMS;
 }
 
-export const GYM_FILTERS = ["All", "Active", "Trialing", "Grace", "Read-only"] as const;
+export const GYM_FILTERS = ["All", "Active", "Trialing", "Grace", "Read-only", "Suspended"] as const;
 export type GymFilter = (typeof GYM_FILTERS)[number];
 
 export function isGymFilter(value: string | undefined): value is GymFilter {

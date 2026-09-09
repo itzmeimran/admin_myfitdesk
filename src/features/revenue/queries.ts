@@ -51,7 +51,11 @@ export async function listInvoices(supabase: SupabaseClient<Database>): Promise<
     // embed's shape isn't inferred; cast it explicitly instead.
     const row = p as typeof p & {
       organizations: { name: string } | null;
-      platform_packages: { name: string; billing_period: "monthly" | "yearly" } | null;
+      // billing_period widened to plain string — a dynamic plan cycle
+      // (supabase/migrations/1008_plans_schema_and_rpcs.sql) can carry any
+      // admin-defined label. This is a pure display join ("Growth monthly"
+      // / "Business Quarterly"), nothing branches on the value here.
+      platform_packages: { name: string; billing_period: string } | null;
     };
     return {
       no: row.invoice_number ?? "—",

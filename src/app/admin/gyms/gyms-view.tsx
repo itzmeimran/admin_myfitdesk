@@ -448,7 +448,7 @@ function ManageSubscriptionSheet({
             </option>
             {packages.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} · {p.billingPeriod === "yearly" ? "Yearly" : "Monthly"} · {p.price}
+                {p.name} · {p.billingPeriod.charAt(0).toUpperCase() + p.billingPeriod.slice(1)} · {p.price}
               </option>
             ))}
           </select>

@@ -8,6 +8,7 @@ import {
   grantPlatformAdmin,
   revokePlatformAdmin,
   reactivatePlatformAdmin,
+  setBillingModel,
   type GrantAdminFormState,
 } from "@/features/settings/actions";
 import { useToast } from "@/components/Toast";
@@ -29,11 +30,37 @@ import { formatShortDate } from "@/core/dates/format";
  * user needs the service-role Admin API, unreachable from a plain
  * SECURITY DEFINER function).
  */
-export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
+export function SettingsView({
+  admins,
+  billingModel,
+}: {
+  admins: PlatformAdminRow[];
+  billingModel: "legacy" | "dynamic";
+}) {
   const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [billingBusy, setBillingBusy] = useState(false);
+
+  function handleSetBillingModel(model: "legacy" | "dynamic") {
+    if (model === billingModel) return;
+    setBillingBusy(true);
+    startTransition(async () => {
+      const { error } = await setBillingModel(model);
+      setBillingBusy(false);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success(
+        model === "dynamic"
+          ? "Buyers now see the dynamic Plans catalogue."
+          : "Buyers now see the legacy Packages catalogue.",
+      );
+      router.refresh();
+    });
+  }
 
   function runRowAction(userId: string, action: () => Promise<{ error: string | null }>, successMessage: string) {
     setBusyUserId(userId);
@@ -57,6 +84,44 @@ export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
           Platform admins — who can reach this dashboard. Grace-period default, invoice prefix and
           webhook endpoints aren&apos;t built yet.
         </p>
+      </div>
+
+      <div className="flex flex-col gap-2.5 border-[1.5px] border-ink p-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Billing model</span>
+          <p className="text-[12px] leading-relaxed text-mute">
+            Which subscription catalogue buyers currently see on FitDeskApp — the legacy Starter/
+            Growth/Pro packages (Packages), or the newer dynamic system (Plans). Existing subscribers
+            keep their access and can still renew no matter which is selected; this only controls
+            what shows up for a new purchase or a browse of other plans.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={billingBusy}
+            onClick={() => handleSetBillingModel("legacy")}
+            className={`flex min-h-[40px] flex-1 items-center justify-center gap-2 border-[1.5px] px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] disabled:cursor-wait disabled:opacity-60 ${
+              billingModel === "legacy" ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink"
+            }`}
+            style={{ minWidth: 180 }}
+          >
+            {billingModel === "legacy" ? <ConfirmIcon size={ICON_SIZE.button} aria-hidden /> : null}
+            Legacy — Packages
+          </button>
+          <button
+            type="button"
+            disabled={billingBusy}
+            onClick={() => handleSetBillingModel("dynamic")}
+            className={`flex min-h-[40px] flex-1 items-center justify-center gap-2 border-[1.5px] px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] disabled:cursor-wait disabled:opacity-60 ${
+              billingModel === "dynamic" ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink"
+            }`}
+            style={{ minWidth: 180 }}
+          >
+            {billingModel === "dynamic" ? <ConfirmIcon size={ICON_SIZE.button} aria-hidden /> : null}
+            Dynamic — Plans
+          </button>
+        </div>
       </div>
 
       <GrantAdminForm onGranted={() => router.refresh()} />

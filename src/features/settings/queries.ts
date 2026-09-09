@@ -44,3 +44,20 @@ export async function listPlatformAdmins(supabase: SupabaseClient<Database>): Pr
     isSelf: row.is_self,
   }));
 }
+
+/**
+ * The global Legacy/Dynamic switch (supabase/migrations/1008_plans_schema_
+ * and_rpcs.sql's platform_billing_settings singleton) — which catalogue
+ * FitDeskApp's buyers currently see. Defaults to "legacy" on a database that
+ * predates 1006, matching the RPC's own default.
+ */
+export async function getBillingModel(supabase: SupabaseClient<Database>): Promise<"legacy" | "dynamic"> {
+  const { data, error } = await supabase
+    .from("platform_billing_settings")
+    .select("billing_model")
+    .eq("id", true)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to load billing settings: ${error.message}`);
+
+  return data?.billing_model === "dynamic" ? "dynamic" : "legacy";
+}

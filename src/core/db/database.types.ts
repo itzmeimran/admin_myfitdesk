@@ -950,6 +950,127 @@ export type Database = {
           },
         ]
       }
+      plan_features: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_enabled: boolean
+          name: string
+          plan_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name: string
+          plan_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          plan_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_offers: {
+        Row: {
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_enabled: boolean
+          package_id: string
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          package_id: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_enabled?: boolean
+          package_id?: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_offers_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "platform_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_purchasable: boolean
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_purchasable?: boolean
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_purchasable?: boolean
+          name?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_admins: {
         Row: {
           email: string
@@ -974,6 +1095,27 @@ export type Database = {
           id?: string
           revoked_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_billing_settings: {
+        Row: {
+          billing_model: string
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          billing_model?: string
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          billing_model?: string
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -1008,10 +1150,12 @@ export type Database = {
           duration_days: number
           features: string[]
           id: string
+          is_purchasable: boolean
           max_branches: number | null
           max_members: number | null
           max_staff: number | null
           name: string
+          plan_id: string | null
           price_minor: number
           sort_order: number
           status: string
@@ -1026,10 +1170,12 @@ export type Database = {
           duration_days: number
           features?: string[]
           id?: string
+          is_purchasable?: boolean
           max_branches?: number | null
           max_members?: number | null
           max_staff?: number | null
           name: string
+          plan_id?: string | null
           price_minor: number
           sort_order?: number
           status?: string
@@ -1044,16 +1190,26 @@ export type Database = {
           duration_days?: number
           features?: string[]
           id?: string
+          is_purchasable?: boolean
           max_branches?: number | null
           max_members?: number | null
           max_staff?: number | null
           name?: string
+          plan_id?: string | null
           price_minor?: number
           sort_order?: number
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "platform_packages_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_payments: {
         Row: {
@@ -1587,6 +1743,52 @@ export type Database = {
         }
         Returns: string
       }
+      admin_create_plan: {
+        Args: {
+          p_code: string
+          p_description: string
+          p_is_purchasable?: boolean
+          p_name: string
+        }
+        Returns: string
+      }
+      admin_create_plan_billing_cycle: {
+        Args: {
+          p_billing_period: string
+          p_code: string
+          p_currency: string
+          p_duration_days: number
+          p_is_purchasable?: boolean
+          p_max_branches: number
+          p_max_members: number
+          p_max_staff: number
+          p_plan_id: string
+          p_price_minor: number
+        }
+        Returns: string
+      }
+      admin_create_plan_feature: {
+        Args: {
+          p_description: string
+          p_is_enabled?: boolean
+          p_name: string
+          p_plan_id: string
+        }
+        Returns: string
+      }
+      admin_create_plan_offer: {
+        Args: {
+          p_discount_type: string
+          p_discount_value: number
+          p_expires_at: string
+          p_is_enabled?: boolean
+          p_package_id: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
+      admin_delete_plan_feature: { Args: { p_id: string }; Returns: undefined }
+      admin_delete_plan_offer: { Args: { p_id: string }; Returns: undefined }
       admin_extend_subscription: {
         Args: { p_days: number; p_organization_id: string }
         Returns: undefined
@@ -1664,6 +1866,15 @@ export type Database = {
           price_minor: number
         }[]
       }
+      admin_reorder_plan_billing_cycles: {
+        Args: { p_ids: string[]; p_plan_id: string }
+        Returns: undefined
+      }
+      admin_reorder_plan_features: {
+        Args: { p_ids: string[]; p_plan_id: string }
+        Returns: undefined
+      }
+      admin_reorder_plans: { Args: { p_ids: string[] }; Returns: undefined }
       admin_restore_subscription: {
         Args: { p_organization_id: string }
         Returns: undefined
@@ -1679,7 +1890,37 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      admin_set_billing_model: { Args: { p_model: string }; Returns: undefined }
       admin_set_package_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_set_plan_billing_cycle_purchasable: {
+        Args: { p_id: string; p_is_purchasable: boolean }
+        Returns: undefined
+      }
+      admin_set_plan_billing_cycle_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_set_plan_caps: {
+        Args: {
+          p_max_branches: number
+          p_max_members: number
+          p_max_staff: number
+          p_plan_id: string
+        }
+        Returns: undefined
+      }
+      admin_set_plan_feature_enabled: {
+        Args: { p_id: string; p_is_enabled: boolean }
+        Returns: undefined
+      }
+      admin_set_plan_offer_enabled: {
+        Args: { p_id: string; p_is_enabled: boolean }
+        Returns: undefined
+      }
+      admin_set_plan_status: {
         Args: { p_id: string; p_status: string }
         Returns: undefined
       }
@@ -1694,6 +1935,46 @@ export type Database = {
           p_max_staff: number
           p_name: string
           p_price_minor: number
+        }
+        Returns: undefined
+      }
+      admin_update_plan: {
+        Args: {
+          p_description: string
+          p_id: string
+          p_is_purchasable: boolean
+          p_name: string
+        }
+        Returns: undefined
+      }
+      admin_update_plan_billing_cycle: {
+        Args: {
+          p_duration_days: number
+          p_id: string
+          p_is_purchasable: boolean
+          p_max_branches: number
+          p_max_members: number
+          p_max_staff: number
+          p_price_minor: number
+        }
+        Returns: undefined
+      }
+      admin_update_plan_feature: {
+        Args: {
+          p_description: string
+          p_id: string
+          p_is_enabled: boolean
+          p_name: string
+        }
+        Returns: undefined
+      }
+      admin_update_plan_offer: {
+        Args: {
+          p_discount_type: string
+          p_discount_value: number
+          p_expires_at: string
+          p_id: string
+          p_starts_at: string
         }
         Returns: undefined
       }
@@ -1738,6 +2019,19 @@ export type Database = {
           last_name: string
           role: string
           user_id: string
+        }[]
+      }
+      plan_effective_price: {
+        Args: { p_at?: string; p_package_id: string }
+        Returns: {
+          currency: string
+          discount_minor: number
+          discount_type: string
+          discount_value: number
+          effective_price_minor: number
+          offer_id: string
+          package_id: string
+          price_minor: number
         }[]
       }
       plan_resource_count: {

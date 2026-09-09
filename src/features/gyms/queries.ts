@@ -28,7 +28,10 @@ type AdminGymRow = {
   package_id: string | null;
   package_name: string | null;
   package_code: string | null;
-  billing_period: "monthly" | "yearly" | null;
+  // Widened from "monthly" | "yearly" — plans/plan-owned cycles (supabase/
+  // migrations/1008_plans_schema_and_rpcs.sql) can carry any admin-defined
+  // label ("Quarterly", "Annual", ...), not just the legacy two.
+  billing_period: string | null;
   price_minor: number | null;
   currency: string | null;
   state: "trialing" | "active" | "grace" | "read_only" | "cancelled";
@@ -63,7 +66,15 @@ function formatPeriod(row: AdminGymRow): string {
     const days = Math.max(daysBetween(start, end), 0);
     return `Trial · ${days} days`;
   }
-  const period = row.billing_period === "yearly" ? "Yearly" : "Monthly";
+  // Was `row.billing_period === "yearly" ? "Yearly" : "Monthly"` — collapsed
+  // any dynamic-plan label (e.g. "Quarterly") into "Monthly", silently
+  // wrong. billing_period is already a display-ready label on the row
+  // (admin-entered for a plan cycle, "monthly"/"yearly" verbatim for a
+  // legacy one), so just capitalize it instead of matching against a fixed
+  // 2-value set.
+  const period = row.billing_period
+    ? row.billing_period.charAt(0).toUpperCase() + row.billing_period.slice(1)
+    : "Monthly";
   return `${period} · ${formatMinorWhole(row.price_minor, row.currency ?? "INR")}`;
 }
 
@@ -155,14 +166,19 @@ export type AssignablePackage = {
   id: string;
   name: string;
   code: string;
-  billingPeriod: "monthly" | "yearly";
+  // Widened from "monthly" | "yearly" — see AdminGymRow's billing_period
+  // above for why (dynamic plan cycles carry an arbitrary admin label).
+  billingPeriod: string;
   price: string;
 };
 
 /** Backs the "change package" select in the Gyms manage-subscription sheet
  * — active tiers only, matching what a gym could newly buy today (an
  * archived tier stays valid for gyms already on it, but an admin
- * reassigning a subscription shouldn't be able to move a gym onto one). */
+ * reassigning a subscription shouldn't be able to move a gym onto one).
+ * Deliberately unfiltered by plan_id — an admin can reassign a gym onto
+ * either a legacy package or a dynamic plan cycle, whichever is right for
+ * that gym, independent of which one is globally live for new buyers. */
 export async function listAssignablePackages(supabase: SupabaseClient<Database>): Promise<AssignablePackage[]> {
   const { data, error } = await supabase
     .from("platform_packages")
@@ -175,9 +191,7 @@ export async function listAssignablePackages(supabase: SupabaseClient<Database>)
     id: row.id,
     name: row.name,
     code: row.code,
-    // billing_period is `text` with a CHECK constraint, not a native enum —
-    // see the same note on platform_payments.status in revenue/queries.ts.
-    billingPeriod: row.billing_period as "monthly" | "yearly",
+    billingPeriod: row.billing_period,
     price: formatMinorWhole(row.price_minor, row.currency),
   }));
 }

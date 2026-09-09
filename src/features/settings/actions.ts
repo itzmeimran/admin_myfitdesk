@@ -58,3 +58,19 @@ export async function reactivatePlatformAdmin(email: string): Promise<{ error: s
   revalidatePath("/admin/settings");
   return { error: null };
 }
+
+/**
+ * Flips the global Legacy/Dynamic switch (1008_plans_schema_and_rpcs.sql's
+ * admin_set_billing_model) — takes effect for buyers immediately, on both
+ * FitDeskApp's billing and onboarding pages. Existing subscribers on either
+ * catalogue keep their access and can still renew regardless of the switch
+ * position (see FitDeskApp's billing page renewal-continuity logic).
+ */
+export async function setBillingModel(model: "legacy" | "dynamic"): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_billing_model", { p_model: model });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/settings");
+  return { error: null };
+}

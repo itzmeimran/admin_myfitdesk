@@ -121,6 +121,23 @@ Full audit + redesign of the plan/pricing/feature/offer system, spanning **both*
 
 ---
 
+## Production incident: /admin/gyms 400s on every load (2026-09-10, found and fixed same day)
+
+**Symptom:** the live deployment's `/admin/gyms` threw and never rendered; DevTools showed the document request failing plus `login?_rsc=` fetches (the layout's redirect racing the page — the separate structural gap already documented above). The real cause was upstream of that race.
+
+**Root cause: six of the nine read RPCs added by `1009_admin_gym_detail.sql` raised on *every* call.** `create function` only parses a plpgsql body's syntax — name resolution and the `RETURNS TABLE` row-type check both happen on first *execution*, so a migration that applies cleanly can still ship functions that fail 100% of the time. Two defect families:
+
+- **42702 "column reference `id` is ambiguous"** — `admin_gym_branches` / `_staff` / `_members` / `_billing_history` / `_audit_log` all guard with `select 1 from organizations where id = p_organization_id`, and each also declares an `id` output column in `RETURNS TABLE`. Postgres can't tell the OUT parameter from `organizations.id`. Fixed by qualifying it (`organizations.id`).
+- **42804 "structure of query does not match function result type"** — three separate column/type mismatches: `admin_gyms_list.lifetime_paid_minor` declared `bigint` but fed `sum(bigint)` (which is `numeric`); `admin_gym_branches.currency` declared `text` but `branches.currency` is `character(3)`; `admin_gym_members.subscription_end_date` declared `timestamptz` but `member_subscriptions.end_date` is a `date`. All fixed with explicit casts, so the published signatures (and the generated TS types the app compiles against) stay unchanged.
+
+**Fixes applied to the live project:** `supabase/migrations/1010_fix_gym_detail_rpcs.sql` (the ambiguity fix ×5 + the `sum()::bigint` fix) and `1011_fix_gym_column_types.sql` (the two remaining cast fixes — invisible until 1010 let execution get past the guard). Both are `create or replace` with bodies otherwise copied verbatim from 1009; no signature, grant, or app-code change, so **no redeploy was needed** — the live site was fixed the moment the migrations applied.
+
+**Lesson, stronger than the 2026-09-08 one above:** `apply_migration` returning success proves *nothing* about whether a plpgsql function works. Neither does `tsc`/`eslint`/`build`. **Every new `SECURITY DEFINER` RPC must be executed at least once, against rows, before the milestone is called done** — and executed *as an admin*, since the `Not authorized` gate raises before any of these defects could surface. Two of the three 42804s only appeared *after* the 42702 fix, so re-run the whole matrix after each fix rather than assuming one pass is enough.
+
+**Verification:** all 9 read RPCs plus the 3 write RPCs exercised under a real `authenticated` session — first in SQL (impersonating the live admin's `sub` claim, in a rolled-back transaction, across default/sorted/filtered/searched argument combinations), then over the real network through `supabase-js` with a disposable admin account, calling each RPC with the *exact* argument objects `src/features/gyms/*.ts` sends (including the `undefined`s supabase-js drops from the JSON body, which is what PostgREST overload resolution actually sees). 12/12 green, zero residue after cleanup. `get_advisors` (security) shows no new finding categories.
+
+**Still not fixed (unchanged):** the layout/page session-expiry race documented directly above — it made this failure look like an auth problem in the logs, but it is a separate structural gap.
+
 ## Production incident: every RPC call was broken (2026-09-08, found and fixed same day)
 
 **Symptom:** deployed to Vercel (`admin.myfitdesk.app`), env vars set correctly, user signed in as the real platform admin, `/admin` crashed with the generic Next.js error boundary ("Something went wrong").
@@ -138,6 +155,8 @@ Full audit + redesign of the plan/pricing/feature/offer system, spanning **both*
 ## Milestone: Gyms redesign — list + full Gym Detail page (2026-09-09)
 
 Full redesign of Platform Admin → Gyms per a detailed task brief: real server-side search/filter/sort/pagination on the list, plus a brand-new tabbed Gym Detail page (`/admin/gyms/[id]/{,billing,branches,staff,members,entitlements,activity,settings}`). See D-2 above for the three explicit product-owner decisions this needed before writing any SQL.
+
+**Update 2026-09-10: `1009` has since been applied — and six of its nine read RPCs raised on every single call, breaking `/admin/gyms` in production until `1010`/`1011` fixed them. See "Production incident: /admin/gyms 400s on every load" above. The warning in the next paragraph was exactly right, and the specific defects (ambiguous `id`, three `RETURNS TABLE` type mismatches) are all things only an actual execution could have found.**
 
 **Environment constraint this session:** no Supabase MCP tool and no `.env.local` were available at all — a first for this project. Every prior migration in this file was written *and applied and live-verified* in the same session (see the this-binding incident above for how seriously that verification was taken). This one could only be written and reviewed locally; **`1009_admin_gym_detail.sql` is NOT applied to the live project and has never been run against real data.** `tsc`/`eslint`/`next build` are all clean (build required a throwaway placeholder `.env.local`, deleted immediately after — never committed), but per this project's own hard-won lesson, static-clean is not the same as verified. Applying this migration and re-running the same kind of real-`.rpc()`-call verification the this-binding fix used is the first thing a session with real DB access should do before trusting this in production.
 

@@ -227,7 +227,13 @@ export function PackagesView({
         purchases but never deletes it — past invoices still reference it.
       </p>
 
+      {/* Keyed by which row is being edited ("new" for create): a remount
+          gives useActionState a fresh action and a fresh result, so the
+          sheet can never submit with the previous target's field shape
+          (an edit's hidden `id` missing from a create form, and vice
+          versa) or show a stale error from the last submit. */}
       <PackageSheet
+        key={editing?.raw.id ?? "new"}
         open={sheetOpen}
         onClose={closeSheet}
         featureChips={featureChips}

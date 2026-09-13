@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
 import { toMinorUnits } from "@/core/money/format";
+import { text } from "@/core/forms/form-values";
 
 /**
  * Package CRUD — the first real write path in this admin panel (CLAUDE.md's
@@ -26,7 +27,7 @@ import { toMinorUnits } from "@/core/money/format";
 const createSchema = z.object({
   code: z.string().trim().min(1, "Code is required.").max(60),
   name: z.string().trim().min(1, "Display name is required.").max(120),
-  description: z.string().trim().max(500).optional().default(""),
+  description: z.string().trim().max(500),
   price: z.string().trim().min(1, "Price is required."),
   billingPeriod: z.enum(["Monthly", "Yearly"]),
   durationDays: z.coerce.number().int().positive("Duration must be a positive number of days."),
@@ -36,7 +37,7 @@ const createSchema = z.object({
 });
 
 const updateSchema = createSchema.omit({ code: true, billingPeriod: true }).extend({
-  id: z.string().uuid(),
+  id: z.string().uuid("Reopen the package and try again — the form lost track of which row it was editing."),
 });
 
 export type PackageFormState = { error: string | null };
@@ -53,15 +54,15 @@ function parseCap(raw: string): number | null | undefined {
 
 export async function createPackage(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
   const parsed = createSchema.safeParse({
-    code: formData.get("code"),
-    name: formData.get("name"),
-    description: formData.get("description"),
-    price: formData.get("price"),
-    billingPeriod: formData.get("billingPeriod"),
-    durationDays: formData.get("durationDays"),
-    maxBranches: formData.get("maxBranches"),
-    maxMembers: formData.get("maxMembers"),
-    maxStaff: formData.get("maxStaff"),
+    code: text(formData, "code"),
+    name: text(formData, "name"),
+    description: text(formData, "description"),
+    price: text(formData, "price"),
+    billingPeriod: text(formData, "billingPeriod"),
+    durationDays: text(formData, "durationDays"),
+    maxBranches: text(formData, "maxBranches"),
+    maxMembers: text(formData, "maxMembers"),
+    maxStaff: text(formData, "maxStaff"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
@@ -101,21 +102,21 @@ export async function createPackage(_prev: PackageFormState, formData: FormData)
     return { error: error.message };
   }
 
-  revalidatePath("/admin/packages");
+  revalidatePath("/admin/packages/legacy");
   revalidatePath("/admin");
   return { error: null };
 }
 
 export async function updatePackage(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
   const parsed = updateSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    description: formData.get("description"),
-    price: formData.get("price"),
-    durationDays: formData.get("durationDays"),
-    maxBranches: formData.get("maxBranches"),
-    maxMembers: formData.get("maxMembers"),
-    maxStaff: formData.get("maxStaff"),
+    id: text(formData, "id"),
+    name: text(formData, "name"),
+    description: text(formData, "description"),
+    price: text(formData, "price"),
+    durationDays: text(formData, "durationDays"),
+    maxBranches: text(formData, "maxBranches"),
+    maxMembers: text(formData, "maxMembers"),
+    maxStaff: text(formData, "maxStaff"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
@@ -147,7 +148,7 @@ export async function updatePackage(_prev: PackageFormState, formData: FormData)
 
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/packages");
+  revalidatePath("/admin/packages/legacy");
   revalidatePath("/admin");
   return { error: null };
 }
@@ -161,7 +162,7 @@ export async function setPackageStatus(
   const { error } = await supabase.rpc("admin_set_package_status", { p_id: id, p_status: status });
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/packages");
+  revalidatePath("/admin/packages/legacy");
   revalidatePath("/admin");
   return { error: null };
 }

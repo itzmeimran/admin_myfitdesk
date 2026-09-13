@@ -2,7 +2,6 @@ import {
   OverviewIcon,
   GymsIcon,
   PackagesIcon,
-  PlansIcon,
   RevenueIcon,
   SettingsIcon,
   type IconType,
@@ -28,18 +27,18 @@ export type NavItem = {
 // live count(organizations) instead (AdminChromeCounts.gymsCount, threaded
 // in from admin/layout.tsx), so it's computed at render time in
 // admin-sidebar.tsx/admin-chrome.tsx rather than stored here.
-// "Packages" (legacy, fixed Starter/Growth/Pro rows) and "Plans" (the newer
-// dynamic system — arbitrary plans/cycles/features/offers) are deliberately
-// two separate nav entries, not one merged screen: the admin manages both
-// catalogues independently, and platform_billing_settings.billing_model
-// (Settings) decides which one buyers actually see — see that migration's
-// (1006) own header comment for why this is additive rather than a
-// replacement.
+// There is ONE catalogue entry, "Packages", because there is one thing to
+// manage: the package gym owners buy, on its three billing terms. The older
+// Starter/Growth/Pro tier catalogue lives at /admin/packages/legacy and the
+// general Plans screen is gone (/admin/plans redirects) — both were a second
+// nav entry for the same question ("what can a gym buy?"), which is exactly
+// the confusion this collapses. Which catalogue buyers actually see is
+// platform_billing_settings.billing_model, switched from the banner on
+// /admin/packages.
 export const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: OverviewIcon },
   { href: "/admin/gyms", label: "Gyms", icon: GymsIcon },
   { href: "/admin/packages", label: "Packages", icon: PackagesIcon },
-  { href: "/admin/plans", label: "Plans", icon: PlansIcon },
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];

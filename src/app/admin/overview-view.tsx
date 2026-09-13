@@ -17,7 +17,6 @@ import type {
 import { PERIODS } from "@/features/overview/mock-data";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import {
-  AddIcon,
   CalendarIcon,
   CalendarRangeIcon,
   CalendarCheckIcon,
@@ -141,11 +140,11 @@ export function OverviewView({
           })}
         </div>
         <Link
-          href="/admin/packages?new=1"
+          href="/admin/packages"
           className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
         >
-          <AddIcon size={ICON_SIZE.button} aria-hidden />
-          New package
+          <PackagesIcon size={ICON_SIZE.button} aria-hidden />
+          Manage package
         </Link>
       </div>
 

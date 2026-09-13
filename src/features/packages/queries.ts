@@ -39,6 +39,12 @@ export async function listPackages(
         "id, code, name, description, price_minor, currency, billing_period, duration_days, max_branches, max_members, max_staff, status, sort_order",
       )
       .eq("billing_period", billingPeriod)
+      // plan_id IS NULL is the definition of a legacy row (see migration
+      // 1008's header). Without this filter a dynamic term whose label
+      // happens to be Monthly/Yearly would show up on the legacy tier
+      // screen and be editable by RPCs that know nothing about plans —
+      // the same leak FitDeskApp's listActivePackages() already guards.
+      .is("plan_id", null)
       .order("sort_order"),
     supabase.rpc("admin_package_mix"),
   ]);

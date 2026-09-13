@@ -1,17 +1,12 @@
-import { createClient } from "@/core/db/server-client";
-import { listPlans } from "@/features/plans/queries";
-import { PlansView } from "./plans-view";
+import { redirect } from "next/navigation";
 
 /**
- * The dynamic Plans catalogue — additive alongside /admin/packages (the
- * legacy Starter/Growth/Pro screen, unchanged). Which one buyers actually
- * see is a separate global switch on /admin/settings
- * (platform_billing_settings.billing_model); this page is where the admin
- * builds and manages the dynamic side regardless of whether it's live yet.
+ * /admin/plans was the general Plans catalogue (arbitrary plans × billing
+ * cycles × dated offers). It has been folded into /admin/packages, which
+ * manages the one package this product sells on its three terms. Kept as a
+ * redirect so bookmarks and the Overview screen's older links still land
+ * somewhere useful.
  */
-export default async function PlansPage() {
-  const supabase = await createClient();
-  const plans = await listPlans(supabase);
-
-  return <PlansView plans={plans} />;
+export default function PlansPage() {
+  redirect("/admin/packages");
 }

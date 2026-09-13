@@ -1,5 +1,5 @@
 import { createClient } from "@/core/db/server-client";
-import { listPlatformAdmins, getBillingModel } from "@/features/settings/queries";
+import { listPlatformAdmins } from "@/features/settings/queries";
 import { SettingsView } from "./settings-view";
 
 /**
@@ -10,14 +10,12 @@ import { SettingsView } from "./settings-view";
  * undecided/unbuilt — this page has no section for them yet, rather than a
  * disabled placeholder for something that was never designed.
  *
- * The Legacy/Dynamic billing-model switch (supabase/migrations/1008_
- * plans_schema_and_rpcs.sql) is a second, later addition to this page —
- * the one control that decides which subscription catalogue FitDeskApp's
- * buyers currently see.
+ * The Legacy/Dynamic billing-model switch briefly lived here as well; it
+ * now sits on /admin/packages, beside the package it governs.
  */
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const [admins, billingModel] = await Promise.all([listPlatformAdmins(supabase), getBillingModel(supabase)]);
+  const admins = await listPlatformAdmins(supabase);
 
-  return <SettingsView admins={admins} billingModel={billingModel} />;
+  return <SettingsView admins={admins} />;
 }

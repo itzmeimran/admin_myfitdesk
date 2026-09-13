@@ -1,39 +1,32 @@
-import { FEATURE_CHIPS } from "@/features/packages/mock-data";
-import { listPackages } from "@/features/packages/queries";
 import { createClient } from "@/core/db/server-client";
-import { PackagesView } from "./packages-view";
+import { getSimplePackage } from "@/features/plans/queries";
+import { getBillingModel } from "@/features/settings/queries";
+import { PackageView } from "./package-view";
 
 /**
- * Server Component reading the real catalogue (src/features/packages/
- * queries.ts) — both period sets at once, since the Monthly/Yearly toggle
- * is client-side state in PackagesView (no server round trip to switch it).
+ * Packages — the one screen for what gym owners can buy.
  *
- * FORM_FIELDS/FEATURE_CHIPS stay on mock-data.ts: they describe the "New
- * package" write form, which is out of scope for this read-only pass (see
- * NewPackageSheet's toast-only submit in packages-view.tsx).
+ * This product sells a single package on three terms (monthly, quarterly,
+ * annual), with a discount that grows as the term does. That is the whole
+ * model, so this is the whole screen: one price, two discounts, a set of
+ * capacity limits, and a marketing feature list.
  *
- * `?new=1` arrives from Overview's "New package" button (goNewPackage in
- * the design sets `screen: "packages", sheet: true` together — here
- * that's a route plus a query param the sheet reads on mount instead).
+ * Underneath it is the `plans` schema from
+ * supabase/migrations/1008_plans_schema_and_rpcs.sql, which is deliberately
+ * more general than that (many plans × many cycles × dated offers). The
+ * generality stays in the database — it is what lets a term be repriced
+ * without a deployment — but it is not put in front of the operator.
+ *
+ * The older Starter/Growth/Pro tier catalogue still exists at
+ * /admin/packages/legacy; which of the two gym owners actually see is the
+ * `billing_model` switch the banner on this page controls.
  */
-export default async function PackagesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ new?: string }>;
-}) {
-  const { new: openNew } = await searchParams;
+export default async function PackagesPage() {
   const supabase = await createClient();
-  const [monthly, yearly] = await Promise.all([
-    listPackages(supabase, "Monthly"),
-    listPackages(supabase, "Yearly"),
+  const [{ pkg, otherPlanCount }, billingModel] = await Promise.all([
+    getSimplePackage(supabase),
+    getBillingModel(supabase),
   ]);
 
-  return (
-    <PackagesView
-      monthly={monthly}
-      yearly={yearly}
-      featureChips={FEATURE_CHIPS}
-      autoOpenSheet={openNew === "1"}
-    />
-  );
+  return <PackageView pkg={pkg} billingModel={billingModel} otherPlanCount={otherPlanCount} />;
 }

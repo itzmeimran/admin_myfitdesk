@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
+import { TERMS, type TermKey } from "./terms";
 
 /**
  * The dynamic Plans system (supabase/migrations/1008_plans_schema_and_rpcs.sql)
@@ -182,4 +183,131 @@ export async function listPlans(supabase: SupabaseClient<Database>): Promise<Pla
       mrrMinor: cycles.reduce((sum, c) => sum + c.mrrMinor, 0),
     };
   });
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// The simplified /admin/packages view of the same data.
+//
+// The plans schema is deliberately general (many plans × many cycles ×
+// many offers). This product sells exactly one package on three terms, so
+// everything below flattens that generality into the shape the screen
+// actually renders: one package, one monthly price, one discount per
+// longer term. Nothing is hidden from the database — a cycle that doesn't
+// match one of the three terms still surfaces, as `extraTerms`, so an
+// operator can see and retire it rather than wonder where it went.
+// ───────────────────────────────────────────────────────────────────────
+
+export type PackageTerm = {
+  key: TermKey;
+  label: string;
+  months: number;
+  durationDays: number;
+  /** null when this term has no platform_packages row yet. */
+  cycleId: string | null;
+  listPriceMinor: number;
+  /** 0 when there is no enabled percentage offer on this term. */
+  discountPercent: number;
+  offerId: string | null;
+  isPurchasable: boolean;
+  status: "active" | "archived";
+  gymCount: number;
+};
+
+export type SimplePackage = {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  status: "active" | "archived";
+  currency: string;
+  monthlyPriceMinor: number;
+  maxBranches: number | null;
+  maxMembers: number | null;
+  maxStaff: number | null;
+  features: PlanFeature[];
+  terms: PackageTerm[];
+  /** Cycles whose duration_days isn't 30/90/365 — legacy of the older, more
+   * general Plans screen. Shown read-only so they can be retired. */
+  extraTerms: PlanCycle[];
+  gymCount: number;
+  mrrMinor: number;
+};
+
+/** The one enabled percentage offer on a cycle, if any. `plan_effective_price`
+ * picks the largest active discount when an admin somehow books more than
+ * one; this mirrors that tie-break so the screen shows the price buyers get. */
+function activePercentOffer(cycle: PlanCycle): PlanOffer | null {
+  const candidates = cycle.offers.filter((o) => o.isEnabled && o.discountType === "percent");
+  if (candidates.length === 0) return null;
+  return candidates.reduce((best, o) => (o.discountValue > best.discountValue ? o : best));
+}
+
+function toSimplePackage(plan: Plan): SimplePackage {
+  const byDuration = new Map<number, PlanCycle>();
+  for (const cycle of plan.cycles) {
+    if (!byDuration.has(cycle.durationDays)) byDuration.set(cycle.durationDays, cycle);
+  }
+
+  const monthlyCycle = byDuration.get(30) ?? null;
+  // Caps are plan-wide (admin_set_plan_caps writes every cycle of the plan
+  // at once), so any cycle is an equally good source — prefer the monthly
+  // row so a plan whose monthly term hasn't been created yet still reads.
+  const capSource = monthlyCycle ?? plan.cycles[0] ?? null;
+
+  const terms: PackageTerm[] = TERMS.map((term) => {
+    const cycle = byDuration.get(term.durationDays) ?? null;
+    const offer = cycle ? activePercentOffer(cycle) : null;
+    return {
+      key: term.key,
+      label: term.label,
+      months: term.months,
+      durationDays: term.durationDays,
+      cycleId: cycle?.id ?? null,
+      listPriceMinor: cycle?.priceMinor ?? 0,
+      discountPercent: offer?.discountValue ?? 0,
+      offerId: offer?.id ?? null,
+      isPurchasable: cycle?.isPurchasable ?? false,
+      status: cycle?.status ?? "archived",
+      gymCount: cycle?.gymCount ?? 0,
+    };
+  });
+
+  const knownDurations = new Set(TERMS.map((t) => t.durationDays));
+
+  return {
+    id: plan.id,
+    code: plan.code,
+    name: plan.name,
+    description: plan.description ?? "",
+    status: plan.status,
+    currency: capSource?.currency ?? "INR",
+    monthlyPriceMinor: monthlyCycle?.priceMinor ?? 0,
+    maxBranches: capSource?.maxBranches ?? null,
+    maxMembers: capSource?.maxMembers ?? null,
+    maxStaff: capSource?.maxStaff ?? null,
+    features: plan.features,
+    terms,
+    extraTerms: plan.cycles.filter((c) => !knownDurations.has(c.durationDays)),
+    gymCount: plan.gymCount,
+    mrrMinor: plan.mrrMinor,
+  };
+}
+
+/**
+ * The single package this screen manages, or null when none has been set up
+ * yet. If more than one plan row exists (built through the older general
+ * Plans screen), the active one with the lowest sort_order wins — the screen
+ * says so rather than silently picking.
+ */
+export async function getSimplePackage(
+  supabase: SupabaseClient<Database>,
+): Promise<{ pkg: SimplePackage | null; otherPlanCount: number }> {
+  const plans = await listPlans(supabase);
+  const active = plans.filter((p) => p.status === "active");
+  const chosen = active[0] ?? plans[0] ?? null;
+
+  return {
+    pkg: chosen ? toSimplePackage(chosen) : null,
+    otherPlanCount: Math.max(0, plans.length - (chosen ? 1 : 0)),
+  };
 }

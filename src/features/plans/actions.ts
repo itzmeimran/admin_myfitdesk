@@ -4,105 +4,50 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
 import { toMinorUnits } from "@/core/money/format";
+import { text } from "@/core/forms/form-values";
+import { TERMS, listPriceMinor, slugifyCode, type Term } from "./terms";
+import { getSimplePackage, type PackageTerm, type SimplePackage } from "./queries";
 
 /**
- * Dynamic Plans CRUD — every mutation calls a SECURITY DEFINER RPC
- * (supabase/migrations/1008_plans_schema_and_rpcs.sql) that performs the
- * table write and an admin_audit_log entry atomically, same discipline as
- * features/packages/actions.ts. There is deliberately no direct
- * `.from("plans"|"platform_packages"|"plan_features"|"plan_offers").insert/
- * update(...)` anywhere in this file — those tables have no client write
- * policy of any kind, by design.
+ * Writes for the one-package pricing screen (/admin/packages).
+ *
+ * Every mutation goes through a SECURITY DEFINER RPC from
+ * supabase/migrations/1008_plans_schema_and_rpcs.sql, which performs the
+ * table write and an admin_audit_log entry in one transaction — same
+ * discipline as features/packages/actions.ts and features/gyms/actions.ts.
+ * There is deliberately no `.from("plans"|"platform_packages"|
+ * "plan_features"|"plan_offers").insert/update(...)` here: those tables
+ * have no client write policy of any kind, by design.
+ *
+ * This file replaced a much larger one that exposed the plans schema's full
+ * generality (many plans, arbitrary cycles, offers with date windows,
+ * manual reordering). The product sells one package on three fixed terms,
+ * so the actions below are shaped like that instead — `savePricing` writes
+ * all three term prices and both discounts in a single submit.
+ *
+ * Every field is read via `text()` rather than `formData.get()`: a `get()`
+ * on an absent field returns `null`, which zod reports as the opaque
+ * "Invalid input: expected string, received null" instead of the field's
+ * own required-message. See src/core/forms/form-values.ts.
+ *
+ * Two generated-type gaps are cast at the call site rather than widened
+ * client-wide, both already documented in CLAUDE.md: Postgres codegen
+ * doesn't mark a nullable function parameter as nullable, so the "blank =
+ * unlimited" cap nulls and the offer's null date window each need a narrow
+ * cast.
  */
 
-function revalidatePlans() {
-  revalidatePath("/admin/plans");
+function revalidatePackages() {
+  revalidatePath("/admin/packages");
   revalidatePath("/admin");
 }
 
-// ─────────────────────────────── Plans ────────────────────────────────
+export type PackageFormState = { error: string | null };
 
-const createPlanSchema = z.object({
-  code: z.string().trim().min(1, "Code is required.").max(60),
-  name: z.string().trim().min(1, "Plan name is required.").max(120),
-  description: z.string().trim().max(500).optional().default(""),
-  isPurchasable: z.enum(["true", "false"]).optional().default("true"),
-});
+const OK: PackageFormState = { error: null };
 
-export type PlanFormState = { error: string | null };
-
-export async function createPlan(_prev: PlanFormState, formData: FormData): Promise<PlanFormState> {
-  const parsed = createPlanSchema.safeParse({
-    code: formData.get("code"),
-    name: formData.get("name"),
-    description: formData.get("description"),
-    isPurchasable: formData.get("isPurchasable") ?? "true",
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_plan", {
-    p_code: parsed.data.code,
-    p_name: parsed.data.name,
-    p_description: parsed.data.description,
-    p_is_purchasable: parsed.data.isPurchasable === "true",
-  });
-  if (error) {
-    if (error.message.includes("duplicate key")) {
-      return { error: `A plan with the code "${parsed.data.code}" already exists.` };
-    }
-    return { error: error.message };
-  }
-
-  revalidatePlans();
-  return { error: null };
-}
-
-const updatePlanSchema = createPlanSchema.omit({ code: true }).extend({ id: z.string().uuid() });
-
-export async function updatePlan(_prev: PlanFormState, formData: FormData): Promise<PlanFormState> {
-  const parsed = updatePlanSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    description: formData.get("description"),
-    isPurchasable: formData.get("isPurchasable") ?? "true",
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_update_plan", {
-    p_id: parsed.data.id,
-    p_name: parsed.data.name,
-    p_description: parsed.data.description,
-    p_is_purchasable: parsed.data.isPurchasable === "true",
-  });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function setPlanStatus(id: string, status: "active" | "archived"): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan_status", { p_id: id, p_status: status });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function reorderPlans(ids: string[]): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_reorder_plans", { p_ids: ids });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-/** Blank string → unlimited (null); otherwise a positive integer. `undefined`
- * (not `null`) for an invalid non-blank value, same convention as
- * features/packages/actions.ts's parseCap. */
+/** Blank → unlimited (null); otherwise a positive integer. `undefined` marks
+ * "the admin typed something that isn't a cap", which the caller rejects. */
 function parseCap(raw: string): number | null | undefined {
   const trimmed = raw.trim();
   if (trimmed === "") return null;
@@ -110,347 +55,393 @@ function parseCap(raw: string): number | null | undefined {
   return Number.isInteger(n) && n > 0 ? n : undefined;
 }
 
-export async function setPlanCaps(
-  planId: string,
-  maxBranchesRaw: string,
-  maxMembersRaw: string,
-  maxStaffRaw: string,
-): Promise<{ error: string | null }> {
-  const maxBranches = parseCap(maxBranchesRaw);
-  const maxMembers = parseCap(maxMembersRaw);
-  const maxStaff = parseCap(maxStaffRaw);
-  if (maxBranches === undefined || maxMembers === undefined || maxStaff === undefined) {
-    return { error: "Max branches/members/staff must be blank (unlimited) or a positive whole number." };
-  }
+type Caps = { branches: number | null; members: number | null; staff: number | null };
+
+function parseCaps(formData: FormData): Caps | null {
+  const branches = parseCap(text(formData, "maxBranches"));
+  const members = parseCap(text(formData, "maxMembers"));
+  const staff = parseCap(text(formData, "maxStaff"));
+  if (branches === undefined || members === undefined || staff === undefined) return null;
+  return { branches, members, staff };
+}
+
+const CAPS_ERROR = "Branch/member/staff limits must be blank (no limit) or a whole number above zero.";
+
+// ─────────────────────────── First-time setup ───────────────────────────
+
+const setupSchema = z.object({
+  name: z.string().trim().min(1, "Give the package a name gym owners will recognise.").max(120),
+  description: z.string().trim().max(500),
+  monthlyPrice: z.string().trim().min(1, "Enter the monthly price."),
+});
+
+/**
+ * Creates the whole package in one submit: the `plans` row, its caps, and
+ * all three term rows (Monthly/Quarterly/Annual) priced at the monthly
+ * figure × the term's months. Discounts start at zero — the admin sets them
+ * afterwards on the pricing form, which is where they belong.
+ *
+ * These are separate RPC calls, so a failure partway leaves a partial
+ * package rather than rolling back (there is no multi-RPC transaction over
+ * PostgREST). That is recoverable by design: the screen renders whatever
+ * exists and `savePricing` fills in any term whose row is missing, so
+ * re-submitting finishes the job instead of erroring on the duplicate plan.
+ */
+export async function setUpPackage(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+  const parsed = setupSchema.safeParse({
+    name: text(formData, "name"),
+    description: text(formData, "description"),
+    monthlyPrice: text(formData, "monthlyPrice"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+
+  const monthlyMinor = toMinorUnits(parsed.data.monthlyPrice);
+  if (monthlyMinor === null || monthlyMinor <= 0) return { error: "The monthly price isn't a valid amount." };
+
+  const caps = parseCaps(formData);
+  if (!caps) return { error: CAPS_ERROR };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan_caps", {
+  const code = slugifyCode(parsed.data.name);
+
+  const { data: planId, error: planError } = await supabase.rpc("admin_create_plan", {
+    p_code: code,
+    p_name: parsed.data.name,
+    p_description: parsed.data.description,
+    p_is_purchasable: true,
+  });
+  if (planError) {
+    if (planError.message.includes("duplicate key")) {
+      return { error: `A package with the code "${code}" already exists — pick a different name.` };
+    }
+    return { error: planError.message };
+  }
+
+  const { error: capsError } = await supabase.rpc("admin_set_plan_caps", {
     p_plan_id: planId,
-    p_max_branches: maxBranches as number,
-    p_max_members: maxMembers as number,
-    p_max_staff: maxStaff as number,
+    p_max_branches: caps.branches as number,
+    p_max_members: caps.members as number,
+    p_max_staff: caps.staff as number,
+  });
+  if (capsError) return { error: capsError.message };
+
+  for (const term of TERMS) {
+    const { error } = await createTermRow(supabase, planId, code, term, monthlyMinor, caps);
+    if (error) return { error };
+  }
+
+  revalidatePackages();
+  return OK;
+}
+
+type Client = Awaited<ReturnType<typeof createClient>>;
+
+async function createTermRow(
+  supabase: Client,
+  planId: string,
+  planCode: string,
+  term: Term,
+  monthlyPriceMinor: number,
+  caps: Caps,
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc("admin_create_plan_billing_cycle", {
+    p_plan_id: planId,
+    p_code: `${planCode}_${term.key}`,
+    p_billing_period: term.label,
+    p_price_minor: listPriceMinor(monthlyPriceMinor, term),
+    p_currency: "INR",
+    p_duration_days: term.durationDays,
+    p_max_branches: caps.branches as number,
+    p_max_members: caps.members as number,
+    p_max_staff: caps.staff as number,
+    p_is_purchasable: true,
+  });
+  if (!error) return { error: null };
+  if (error.message.includes("duplicate key")) {
+    return { error: `A billing term with the code "${planCode}_${term.key}" already exists.` };
+  }
+  return { error: error.message };
+}
+
+// ───────────────────────────── Package details ──────────────────────────
+
+const detailsSchema = setupSchema.omit({ monthlyPrice: true }).extend({
+  planId: z.string().uuid("Reload the page and try again."),
+});
+
+/** Name, description and the three capacity limits. Limits are written
+ * across every term of the package at once (admin_set_plan_caps) — a gym
+ * paying annually gets the same limits as one paying monthly. */
+export async function savePackageDetails(
+  _prev: PackageFormState,
+  formData: FormData,
+): Promise<PackageFormState> {
+  const parsed = detailsSchema.safeParse({
+    planId: text(formData, "planId"),
+    name: text(formData, "name"),
+    description: text(formData, "description"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+
+  const caps = parseCaps(formData);
+  if (!caps) return { error: CAPS_ERROR };
+
+  const supabase = await createClient();
+
+  const { error: planError } = await supabase.rpc("admin_update_plan", {
+    p_id: parsed.data.planId,
+    p_name: parsed.data.name,
+    p_description: parsed.data.description,
+    p_is_purchasable: true,
+  });
+  if (planError) return { error: planError.message };
+
+  const { error: capsError } = await supabase.rpc("admin_set_plan_caps", {
+    p_plan_id: parsed.data.planId,
+    p_max_branches: caps.branches as number,
+    p_max_members: caps.members as number,
+    p_max_staff: caps.staff as number,
+  });
+  if (capsError) return { error: capsError.message };
+
+  revalidatePackages();
+  return OK;
+}
+
+// ──────────────────────────────── Pricing ───────────────────────────────
+
+const discountSchema = z
+  .string()
+  .trim()
+  .transform((raw) => (raw === "" ? 0 : Number(raw)))
+  .refine((n) => Number.isFinite(n) && n >= 0 && n < 100, "A discount must be between 0 and 99%.");
+
+const pricingSchema = z.object({
+  planId: z.string().uuid("Reload the page and try again."),
+  monthlyPrice: z.string().trim().min(1, "Enter the monthly price."),
+  quarterlyDiscount: discountSchema,
+  annualDiscount: discountSchema,
+});
+
+/**
+ * The whole pricing model in one submit: one monthly price, one discount
+ * per longer term.
+ *
+ * A term's list price is always monthly × months — the discount, not a
+ * separately typed price, is what makes a longer term cheaper per month.
+ * That keeps the ladder impossible to get accidentally inconsistent (a
+ * "quarterly" that costs more than three months of monthly), and it is
+ * what gym owners see: the list price struck through, the discounted price
+ * charged. The charge itself is always recomputed server-side by
+ * `plan_effective_price()`; nothing here is trusted at checkout.
+ */
+export async function savePricing(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+  const parsed = pricingSchema.safeParse({
+    planId: text(formData, "planId"),
+    monthlyPrice: text(formData, "monthlyPrice"),
+    quarterlyDiscount: text(formData, "quarterlyDiscount"),
+    annualDiscount: text(formData, "annualDiscount"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+
+  const monthlyMinor = toMinorUnits(parsed.data.monthlyPrice);
+  if (monthlyMinor === null || monthlyMinor <= 0) return { error: "The monthly price isn't a valid amount." };
+
+  const supabase = await createClient();
+  const { pkg } = await getSimplePackage(supabase);
+  if (!pkg || pkg.id !== parsed.data.planId) {
+    return { error: "This package no longer exists — reload the page." };
+  }
+
+  const caps: Caps = { branches: pkg.maxBranches, members: pkg.maxMembers, staff: pkg.maxStaff };
+  const wanted: Record<string, number> = {
+    monthly: 0,
+    quarterly: parsed.data.quarterlyDiscount,
+    annual: parsed.data.annualDiscount,
+  };
+
+  for (const term of TERMS) {
+    const current = pkg.terms.find((t) => t.key === term.key);
+    const priceMinor = listPriceMinor(monthlyMinor, term);
+
+    if (!current?.cycleId) {
+      const { error } = await createTermRow(supabase, pkg.id, pkg.code, term, monthlyMinor, caps);
+      if (error) return { error };
+      continue;
+    }
+
+    // An archived term can only come from the older general Plans screen —
+    // this one never archives a standard term. Leave it alone rather than
+    // failing the whole submit: admin_create_plan_offer refuses an archived
+    // cycle outright, and silently reviving one isn't this form's call.
+    if (current.status !== "active") continue;
+
+    const { error: priceError } = await supabase.rpc("admin_update_plan_billing_cycle", {
+      p_id: current.cycleId,
+      p_price_minor: priceMinor,
+      p_duration_days: term.durationDays,
+      p_max_branches: caps.branches as number,
+      p_max_members: caps.members as number,
+      p_max_staff: caps.staff as number,
+      p_is_purchasable: current.isPurchasable,
+    });
+    if (priceError) return { error: priceError.message };
+
+    const { error: offerError } = await syncDiscount(supabase, current, wanted[term.key] ?? 0);
+    if (offerError) return { error: offerError };
+  }
+
+  revalidatePackages();
+  return OK;
+}
+
+/**
+ * Brings a term's `plan_offers` rows in line with the single discount the
+ * screen shows: at most one enabled percentage offer, no date window.
+ *
+ * Any other offer on the term (a second percentage discount, a fixed-amount
+ * one, a leftover disabled row) is removed — `plan_effective_price()`
+ * silently picks the largest active discount when several exist, so leaving
+ * strays behind would mean the screen showing one number and buyers being
+ * charged another. Deletion is disable-then-delete because the RPC refuses
+ * to delete an enabled offer.
+ */
+async function syncDiscount(
+  supabase: Client,
+  term: PackageTerm,
+  discountPercent: number,
+): Promise<{ error: string | null }> {
+  const cycleId = term.cycleId;
+  if (!cycleId) return { error: null };
+
+  const { data: offers, error: readError } = await supabase
+    .from("plan_offers")
+    .select("id, is_enabled")
+    .eq("package_id", cycleId);
+  if (readError) return { error: readError.message };
+
+  const rows = offers ?? [];
+  // Keep the offer the screen was showing, if the admin still wants a
+  // discount — updating it in place preserves its audit history.
+  const keepId = discountPercent > 0 ? (term.offerId ?? null) : null;
+
+  for (const row of rows) {
+    if (row.id === keepId) continue;
+    if (row.is_enabled) {
+      const { error } = await supabase.rpc("admin_set_plan_offer_enabled", { p_id: row.id, p_is_enabled: false });
+      if (error) return { error: error.message };
+    }
+    const { error } = await supabase.rpc("admin_delete_plan_offer", { p_id: row.id });
+    if (error) return { error: error.message };
+  }
+
+  if (discountPercent <= 0) return { error: null };
+
+  if (keepId) {
+    const { error } = await supabase.rpc("admin_update_plan_offer", {
+      p_id: keepId,
+      p_discount_type: "percent",
+      p_discount_value: discountPercent,
+      p_starts_at: null as unknown as string,
+      p_expires_at: null as unknown as string,
+    });
+    return { error: error ? error.message : null };
+  }
+
+  const { error } = await supabase.rpc("admin_create_plan_offer", {
+    p_package_id: cycleId,
+    p_discount_type: "percent",
+    p_discount_value: discountPercent,
+    p_starts_at: null as unknown as string,
+    p_expires_at: null as unknown as string,
+    p_is_enabled: true,
+  });
+  return { error: error ? error.message : null };
+}
+
+/** Show or hide one term on the gym owner's subscription screen. Hiding a
+ * term never touches a gym already paying on it — they keep renewing. */
+export async function setTermOffered(cycleId: string, offered: boolean): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan_billing_cycle_purchasable", {
+    p_id: cycleId,
+    p_is_purchasable: offered,
   });
   if (error) return { error: error.message };
 
-  revalidatePlans();
-  return { error: null };
+  revalidatePackages();
+  return OK;
 }
 
-// ─────────────────────────── Plan features ────────────────────────────
+/** Retires a billing term that isn't one of the three this screen manages —
+ * left over from the older, more general Plans screen. Archiving hides it
+ * from new purchases; nothing is deleted. */
+export async function archiveTerm(cycleId: string): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan_billing_cycle_status", { p_id: cycleId, p_status: "archived" });
+  if (error) return { error: error.message };
+
+  revalidatePackages();
+  return OK;
+}
+
+// ─────────────────────────────── Features ───────────────────────────────
 
 const featureSchema = z.object({
-  name: z.string().trim().min(1, "Feature name is required.").max(120),
-  description: z.string().trim().max(300).optional().default(""),
+  planId: z.string().uuid("Reload the page and try again."),
+  name: z.string().trim().min(1, "Name the feature.").max(120),
 });
 
-export type PlanFeatureFormState = { error: string | null };
-
-export async function addPlanFeature(_prev: PlanFeatureFormState, formData: FormData): Promise<PlanFeatureFormState> {
-  const planId = formData.get("planId");
+/** Features are marketing copy shown under the package name — they are not
+ * enforced anywhere. What actually differs between gyms is the capacity
+ * limits on the details form. */
+export async function addFeature(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
   const parsed = featureSchema.safeParse({
-    name: formData.get("name"),
-    description: formData.get("description"),
+    planId: text(formData, "planId"),
+    name: text(formData, "name"),
   });
-  if (typeof planId !== "string" || !planId) return { error: "Missing plan." };
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_create_plan_feature", {
-    p_plan_id: planId,
+    p_plan_id: parsed.data.planId,
     p_name: parsed.data.name,
-    p_description: parsed.data.description,
+    p_description: "",
+    p_is_enabled: true,
   });
   if (error) return { error: error.message };
 
-  revalidatePlans();
-  return { error: null };
+  revalidatePackages();
+  return OK;
 }
 
-const updateFeatureSchema = featureSchema.extend({ id: z.string().uuid(), isEnabled: z.enum(["true", "false"]) });
-
-export async function updatePlanFeature(
-  _prev: PlanFeatureFormState,
-  formData: FormData,
-): Promise<PlanFeatureFormState> {
-  const parsed = updateFeatureSchema.safeParse({
-    id: formData.get("id"),
-    name: formData.get("name"),
-    description: formData.get("description"),
-    isEnabled: formData.get("isEnabled") ?? "true",
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_update_plan_feature", {
-    p_id: parsed.data.id,
-    p_name: parsed.data.name,
-    p_description: parsed.data.description,
-    p_is_enabled: parsed.data.isEnabled === "true",
-  });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function deletePlanFeature(id: string): Promise<{ error: string | null }> {
+export async function removeFeature(id: string): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_delete_plan_feature", { p_id: id });
   if (error) return { error: error.message };
 
-  revalidatePlans();
-  return { error: null };
+  revalidatePackages();
+  return OK;
 }
 
-export async function setPlanFeatureEnabled(id: string, enabled: boolean): Promise<{ error: string | null }> {
+// ───────────────────────── Which catalogue is live ──────────────────────
+
+/**
+ * The global switch gym owners feel: `legacy` shows them the old
+ * Starter/Growth/Pro tiers (/admin/packages/legacy), `dynamic` shows them
+ * the package this screen manages. Flipping it never changes what an
+ * existing subscriber pays or renews on — FitDeskApp looks a gym's own
+ * current row up by package_id regardless of the mode.
+ */
+export async function setBillingModel(model: "legacy" | "dynamic"): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan_feature_enabled", { p_id: id, p_is_enabled: enabled });
+  const { error } = await supabase.rpc("admin_set_billing_model", { p_model: model });
   if (error) return { error: error.message };
 
-  revalidatePlans();
-  return { error: null };
+  revalidatePackages();
+  revalidatePath("/admin/packages/legacy");
+  revalidatePath("/admin/settings");
+  return OK;
 }
 
-export async function reorderPlanFeatures(planId: string, ids: string[]): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_reorder_plan_features", { p_plan_id: planId, p_ids: ids });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-// ─────────────────────────── Billing cycles ────────────────────────────
-
-const createCycleSchema = z.object({
-  code: z.string().trim().min(1, "Code is required.").max(60),
-  billingPeriod: z.string().trim().min(1, "Billing period label is required.").max(40),
-  price: z.string().trim().min(1, "Price is required."),
-  durationDays: z.coerce.number().int().positive("Duration must be a positive number of days."),
-  maxBranches: z.string().trim(),
-  maxMembers: z.string().trim(),
-  maxStaff: z.string().trim(),
-});
-
-export type PlanCycleFormState = { error: string | null };
-
-export async function addPlanCycle(_prev: PlanCycleFormState, formData: FormData): Promise<PlanCycleFormState> {
-  const planId = formData.get("planId");
-  const parsed = createCycleSchema.safeParse({
-    code: formData.get("code"),
-    billingPeriod: formData.get("billingPeriod"),
-    price: formData.get("price"),
-    durationDays: formData.get("durationDays"),
-    maxBranches: formData.get("maxBranches"),
-    maxMembers: formData.get("maxMembers"),
-    maxStaff: formData.get("maxStaff"),
-  });
-  if (typeof planId !== "string" || !planId) return { error: "Missing plan." };
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const priceMinor = toMinorUnits(parsed.data.price);
-  if (priceMinor === null) return { error: "Price isn't a valid amount." };
-
-  const maxBranches = parseCap(parsed.data.maxBranches);
-  const maxMembers = parseCap(parsed.data.maxMembers);
-  const maxStaff = parseCap(parsed.data.maxStaff);
-  if (maxBranches === undefined || maxMembers === undefined || maxStaff === undefined) {
-    return { error: "Max branches/members/staff must be blank (unlimited) or a positive whole number." };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_plan_billing_cycle", {
-    p_plan_id: planId,
-    p_code: parsed.data.code,
-    p_billing_period: parsed.data.billingPeriod,
-    p_price_minor: priceMinor,
-    p_currency: "INR",
-    p_duration_days: parsed.data.durationDays,
-    p_max_branches: maxBranches as number,
-    p_max_members: maxMembers as number,
-    p_max_staff: maxStaff as number,
-  });
-  if (error) {
-    if (error.message.includes("duplicate key")) {
-      return { error: `A billing cycle with the code "${parsed.data.code}" already exists.` };
-    }
-    return { error: error.message };
-  }
-
-  revalidatePlans();
-  return { error: null };
-}
-
-const updateCycleSchema = createCycleSchema.omit({ code: true, billingPeriod: true }).extend({ id: z.string().uuid() });
-
-export async function updatePlanCycle(_prev: PlanCycleFormState, formData: FormData): Promise<PlanCycleFormState> {
-  const parsed = updateCycleSchema.safeParse({
-    id: formData.get("id"),
-    price: formData.get("price"),
-    durationDays: formData.get("durationDays"),
-    maxBranches: formData.get("maxBranches"),
-    maxMembers: formData.get("maxMembers"),
-    maxStaff: formData.get("maxStaff"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const priceMinor = toMinorUnits(parsed.data.price);
-  if (priceMinor === null) return { error: "Price isn't a valid amount." };
-
-  const maxBranches = parseCap(parsed.data.maxBranches);
-  const maxMembers = parseCap(parsed.data.maxMembers);
-  const maxStaff = parseCap(parsed.data.maxStaff);
-  if (maxBranches === undefined || maxMembers === undefined || maxStaff === undefined) {
-    return { error: "Max branches/members/staff must be blank (unlimited) or a positive whole number." };
-  }
-
-  const supabase = await createClient();
-  // is_purchasable is intentionally left untouched here (toggled separately
-  // by setPlanCyclePurchasable) — this form only ever edits price/duration/
-  // caps, matching how features/packages' PackageSheet keeps price edits
-  // and archive/restore as two separate actions.
-  const { data: current, error: currentError } = await supabase
-    .from("platform_packages")
-    .select("is_purchasable")
-    .eq("id", parsed.data.id)
-    .single();
-  if (currentError) return { error: currentError.message };
-
-  const { error } = await supabase.rpc("admin_update_plan_billing_cycle", {
-    p_id: parsed.data.id,
-    p_price_minor: priceMinor,
-    p_duration_days: parsed.data.durationDays,
-    p_max_branches: maxBranches as number,
-    p_max_members: maxMembers as number,
-    p_max_staff: maxStaff as number,
-    p_is_purchasable: current.is_purchasable,
-  });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function setPlanCycleStatus(id: string, status: "active" | "archived"): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan_billing_cycle_status", { p_id: id, p_status: status });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function setPlanCyclePurchasable(id: string, purchasable: boolean): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan_billing_cycle_purchasable", {
-    p_id: id,
-    p_is_purchasable: purchasable,
-  });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function reorderPlanCycles(planId: string, ids: string[]): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_reorder_plan_billing_cycles", { p_plan_id: planId, p_ids: ids });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-// ────────────────────────────────  Offers  ─────────────────────────────
-
-const offerSchema = z.object({
-  discountType: z.enum(["percent", "fixed"]),
-  discountValue: z.coerce.number().positive("Discount must be a positive number."),
-  startsAt: z.string().trim().optional().default(""),
-  expiresAt: z.string().trim().optional().default(""),
-});
-
-export type PlanOfferFormState = { error: string | null };
-
-function toTimestamptz(local: string): string | null {
-  if (!local) return null;
-  const d = new Date(local);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-export async function addPlanOffer(_prev: PlanOfferFormState, formData: FormData): Promise<PlanOfferFormState> {
-  const cycleId = formData.get("cycleId");
-  const parsed = offerSchema.safeParse({
-    discountType: formData.get("discountType"),
-    discountValue: formData.get("discountValue"),
-    startsAt: formData.get("startsAt"),
-    expiresAt: formData.get("expiresAt"),
-  });
-  if (typeof cycleId !== "string" || !cycleId) return { error: "Missing billing cycle." };
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_create_plan_offer", {
-    p_package_id: cycleId,
-    p_discount_type: parsed.data.discountType,
-    p_discount_value: parsed.data.discountValue,
-    // Same codegen gap CLAUDE.md documents for admin_create_package's
-    // nullable cap args: generated Args types don't mark a nullable
-    // timestamptz param as nullable even though the RPC body accepts null.
-    // Narrow cast at the call site, not a client-wide type widening.
-    p_starts_at: toTimestamptz(parsed.data.startsAt) as string,
-    p_expires_at: toTimestamptz(parsed.data.expiresAt) as string,
-  });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-const updateOfferSchema = offerSchema.extend({ id: z.string().uuid() });
-
-export async function updatePlanOffer(_prev: PlanOfferFormState, formData: FormData): Promise<PlanOfferFormState> {
-  const parsed = updateOfferSchema.safeParse({
-    id: formData.get("id"),
-    discountType: formData.get("discountType"),
-    discountValue: formData.get("discountValue"),
-    startsAt: formData.get("startsAt"),
-    expiresAt: formData.get("expiresAt"),
-  });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
-
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_update_plan_offer", {
-    p_id: parsed.data.id,
-    p_discount_type: parsed.data.discountType,
-    p_discount_value: parsed.data.discountValue,
-    // Same codegen gap CLAUDE.md documents for admin_create_package's
-    // nullable cap args: generated Args types don't mark a nullable
-    // timestamptz param as nullable even though the RPC body accepts null.
-    // Narrow cast at the call site, not a client-wide type widening.
-    p_starts_at: toTimestamptz(parsed.data.startsAt) as string,
-    p_expires_at: toTimestamptz(parsed.data.expiresAt) as string,
-  });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function setPlanOfferEnabled(id: string, enabled: boolean): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_set_plan_offer_enabled", { p_id: id, p_is_enabled: enabled });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
-
-export async function deletePlanOffer(id: string): Promise<{ error: string | null }> {
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("admin_delete_plan_offer", { p_id: id });
-  if (error) return { error: error.message };
-
-  revalidatePlans();
-  return { error: null };
-}
+export type { SimplePackage };

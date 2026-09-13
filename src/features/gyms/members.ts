@@ -55,6 +55,27 @@ const EXPIRY_LABEL: Record<AdminGymMemberRow["expiry_state"], string> = {
   expired: "Expired",
 };
 
+/** Overview tab's "Gym activity snapshot" tiles — three cheap total_count-
+ * only reads (limit 1) over the same `admin_gym_members()` RPC the Members
+ * tab uses, bucketed by `expiry_state` rather than a new aggregate RPC.
+ * Real data, no new migration: `admin_gym_members()` already computes
+ * `expiry_state` and `total_count` per call. */
+export async function getMemberExpirySnapshot(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<{ activeMembershipCount: number; expiringSoonCount: number; expiredCount: number }> {
+  const [active, expiringSoon, expired] = await Promise.all([
+    getGymMembers(supabase, organizationId, { expiryState: "active", limit: 1 }),
+    getGymMembers(supabase, organizationId, { expiryState: "expiring_soon", limit: 1 }),
+    getGymMembers(supabase, organizationId, { expiryState: "expired", limit: 1 }),
+  ]);
+  return {
+    activeMembershipCount: active.total,
+    expiringSoonCount: expiringSoon.total,
+    expiredCount: expired.total,
+  };
+}
+
 export async function getGymMembers(
   supabase: SupabaseClient<Database>,
   organizationId: string,

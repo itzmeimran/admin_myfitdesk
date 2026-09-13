@@ -81,6 +81,8 @@ export {
   LuClock as TrialsIcon,
   LuLock as ReadOnlyIcon,
   LuBan as SuspendIcon,
+  LuEye as RevealIcon,
+  LuEyeOff as HideIcon,
 
   // Period toggles
   LuCalendar as CalendarIcon,

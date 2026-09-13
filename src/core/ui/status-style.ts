@@ -41,6 +41,12 @@ const PILL: Record<string, PillTone> = {
   Expired: { backgroundColor: "var(--accent)", color: "var(--paper)" },
   "Expiring soon": { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
   "No plan": { backgroundColor: "var(--sand)", color: "var(--mute)" },
+  // Team roster role pills (Branches & Team tab) — Owner reuses the
+  // Trialing/highlight tone, Trainer a plain line tone, matching the
+  // design's own PILL map (Owner:HI, Staff:SAND, Trainer:LINE).
+  Owner: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
+  Staff: { backgroundColor: "var(--sand)", color: "var(--ink)" },
+  Trainer: { backgroundColor: "var(--line)", color: "var(--ink2)" },
 };
 
 /** Falls back to the neutral "Active" tone for any status string not in the

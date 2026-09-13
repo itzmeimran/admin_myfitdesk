@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
 import { getGymBillingHistory } from "@/features/gyms/billing";
+import { listAssignablePackages } from "@/features/gyms/queries";
 import { FilterSelect } from "@/components/FilterSelect";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { SortLink } from "@/components/SortLink";
@@ -9,7 +10,9 @@ import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { formatMinorWhole } from "@/core/money/format";
+import { formatShortDate } from "@/core/dates/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
+import { BillingActions } from "./billing-actions";
 import Link from "next/link";
 
 const SORT_ALLOWLIST = new Set(["created_at", "amount_minor", "status", "paid_at"]);
@@ -48,7 +51,7 @@ export default async function GymBillingPage({
   const { page, pageSize, offset } = parsePagination(sp);
 
   const supabase = await createClient();
-  const [gym, { rows, total }] = await Promise.all([
+  const [gym, { rows, total }, packages] = await Promise.all([
     getGymDetail(supabase, id),
     getGymBillingHistory(supabase, id, {
       status,
@@ -60,21 +63,64 @@ export default async function GymBillingPage({
       limit: pageSize,
       offset,
     }),
+    listAssignablePackages(supabase),
   ]);
   if (!gym) notFound();
 
   const hasFilters = !!status || !!provider || !!dateFrom || !!dateTo;
   const sub = gym.subscription;
+  const now = new Date();
+  const avgMinor = total > 0 ? Math.round(gym.lifetimePaidMinor / total) : 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <section className="flex flex-wrap gap-x-6 gap-y-2 border-[1.5px] border-line bg-paper p-4 text-[12.5px]">
-        <Detail k="Plan" v={sub?.packageName ?? "No package"} />
-        <Detail k="Price" v={sub?.priceMinor != null ? formatMinorWhole(sub.priceMinor, sub.currency ?? "INR") : "—"} />
-        <Detail k="Billing cycle" v={capitalizeBillingPeriod(sub?.billingPeriod)} />
-        <Detail k="Status" v={gym.status} />
-        <Detail k="Auto-renew" v={sub?.autoRenew ? "On" : "Off"} />
+      <section className="flex flex-col gap-4 border-2 border-ink bg-paper p-4 md:flex-row">
+        <div className="flex flex-1 flex-col gap-2.5">
+          <h2 className="mfd-micro-label">Current subscription</h2>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="font-display text-[26px] tracking-[-0.03em]">{sub?.packageName ?? "No package"}</span>
+            {sub?.packageCode ? <span className="font-mono text-[11.5px] text-mute3">{sub.packageCode}</span> : null}
+            <span className={PILL_CLASS} style={pillTone(gym.status)}>
+              {gym.status}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="font-display text-[21px] tracking-[-0.025em]">
+              {sub?.priceMinor != null ? formatMinorWhole(sub.priceMinor, sub.currency ?? "INR") : "—"}
+            </span>
+            <span className="text-[12.5px] text-mute">per {capitalizeBillingPeriod(sub?.billingPeriod).toLowerCase()} cycle</span>
+          </div>
+          <dl className="flex flex-col">
+            <Detail k="Billing cycle" v={capitalizeBillingPeriod(sub?.billingPeriod)} />
+            <Detail
+              k="Current period"
+              v={
+                sub?.currentPeriodStart && sub?.currentPeriodEnd
+                  ? `${formatShortDate(new Date(sub.currentPeriodStart), now)} – ${formatShortDate(new Date(sub.currentPeriodEnd), now)}`
+                  : "—"
+              }
+            />
+            <Detail k="Grace days" v={`${sub?.graceDays ?? gym.gracePeriodDays} days after period end`} />
+            <Detail k="Auto-renew" v={sub?.autoRenew ? "On" : "Off — renewal is manual"} />
+          </dl>
+        </div>
+        <div className="flex flex-col gap-2 bg-ink p-4 text-paper md:w-[240px] md:flex-shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-mute3">Lifetime paid to MyFitDesk</span>
+          <span className="font-display text-[32px] tracking-[-0.035em] text-hi">
+            {formatMinorWhole(gym.lifetimePaidMinor, gym.defaultCurrency)}
+          </span>
+          <span className="text-[12px] leading-relaxed text-mute3">
+            {total > 0 ? `${total.toLocaleString("en-IN")} invoices on file` : "No invoices yet"}
+          </span>
+          {total > 0 ? (
+            <span className="mt-auto border-t border-ink2 pt-2.5 text-[11.5px] text-mute3">
+              Average {formatMinorWhole(avgMinor, gym.defaultCurrency)} / invoice
+            </span>
+          ) : null}
+        </div>
       </section>
+
+      <BillingActions gym={gym} packages={packages} />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <FilterSelect
@@ -149,9 +195,9 @@ export default async function GymBillingPage({
 
 function Detail({ k, v }: { k: string; v: string }) {
   return (
-    <span className="flex flex-col gap-0.5">
-      <span className="mfd-micro-label">{k}</span>
-      <span className="font-bold text-ink">{v}</span>
-    </span>
+    <div className="flex items-baseline justify-between gap-3 border-b border-line py-1.5 text-[12.5px]">
+      <dt className="text-mute">{k}</dt>
+      <dd className="text-right font-bold text-ink">{v}</dd>
+    </div>
   );
 }

@@ -6,23 +6,22 @@ import type { GymDetail } from "@/features/gyms/detail";
 import type { AssignablePackage } from "@/features/gyms/queries";
 import { ManageSubscriptionSheet, type SubscriptionSheetGym } from "@/features/gyms/ManageSubscriptionSheet";
 import { SuspendSheet, ReactivateConfirm } from "../gym-row-actions";
-import { EditIcon, PackagesIcon, AlertIcon, RestoreIcon } from "@/core/ui/icons";
+import { EditIcon, PackagesIcon, AlertIcon, RestoreIcon, ExtendIcon } from "@/core/ui/icons";
 import { formatMinorWhole } from "@/core/money/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
 /**
- * Section 2's header quick actions: Edit gym / Manage subscription /
- * Suspend or Reactivate. "Edit gym" links to the Settings tab's real edit
- * form (admin_update_organization_profile) rather than opening yet another
- * sheet — general profile fields are exactly what Settings already shows,
- * so editing them there keeps one source of truth for that form instead of
- * a second copy living in the header.
+ * Header quick actions, matching the design's two primary buttons ("Extend
+ * access" / "Manage subscription") plus this app's own real Suspend/
+ * Reactivate/Edit capabilities as a smaller secondary row — the design
+ * canvas doesn't show those three at all (it's a single-state mockup, not a
+ * spec for every admin capability), so they're kept rather than dropped;
+ * D-4(b)/(c) in CLAUDE.md are why suspend exists and impersonation doesn't.
  *
- * Impersonation is deliberately not offered here — per the product owner's
- * explicit decision this pass, it would need new session-minting
- * infrastructure this app doesn't have, and was scoped out rather than
- * built as a fake/disabled button (there is nothing today for it to be a
- * placeholder in front of).
+ * "Extend access" and "Manage subscription" open the same sheet — its
+ * Extend section is already the first one, so a dedicated "Extend access"
+ * button just gets the admin straight to it without a second implementation
+ * of the same write path.
  */
 export function GymDetailActions({ gym, packages }: { gym: GymDetail; packages: AssignablePackage[] }) {
   const [subscriptionSheetOpen, setSubscriptionSheetOpen] = useState(false);
@@ -51,41 +50,53 @@ export function GymDetailActions({ gym, packages }: { gym: GymDetail; packages: 
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link
-        href={`/admin/gyms/${gym.id}/settings`}
-        className="flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-line bg-paper px-3 text-[11px] font-bold uppercase tracking-[0.09em] text-ink"
-      >
-        <EditIcon size={13} aria-hidden />
-        Edit gym
-      </Link>
-      <button
-        type="button"
-        onClick={() => setSubscriptionSheetOpen(true)}
-        className="flex min-h-[36px] items-center gap-1.5 bg-ink px-3 text-[11px] font-bold uppercase tracking-[0.09em] text-hi"
-      >
-        <PackagesIcon size={13} aria-hidden />
-        Manage subscription
-      </button>
-      {gym.status === "Suspended" ? (
+    <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          onClick={() => setConfirmReactivate(true)}
-          className="flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-line bg-paper px-3 text-[11px] font-bold text-ink"
+          onClick={() => setSubscriptionSheetOpen(true)}
+          className="flex min-h-[38px] items-center gap-1.5 border-[1.5px] border-ink bg-paper px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
         >
-          <RestoreIcon size={13} aria-hidden />
-          Reactivate gym
+          <ExtendIcon size={14} aria-hidden />
+          Extend access
         </button>
-      ) : (
         <button
           type="button"
-          onClick={() => setSuspendSheetOpen(true)}
-          className="flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-accent bg-accent/8 px-3 text-[11px] font-bold text-accent"
+          onClick={() => setSubscriptionSheetOpen(true)}
+          className="flex min-h-[38px] items-center gap-1.5 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
         >
-          <AlertIcon size={13} aria-hidden />
-          Suspend gym
+          <PackagesIcon size={14} aria-hidden />
+          Manage subscription
         </button>
-      )}
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Link
+          href={`/admin/gyms/${gym.id}/settings`}
+          className="flex min-h-[32px] items-center gap-1.5 border border-line px-2.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-mute hover:text-ink"
+        >
+          <EditIcon size={12} aria-hidden />
+          Edit gym
+        </Link>
+        {gym.status === "Suspended" ? (
+          <button
+            type="button"
+            onClick={() => setConfirmReactivate(true)}
+            className="flex min-h-[32px] items-center gap-1.5 border border-line px-2.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-mute hover:text-ink"
+          >
+            <RestoreIcon size={12} aria-hidden />
+            Reactivate gym
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSuspendSheetOpen(true)}
+            className="flex min-h-[32px] items-center gap-1.5 border border-accent px-2.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-accent"
+          >
+            <AlertIcon size={12} aria-hidden />
+            Suspend gym
+          </button>
+        )}
+      </div>
 
       <ManageSubscriptionSheet
         open={subscriptionSheetOpen}

@@ -294,20 +294,18 @@ function toSimplePackage(plan: Plan): SimplePackage {
 }
 
 /**
- * The single package this screen manages, or null when none has been set up
- * yet. If more than one plan row exists (built through the older general
- * Plans screen), the active one with the lowest sort_order wins — the screen
- * says so rather than silently picking.
+ * Every package this screen manages, flattened into the one-price/N-term
+ * shape `/admin/packages` renders. Ordered active-first (so a freshly
+ * archived package doesn't jump to the front of the picker), then by
+ * `sort_order` within each group.
  */
-export async function getSimplePackage(
-  supabase: SupabaseClient<Database>,
-): Promise<{ pkg: SimplePackage | null; otherPlanCount: number }> {
+export async function listSimplePackages(supabase: SupabaseClient<Database>): Promise<SimplePackage[]> {
   const plans = await listPlans(supabase);
-  const active = plans.filter((p) => p.status === "active");
-  const chosen = active[0] ?? plans[0] ?? null;
-
-  return {
-    pkg: chosen ? toSimplePackage(chosen) : null,
-    otherPlanCount: Math.max(0, plans.length - (chosen ? 1 : 0)),
-  };
+  return plans
+    .slice()
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === "active" ? -1 : 1;
+      return a.sortOrder - b.sortOrder;
+    })
+    .map(toSimplePackage);
 }

@@ -13,6 +13,9 @@ import {
   addFeature,
   removeFeature,
   setBillingModel,
+  setPlanStatus,
+  goLiveAndArchiveLegacy,
+  SETUP_INITIAL,
   type PackageFormState,
 } from "@/features/plans/actions";
 import { TERMS, listPriceMinor, effectivePriceMinor } from "@/features/plans/terms";
@@ -25,6 +28,7 @@ import {
   DeleteIcon,
   ConfirmIcon,
   ArchiveIcon,
+  RestoreIcon,
   AlertIcon,
   ToggleOnIcon,
   ToggleOffIcon,
@@ -32,18 +36,18 @@ import {
 import { ICON_SIZE } from "@/core/ui/icon-size";
 
 /**
- * One package, three terms. Every control on this screen maps to exactly one
- * thing an operator wants to change:
+ * Every package, one screen. A row of cards picks which package is under
+ * management — the selected one carries a terracotta (--accent) border —
+ * and everything below it (pricing, capacity, features, terms, archive)
+ * acts on whichever package that is. This replaced an earlier "exactly one
+ * package" version of this screen once the product grew to sell more than
+ * one; the per-package management surface below is otherwise unchanged.
  *
- *   - the monthly price, and how much cheaper a longer term is;
- *   - what a gym gets (capacity limits, and the feature list buyers read);
- *   - which terms are offered at all;
- *   - whether gym owners see this package or the old tier catalogue.
- *
- * The pricing form derives the quarterly and annual list prices from the
- * monthly one (× 3 and × 12) and applies the term's discount on top, so the
- * ladder can't end up inconsistent and the preview below the inputs shows
- * exactly what a gym owner will see before anything is saved.
+ * The pricing form derives the quarterly/half-yearly/annual list prices
+ * from the monthly one (× the term's months) and applies the term's
+ * discount on top, so the ladder can't end up inconsistent and the preview
+ * below the inputs shows exactly what a gym owner will see before anything
+ * is saved.
  */
 
 const initialState: PackageFormState = { error: null };
@@ -66,13 +70,13 @@ function useMutation() {
   const [isPending, startTransition] = useTransition();
   const [busyKey, setBusyKey] = useState<string | null>(null);
 
-  function run(key: string, fn: () => Promise<{ error: string | null }>, successMessage: string) {
+  function run<T extends { error: string | null }>(key: string, fn: () => Promise<T>, successMessage: string) {
     setBusyKey(key);
     startTransition(async () => {
-      const { error } = await fn();
+      const result = await fn();
       setBusyKey(null);
-      if (error) {
-        toast.error(error);
+      if (result.error) {
+        toast.error(result.error);
         return;
       }
       toast.success(successMessage);
@@ -107,43 +111,44 @@ function useActionResult(
 }
 
 export function PackageView({
-  pkg,
+  packages,
+  selectedId,
   billingModel,
-  otherPlanCount,
 }: {
-  pkg: SimplePackage | null;
+  packages: SimplePackage[];
+  selectedId: string;
   billingModel: "legacy" | "dynamic";
-  otherPlanCount: number;
 }) {
+  const selected = selectedId === "new" ? null : (packages.find((p) => p.id === selectedId) ?? null);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-1">
         <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Packages</h1>
         <p className="text-[12.5px] text-mute">
-          One package, three billing terms. Set the monthly price once; longer terms get a discount.
+          Every package gym owners can buy. Pick one below to set its price, capacity and features — a
+          package sells on up to four terms, each cheaper per month the longer it runs.
         </p>
       </div>
 
-      <LiveBanner pkg={pkg} billingModel={billingModel} />
+      <LiveBanner billingModel={billingModel} hasPackages={packages.length > 0} />
 
-      {pkg ? (
-        <>
-          <PricingCard pkg={pkg} />
-          <DetailsCard pkg={pkg} />
-          <FeaturesCard pkg={pkg} />
-          <ExtraTermsCard pkg={pkg} />
-          {otherPlanCount > 0 ? (
-            <p className="text-[11.5px] leading-relaxed text-mute">
-              {otherPlanCount === 1 ? "One other package exists" : `${otherPlanCount} other packages exist`} in the
-              database, built before this screen was simplified. This screen manages{" "}
-              <span className="font-bold">{pkg.name}</span> only — the others are untouched and nothing buys from
-              them unless they are purchasable.
-            </p>
-          ) : null}
-        </>
-      ) : (
+      <PackagePicker packages={packages} selectedId={selectedId} />
+
+      {selectedId === "new" ? (
         <SetupCard />
-      )}
+      ) : selected ? (
+        // Keyed on the package id so every stateful child (the pricing
+        // form's controlled inputs above all) remounts with fresh values
+        // when the picker switches packages, instead of carrying over the
+        // previous package's numbers into inputs that look unchanged.
+        <div key={selected.id} className="flex flex-col gap-4">
+          <PricingCard pkg={selected} />
+          <DetailsCard pkg={selected} />
+          <FeaturesCard pkg={selected} />
+          <ExtraTermsCard pkg={selected} />
+        </div>
+      ) : null}
 
       <p className="text-[11.5px] leading-relaxed text-mute3">
         The old Starter / Growth / Pro tiers still exist at{" "}
@@ -156,21 +161,88 @@ export function PackageView({
   );
 }
 
+// ─────────────────────────────── Picker ─────────────────────────────────
+
+function statusLine(pkg: SimplePackage): string {
+  if (pkg.monthlyPriceMinor > 0) {
+    return `${formatMinorWhole(pkg.monthlyPriceMinor, pkg.currency)} / mo`;
+  }
+  return "Not priced yet";
+}
+
+function PackagePicker({ packages, selectedId }: { packages: SimplePackage[]; selectedId: string }) {
+  return (
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+      {packages.map((pkg) => {
+        const isSelected = pkg.id === selectedId;
+        return (
+          <Link
+            key={pkg.id}
+            href={`/admin/packages?pkg=${pkg.id}`}
+            className={`flex flex-col gap-1.5 border-[1.5px] bg-paper p-3.5 transition ${
+              isSelected ? "border-[2.5px] border-accent" : "border-line hover:border-ink"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="min-w-0 truncate text-[12.5px] font-bold">{pkg.name}</span>
+              {pkg.status === "archived" ? (
+                <span className="flex-shrink-0 border border-line px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-mute">
+                  Archived
+                </span>
+              ) : null}
+            </div>
+            <span className="text-[11.5px] text-mute">{statusLine(pkg)}</span>
+            <span className="text-[10.5px] text-mute3">
+              {pkg.gymCount} {pkg.gymCount === 1 ? "gym" : "gyms"}
+            </span>
+          </Link>
+        );
+      })}
+
+      <Link
+        href="/admin/packages?pkg=new"
+        className={`flex min-h-[84px] flex-col items-center justify-center gap-1 border-[1.5px] border-dashed bg-paper p-3.5 text-center transition ${
+          selectedId === "new" ? "border-[2.5px] border-accent border-solid" : "border-line hover:border-ink"
+        }`}
+      >
+        <AddIcon size={16} aria-hidden />
+        <span className="text-[11.5px] font-bold">New package</span>
+      </Link>
+    </div>
+  );
+}
+
 // ─────────────────────────────── Live banner ────────────────────────────
 
-function LiveBanner({ pkg, billingModel }: { pkg: SimplePackage | null; billingModel: "legacy" | "dynamic" }) {
+function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "dynamic"; hasPackages: boolean }) {
   const { run, isBusy } = useMutation();
+  const toast = useToast();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const live = billingModel === "dynamic";
+
+  function goLive() {
+    startTransition(async () => {
+      const result = await goLiveAndArchiveLegacy();
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(
+        result.archivedCount > 0
+          ? `Gym owners now see these packages. ${result.archivedCount} old tier${result.archivedCount === 1 ? "" : "s"} retired.`
+          : "Gym owners now see these packages.",
+      );
+      router.refresh();
+    });
+  }
 
   if (live) {
     return (
       <div className="flex flex-wrap items-center gap-3 border-[1.5px] border-ink bg-ink p-3.5 text-paper">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute3">Live</span>
-          <span className="text-[12.5px]">
-            Gym owners see <span className="font-bold">{pkg ? pkg.name : "this package"}</span> on their subscription
-            screen.
-          </span>
+          <span className="text-[12.5px]">Gym owners see the packages below on their subscription screen.</span>
         </span>
         <button
           type="button"
@@ -190,19 +262,19 @@ function LiveBanner({ pkg, billingModel }: { pkg: SimplePackage | null; billingM
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-accent">Not live yet</span>
         <span className="text-[12.5px] text-ink">
-          Gym owners still see the old Starter / Growth / Pro tiers. Changes on this page won&apos;t reach them until
+          Gym owners still see the old Starter / Growth / Pro tiers. Changes below won&apos;t reach them until
           you go live.
         </span>
       </span>
       <button
         type="button"
-        disabled={!pkg || isBusy("model")}
-        title={pkg ? undefined : "Set the package up first."}
-        onClick={() => run("model", () => setBillingModel("dynamic"), "Gym owners now see this package.")}
+        disabled={!hasPackages || isPending}
+        title={hasPackages ? undefined : "Set up a package first."}
+        onClick={goLive}
         className={PRIMARY}
       >
         <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
-        {isBusy("model") ? "Going live…" : "Go live with this package"}
+        {isPending ? "Going live…" : "Go live & retire the old tiers"}
       </button>
     </div>
   );
@@ -215,18 +287,22 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
   useActionResult(state, undefined, "Pricing saved.");
 
   const quarterly = pkg.terms.find((t) => t.key === "quarterly");
+  const halfYearly = pkg.terms.find((t) => t.key === "half_yearly");
   const annual = pkg.terms.find((t) => t.key === "annual");
 
   // Local copies drive the preview table so the ladder updates as the admin
-  // types, before anything is written.
+  // types, before anything is written. Keyed on pkg.id via the parent below
+  // so switching packages remounts this form with fresh values.
   const [monthly, setMonthly] = useState(String(pkg.monthlyPriceMinor / 100 || ""));
   const [quarterlyOff, setQuarterlyOff] = useState(String(quarterly?.discountPercent ?? 0));
+  const [halfYearlyOff, setHalfYearlyOff] = useState(String(halfYearly?.discountPercent ?? 0));
   const [annualOff, setAnnualOff] = useState(String(annual?.discountPercent ?? 0));
 
   const monthlyMinor = toMinorUnits(monthly) ?? 0;
   const discounts: Record<string, number> = {
     monthly: 0,
     quarterly: Number(quarterlyOff) || 0,
+    half_yearly: Number(halfYearlyOff) || 0,
     annual: Number(annualOff) || 0,
   };
 
@@ -235,10 +311,10 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
       <input type="hidden" name="planId" value={pkg.id} />
 
       <div className="flex flex-col gap-0.5">
-        <h2 className="font-display text-[17px] tracking-[-0.02em]">Pricing</h2>
+        <h2 className="font-display text-[17px] tracking-[-0.02em]">Pricing — {pkg.name}</h2>
         <p className="text-[11.5px] text-mute">
-          A quarterly term is three months of the monthly price, an annual term twelve — the discount is what makes
-          the longer term worth taking.
+          A longer term is that many months of the monthly price — the discount is what makes it worth
+          taking.
         </p>
       </div>
 
@@ -261,7 +337,7 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
           <span className="text-[10.5px] text-mute3">Everything else is derived from this.</span>
         </label>
 
-        <label className="flex flex-col gap-1" style={{ flexBasis: 180 }}>
+        <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
           <span className={LABEL}>Quarterly discount (%)</span>
           <input
             type="number"
@@ -273,10 +349,23 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
             onChange={(e) => setQuarterlyOff(e.target.value)}
             className={INPUT}
           />
-          <span className="text-[10.5px] text-mute3">0 = no discount on three months.</span>
         </label>
 
-        <label className="flex flex-col gap-1" style={{ flexBasis: 180 }}>
+        <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
+          <span className={LABEL}>Half-Yearly discount (%)</span>
+          <input
+            type="number"
+            name="halfYearlyDiscount"
+            min="0"
+            max="99"
+            step="1"
+            value={halfYearlyOff}
+            onChange={(e) => setHalfYearlyOff(e.target.value)}
+            className={INPUT}
+          />
+        </label>
+
+        <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
           <span className={LABEL}>Annual discount (%)</span>
           <input
             type="number"
@@ -288,7 +377,6 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
             onChange={(e) => setAnnualOff(e.target.value)}
             className={INPUT}
           />
-          <span className="text-[10.5px] text-mute3">0 = no discount on twelve months.</span>
         </label>
       </div>
 
@@ -306,7 +394,7 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
                 key={term.key}
                 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line pb-2 last:border-0 last:pb-0"
               >
-                <span className="w-[84px] text-[12.5px] font-bold">{term.label}</span>
+                <span className="w-[92px] text-[12.5px] font-bold">{term.label}</span>
                 <span className="flex items-baseline gap-2">
                   {discount > 0 ? (
                     <span className="text-[12px] text-mute3 line-through">{formatMinorWhole(list, pkg.currency)}</span>
@@ -391,6 +479,8 @@ function capLabel(value: number | null) {
 
 function DetailsCard({ pkg }: { pkg: SimplePackage }) {
   const [open, setOpen] = useState(false);
+  const { run, isBusy } = useMutation();
+  const archived = pkg.status === "archived";
 
   return (
     <div className={CARD}>
@@ -401,10 +491,27 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
             {pkg.description || "No description yet — gym owners see this under the package name."}
           </p>
         </div>
-        <button type="button" onClick={() => setOpen(true)} className={GHOST}>
-          <EditIcon size={13} aria-hidden />
-          Edit
-        </button>
+        <div className="flex flex-shrink-0 gap-2">
+          <button type="button" onClick={() => setOpen(true)} className={GHOST}>
+            <EditIcon size={13} aria-hidden />
+            Edit
+          </button>
+          <button
+            type="button"
+            disabled={isBusy("status")}
+            onClick={() =>
+              run(
+                "status",
+                () => setPlanStatus(pkg.id, archived ? "active" : "archived"),
+                archived ? `${pkg.name} restored.` : `${pkg.name} archived.`,
+              )
+            }
+            className={GHOST}
+          >
+            {archived ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
+            {archived ? "Restore" : "Archive"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1 border-t border-line pt-2.5 text-[12.5px]">
@@ -422,6 +529,7 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
 
       <span className="text-[11px] text-mute3">
         Limits are the same on every term and are enforced when a gym adds a branch, member or staff login.
+        {archived ? " Archived — hidden from new gyms until restored." : ""}
       </span>
 
       {/* Remounting on open clears any stale useActionState result from a
@@ -574,8 +682,9 @@ function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
       <div className="flex flex-col gap-0.5">
         <h2 className="font-display text-[17px] tracking-[-0.02em]">Other billing terms</h2>
         <p className="text-[11.5px] text-mute">
-          These were created before this screen was simplified and aren&apos;t monthly, quarterly or annual, so the
-          pricing form above doesn&apos;t manage them. Gym owners can still buy them until they&apos;re retired.
+          These were created before this screen was simplified and aren&apos;t monthly, quarterly, half-yearly
+          or annual, so the pricing form above doesn&apos;t manage them. Gym owners can still buy them until
+          they&apos;re retired.
         </p>
       </div>
       <ul className="flex flex-col">
@@ -605,18 +714,31 @@ function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
 // ────────────────────────────── First-time setup ────────────────────────
 
 function SetupCard() {
-  const [state, formAction, isPending] = useActionState(setUpPackage, initialState);
-  useActionResult(state, undefined, "Package created.");
-  const [monthly, setMonthly] = useState("");
+  const [state, formAction, isPending] = useActionState(setUpPackage, SETUP_INITIAL);
+  const toast = useToast();
+  const router = useRouter();
+  const [handled, setHandled] = useState(SETUP_INITIAL);
 
+  if (state !== handled) {
+    setHandled(state);
+    if (state.error) {
+      toast.error(state.error);
+    } else if (state.createdId) {
+      toast.success("Package created.");
+      router.push(`/admin/packages?pkg=${state.createdId}`);
+      router.refresh();
+    }
+  }
+
+  const [monthly, setMonthly] = useState("");
   const monthlyMinor = toMinorUnits(monthly) ?? 0;
 
   return (
     <form action={formAction} className={CARD}>
       <div className="flex flex-col gap-0.5">
-        <h2 className="font-display text-[17px] tracking-[-0.02em]">Set up your package</h2>
+        <h2 className="font-display text-[17px] tracking-[-0.02em]">New package</h2>
         <p className="text-[11.5px] text-mute">
-          One submit creates the package and all three billing terms. Discounts come next, on the pricing form.
+          One submit creates the package and all four billing terms. Discounts come next, on the pricing form.
         </p>
       </div>
 
@@ -663,10 +785,10 @@ function SetupCard() {
           />
           <span className="text-[10.5px] text-mute3">
             {monthlyMinor > 0
-              ? `Quarterly starts at ${formatMinorWhole(monthlyMinor * 3)}, annual at ${formatMinorWhole(
-                  monthlyMinor * 12,
-                )} before discount.`
-              : "Quarterly and annual are derived from this."}
+              ? `Quarterly starts at ${formatMinorWhole(monthlyMinor * 3)}, half-yearly at ${formatMinorWhole(
+                  monthlyMinor * 6,
+                )}, annual at ${formatMinorWhole(monthlyMinor * 12)} before discount.`
+              : "Every longer term is derived from this."}
           </span>
         </label>
 

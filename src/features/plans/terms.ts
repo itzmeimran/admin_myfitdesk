@@ -1,5 +1,5 @@
 /**
- * The three billing terms this product sells. One package, three terms,
+ * The four billing terms this product sells. One package, four terms,
  * a longer term costs less per month — that's the whole pricing model, and
  * this array is the single place it is spelled out.
  *
@@ -9,9 +9,14 @@
  * is display text an earlier session could have typed differently, while
  * duration_days is what every piece of real period math (settlement,
  * renewal, MRR normalisation in admin_package_mix) already keys off.
+ *
+ * Half-Yearly is 180 days (6 × 30), not a calendar-accurate 182/183 — kept
+ * on the same 30-day-per-month convention Quarterly (90 = 3 × 30) and
+ * Annual (365, the one exception — a real year) already use, so the
+ * derived list-price ladder (monthly × months) stays internally consistent.
  */
 
-export type TermKey = "monthly" | "quarterly" | "annual";
+export type TermKey = "monthly" | "quarterly" | "half_yearly" | "annual";
 
 export type Term = {
   key: TermKey;
@@ -26,6 +31,7 @@ export type Term = {
 export const TERMS: readonly Term[] = [
   { key: "monthly", label: "Monthly", months: 1, durationDays: 30 },
   { key: "quarterly", label: "Quarterly", months: 3, durationDays: 90 },
+  { key: "half_yearly", label: "Half-Yearly", months: 6, durationDays: 180 },
   { key: "annual", label: "Annual", months: 12, durationDays: 365 },
 ] as const;
 

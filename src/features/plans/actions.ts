@@ -6,7 +6,7 @@ import { createClient } from "@/core/db/server-client";
 import { toMinorUnits } from "@/core/money/format";
 import { text } from "@/core/forms/form-values";
 import { TERMS, listPriceMinor, slugifyCode, type Term } from "./terms";
-import { getSimplePackage, type PackageTerm, type SimplePackage } from "./queries";
+import { listSimplePackages, type PackageTerm, type SimplePackage } from "./queries";
 
 /**
  * Writes for the one-package pricing screen (/admin/packages).
@@ -45,6 +45,13 @@ function revalidatePackages() {
 export type PackageFormState = { error: string | null };
 
 const OK: PackageFormState = { error: null };
+
+/** setUpPackage's own return shape — a plain PackageFormState can't also
+ * carry the new package's id, and the setup form needs it to navigate the
+ * picker onto whatever it just created. */
+export type SetupFormState = { error: string | null; createdId: string | null };
+
+export const SETUP_INITIAL: SetupFormState = { error: null, createdId: null };
 
 /** Blank → unlimited (null); otherwise a positive integer. `undefined` marks
  * "the admin typed something that isn't a cap", which the caller rejects. */
@@ -87,19 +94,23 @@ const setupSchema = z.object({
  * exists and `savePricing` fills in any term whose row is missing, so
  * re-submitting finishes the job instead of erroring on the duplicate plan.
  */
-export async function setUpPackage(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+export async function setUpPackage(_prev: SetupFormState, formData: FormData): Promise<SetupFormState> {
   const parsed = setupSchema.safeParse({
     name: text(formData, "name"),
     description: text(formData, "description"),
     monthlyPrice: text(formData, "monthlyPrice"),
   });
-  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Check the form and try again.", createdId: null };
+  }
 
   const monthlyMinor = toMinorUnits(parsed.data.monthlyPrice);
-  if (monthlyMinor === null || monthlyMinor <= 0) return { error: "The monthly price isn't a valid amount." };
+  if (monthlyMinor === null || monthlyMinor <= 0) {
+    return { error: "The monthly price isn't a valid amount.", createdId: null };
+  }
 
   const caps = parseCaps(formData);
-  if (!caps) return { error: CAPS_ERROR };
+  if (!caps) return { error: CAPS_ERROR, createdId: null };
 
   const supabase = await createClient();
   const code = slugifyCode(parsed.data.name);
@@ -112,9 +123,12 @@ export async function setUpPackage(_prev: PackageFormState, formData: FormData):
   });
   if (planError) {
     if (planError.message.includes("duplicate key")) {
-      return { error: `A package with the code "${code}" already exists — pick a different name.` };
+      return {
+        error: `A package with the code "${code}" already exists — pick a different name.`,
+        createdId: null,
+      };
     }
-    return { error: planError.message };
+    return { error: planError.message, createdId: null };
   }
 
   const { error: capsError } = await supabase.rpc("admin_set_plan_caps", {
@@ -123,15 +137,15 @@ export async function setUpPackage(_prev: PackageFormState, formData: FormData):
     p_max_members: caps.members as number,
     p_max_staff: caps.staff as number,
   });
-  if (capsError) return { error: capsError.message };
+  if (capsError) return { error: capsError.message, createdId: planId };
 
   for (const term of TERMS) {
     const { error } = await createTermRow(supabase, planId, code, term, monthlyMinor, caps);
-    if (error) return { error };
+    if (error) return { error, createdId: planId };
   }
 
   revalidatePackages();
-  return OK;
+  return { error: null, createdId: planId };
 }
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -220,6 +234,7 @@ const pricingSchema = z.object({
   planId: z.string().uuid("Reload the page and try again."),
   monthlyPrice: z.string().trim().min(1, "Enter the monthly price."),
   quarterlyDiscount: discountSchema,
+  halfYearlyDiscount: discountSchema,
   annualDiscount: discountSchema,
 });
 
@@ -240,6 +255,7 @@ export async function savePricing(_prev: PackageFormState, formData: FormData): 
     planId: text(formData, "planId"),
     monthlyPrice: text(formData, "monthlyPrice"),
     quarterlyDiscount: text(formData, "quarterlyDiscount"),
+    halfYearlyDiscount: text(formData, "halfYearlyDiscount"),
     annualDiscount: text(formData, "annualDiscount"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
@@ -248,8 +264,9 @@ export async function savePricing(_prev: PackageFormState, formData: FormData): 
   if (monthlyMinor === null || monthlyMinor <= 0) return { error: "The monthly price isn't a valid amount." };
 
   const supabase = await createClient();
-  const { pkg } = await getSimplePackage(supabase);
-  if (!pkg || pkg.id !== parsed.data.planId) {
+  const packages = await listSimplePackages(supabase);
+  const pkg = packages.find((p) => p.id === parsed.data.planId);
+  if (!pkg) {
     return { error: "This package no longer exists — reload the page." };
   }
 
@@ -257,6 +274,7 @@ export async function savePricing(_prev: PackageFormState, formData: FormData): 
   const wanted: Record<string, number> = {
     monthly: 0,
     quarterly: parsed.data.quarterlyDiscount,
+    half_yearly: parsed.data.halfYearlyDiscount,
     annual: parsed.data.annualDiscount,
   };
 
@@ -424,6 +442,23 @@ export async function removeFeature(id: string): Promise<{ error: string | null 
   return OK;
 }
 
+// ───────────────────────────── Whole package ─────────────────────────────
+
+/** Archives or restores an entire package (every term, at once) — full
+ * control over the catalogue, not just its pricing. Archiving never touches
+ * a gym already subscribed to one of its terms; it only stops new sales
+ * (mirrors admin_set_package_status's own behaviour on the legacy screen).
+ * Distinct from a single term's own offered/hidden toggle (setTermOffered),
+ * which is finer-grained and stays available independently. */
+export async function setPlanStatus(id: string, status: "active" | "archived"): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan_status", { p_id: id, p_status: status });
+  if (error) return { error: error.message };
+
+  revalidatePackages();
+  return OK;
+}
+
 // ───────────────────────── Which catalogue is live ──────────────────────
 
 /**
@@ -442,6 +477,47 @@ export async function setBillingModel(model: "legacy" | "dynamic"): Promise<{ er
   revalidatePath("/admin/packages/legacy");
   revalidatePath("/admin/settings");
   return OK;
+}
+
+/**
+ * One click: flips the global switch to dynamic, then archives every
+ * still-active legacy Starter/Growth/Pro row (admin_set_package_status —
+ * the same RPC the legacy screen's own Archive button calls). No new RPC:
+ * both calls already exist and are already live.
+ *
+ * The switch flips first, deliberately — with no cross-table transaction
+ * over PostgREST, a gym mid-checkout while the archive loop runs still
+ * lands on a real picker either way, never a half-emptied one.
+ *
+ * Archiving is one-way from here: switching back to "legacy" later does not
+ * restore these rows automatically. That is intentional (this action is
+ * "retire the old tiers", not "hide them for a moment") and each one can
+ * still be restored individually from /admin/packages/legacy.
+ */
+export async function goLiveAndArchiveLegacy(): Promise<{ error: string | null; archivedCount: number }> {
+  const supabase = await createClient();
+
+  const { error: modelError } = await supabase.rpc("admin_set_billing_model", { p_model: "dynamic" });
+  if (modelError) return { error: modelError.message, archivedCount: 0 };
+
+  const { data: legacyRows, error: readError } = await supabase
+    .from("platform_packages")
+    .select("id")
+    .is("plan_id", null)
+    .eq("status", "active");
+  if (readError) return { error: readError.message, archivedCount: 0 };
+
+  let archivedCount = 0;
+  for (const row of legacyRows ?? []) {
+    const { error } = await supabase.rpc("admin_set_package_status", { p_id: row.id, p_status: "archived" });
+    if (error) return { error: error.message, archivedCount };
+    archivedCount += 1;
+  }
+
+  revalidatePackages();
+  revalidatePath("/admin/packages/legacy");
+  revalidatePath("/admin/settings");
+  return { error: null, archivedCount };
 }
 
 export type { SimplePackage };

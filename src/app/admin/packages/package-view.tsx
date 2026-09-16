@@ -239,7 +239,7 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
 
   if (live) {
     return (
-      <div className="flex flex-wrap items-center gap-3 border-[1.5px] border-ink bg-ink p-3.5 text-paper">
+      <div className="flex flex-col gap-3 border-[1.5px] border-ink bg-ink p-3.5 text-paper sm:flex-row sm:flex-wrap sm:items-center">
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute3">Live</span>
           <span className="text-[12.5px]">Gym owners see the packages below on their subscription screen.</span>
@@ -248,7 +248,7 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
           type="button"
           disabled={isBusy("model")}
           onClick={() => run("model", () => setBillingModel("legacy"), "Gym owners now see the old tiers.")}
-          className="flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-mute px-3 text-[11px] font-bold text-paper disabled:cursor-wait disabled:opacity-60"
+          className="flex min-h-[36px] w-full items-center justify-center gap-1.5 border-[1.5px] border-mute px-3 text-[11px] font-bold text-paper disabled:cursor-wait disabled:opacity-60 sm:w-auto sm:justify-start"
         >
           Switch back to the old tiers
         </button>
@@ -257,21 +257,23 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 border-[1.5px] border-accent bg-paper p-3.5">
-      <AlertIcon size={18} className="flex-shrink-0 text-accent" aria-hidden />
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-accent">Not live yet</span>
-        <span className="text-[12.5px] text-ink">
-          Gym owners still see the old Starter / Growth / Pro tiers. Changes below won&apos;t reach them until
-          you go live.
+    <div className="flex flex-col gap-3 border-[1.5px] border-accent bg-paper p-3.5 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <AlertIcon size={18} className="flex-shrink-0 text-accent" aria-hidden />
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-accent">Not live yet</span>
+          <span className="text-[12.5px] text-ink">
+            Gym owners still see the old Starter / Growth / Pro tiers. Changes below won&apos;t reach them until
+            you go live.
+          </span>
         </span>
-      </span>
+      </div>
       <button
         type="button"
         disabled={!hasPackages || isPending}
         title={hasPackages ? undefined : "Set up a package first."}
         onClick={goLive}
-        className={PRIMARY}
+        className={`${PRIMARY} w-full sm:w-auto`}
       >
         <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
         {isPending ? "Going live…" : "Go live & retire the old tiers"}

@@ -2,11 +2,33 @@
 
 import { useTransition } from "react";
 import { downloadCsv } from "@/core/csv";
-import { exportGymsCsv, GYMS_CSV_HEADERS } from "@/features/gyms/actions";
+import { exportGymsCsv } from "@/features/gyms/actions";
 import type { GymListParams } from "@/features/gyms/queries";
 import { useToast } from "@/components/Toast";
 import { ExportIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
+
+// Kept here rather than exported from actions.ts: a "use server" file may
+// only export async functions — a plain array export there broke every
+// Server Action in that file on Vercel ("A 'use server' file can only
+// export async functions, found object"). Must match exportGymsCsv's own
+// row order in actions.ts.
+const GYMS_CSV_HEADERS = [
+  "Gym",
+  "Owner",
+  "Owner email",
+  "City",
+  "Package",
+  "Billing period",
+  "Status",
+  "Members",
+  "Member cap",
+  "Branches",
+  "Staff",
+  "Renews",
+  "Lifetime paid",
+  "Created",
+];
 
 /** Exports every gym matching the current filters (not just the current
  * page — see exportGymsCsv's own docblock for why that needed a server

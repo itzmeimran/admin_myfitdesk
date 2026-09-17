@@ -15,8 +15,8 @@ import {
   setBillingModel,
   setPlanStatus,
   goLiveAndArchiveLegacy,
-  SETUP_INITIAL,
   type PackageFormState,
+  type SetupFormState,
 } from "@/features/plans/actions";
 import { TERMS, listPriceMinor, effectivePriceMinor } from "@/features/plans/terms";
 import { Sheet } from "@/components/Sheet";
@@ -51,6 +51,11 @@ import { ICON_SIZE } from "@/core/ui/icon-size";
  */
 
 const initialState: PackageFormState = { error: null };
+// A "use server" file may only export async functions, so this constant
+// lives here rather than alongside setUpPackage in actions.ts — it broke
+// every Server Action in that file on Vercel ("A 'use server' file can
+// only export async functions, found object") until moved.
+const SETUP_INITIAL: SetupFormState = { error: null, createdId: null };
 
 const CARD = "flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4";
 const LABEL = "text-[9px] font-bold uppercase tracking-[0.12em] text-mute";

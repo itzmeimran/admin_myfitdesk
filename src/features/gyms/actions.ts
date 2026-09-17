@@ -166,23 +166,6 @@ export async function updateGymProfile(_prev: ProfileFormState, formData: FormDa
 
 export type ExportGymsResult = { rows: string[][] } | { error: string };
 
-export const GYMS_CSV_HEADERS = [
-  "Gym",
-  "Owner",
-  "Owner email",
-  "City",
-  "Package",
-  "Billing period",
-  "Status",
-  "Members",
-  "Member cap",
-  "Branches",
-  "Staff",
-  "Renews",
-  "Lifetime paid",
-  "Created",
-];
-
 /**
  * Export CSV, ported to the server-paginated Gyms list (main's own version
  * of this feature exported `filtered` straight out of client state, which

@@ -51,8 +51,6 @@ const OK: PackageFormState = { error: null };
  * picker onto whatever it just created. */
 export type SetupFormState = { error: string | null; createdId: string | null };
 
-export const SETUP_INITIAL: SetupFormState = { error: null, createdId: null };
-
 /** Blank → unlimited (null); otherwise a positive integer. `undefined` marks
  * "the admin typed something that isn't a cap", which the caller rejects. */
 function parseCap(raw: string): number | null | undefined {

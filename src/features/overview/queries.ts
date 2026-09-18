@@ -185,7 +185,25 @@ async function fetchOverviewStats(
   if (!raw || typeof raw !== "object") {
     throw new Error("admin_overview_stats returned an unexpected shape");
   }
-  return raw as OverviewStats;
+
+  // The jsonb sub-objects below are built in SQL via an aggregate
+  // (jsonb_object_agg/jsonb_build_object over a GROUP BY) — Postgres
+  // aggregates return NULL, not `{}`, when there are zero matching rows
+  // (e.g. a brand-new project with no organizations/subscriptions/payments
+  // yet, exactly what a freshly-created PROD project looks like before its
+  // first real gym signs up). The scalar counts around them are already
+  // `coalesce(..., 0)`'d in SQL and don't need this. Normalizing here, once,
+  // means every caller below can keep treating these as the plain objects
+  // their type says they are instead of null-checking at each call site —
+  // this is what crashed production ("Cannot read properties of null
+  // (reading 'trialing')") the first time PROD had zero subscriptions.
+  const parsed = raw as Partial<OverviewStats>;
+  return {
+    ...parsed,
+    tenant_counts: parsed.tenant_counts ?? {},
+    failed_charges_current: parsed.failed_charges_current ?? { count: 0, amount_minor: 0 },
+    awaiting_settlement: parsed.awaiting_settlement ?? { count: 0, amount_minor: 0 },
+  } as OverviewStats;
 }
 
 async function fetchPackageMix(supabase: SupabaseClient<Database>): Promise<AdminPackageMixRow[]> {

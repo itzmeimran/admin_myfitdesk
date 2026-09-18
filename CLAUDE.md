@@ -66,7 +66,7 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 6. ✅ **Done 2026-09-09.** "Renewals due in 7 days" Overview tile now backed by real data — see "Milestone: Renewals due in 7 days metric" below.
 7. ✅ **"Billing pipeline" panel — done and verified 2026-09-09.** See "Milestone: Real numbers everywhere" below.
 8. ✅ **Partially done 2026-09-09.** Product owner chose admin roster UI of the 4 candidates — see "Milestone: Admin roster UI" below. Grace-period default, invoice prefix, and webhook endpoints remain undecided and unbuilt. (The Gyms redesign session, running concurrently, separately added a real "Edit gym" form to each gym's own Settings tab at `/admin/gyms/[id]/settings` — a different, gym-scoped settings surface from this platform-wide `/admin/settings` page.)
-9. ✅ **Done 2026-09-09**, merging two concurrent sessions' work: real server-side pagination/search/filter/sort for the Gyms list (see "Milestone: Gyms redesign" below — replaces client-side "Load more" entirely) AND Export CSV, ported from its original client-side implementation (see "Milestone: Gyms Export CSV" below) into the new server-paginated page so it exports every gym matching the current filters, not just one page. Invite gym owner remains the one deliberately deferred placeholder (needs new infra — email sending, an invite-token flow).
+9. ✅ **Done 2026-09-09**, merging two concurrent sessions' work: real server-side pagination/search/filter/sort for the Gyms list (see "Milestone: Gyms redesign" below — replaces client-side "Load more" entirely) AND Export CSV, ported from its original client-side implementation (see "Milestone: Gyms Export CSV" below) into the new server-paginated page so it exports every gym matching the current filters, not just one page. ~~Invite gym owner remains the one deliberately deferred placeholder~~ — **built 2026-09-18, see "Milestone: Gym Owner Onboarding" below.**
 10. ✅ **Overview's period toggle (This month/Quarter/Year) — done and verified 2026-09-09.** See "Milestone: Real numbers everywhere" below.
 11. ✅ **Gym Detail page — restructured to a 5-tab layout 2026-09-13**, matching the Claude Design "MyFitDesk Gym Detail" canvas (see "Milestone: Gym Detail redesign" below). Superseded the original 8-tab layout named in this line's earlier text (Overview/Billing/Branches/Staff/Members/Entitlements/Activity/Settings). Still NOT live-verified — see item 2b, unchanged this pass (no Supabase MCP tool or `.env.local` in this session either).
 
@@ -74,6 +74,188 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 12. Responsive/visual QA pass in an actual browser against the reference design for the now-real-data pages, INCLUDING the new Gym Detail tabs — blocked on item 2 above for anything beyond mock-data screens (already visually verified once, pre-wiring), and additionally blocked on item 2b for the Gym Detail page specifically (its data has never been loaded against a real database at all).
 14. New from the 2026-09-13 redesign: three sections the new design canvas calls for have no admin-readable data source anywhere in this schema — a gym's own monthly revenue rollup (from its tenant `payments` table), its membership-plans-sold breakdown with a member-share percentage, and a per-member "membership history"/"payment history" pair inside the member drawer. All three currently render an honest "not available yet" note rather than fabricated numbers (see that milestone). Building any of them needs a new `SECURITY DEFINER` RPC — written, applied, and live-verified in a session that actually has Supabase MCP access, per this project's own hard-won lesson (see the two "Production incident" write-ups below) that a migration is not done until it's been executed against real rows as a real admin.
 13. Overview's own `listGyms()` (features/overview/queries.ts) still loads every gym row to derive its risk/signups sections client-side-in-Node — the same "don't load the whole table" concern the Gyms redesign fixed for the Gyms page itself, left untouched here since Overview wasn't in this task's scope. Worth the same treatment if/when Overview needs it.
+
+---
+
+## Milestone: Gym Owner Onboarding (2026-09-18)
+
+Full task brief: enable "Invite gym owner" (previously the one deliberately-deferred disabled
+button, see P2 item 9's original text and the Gyms-redesign/Export-CSV milestones' own notes on
+why it was skipped — "needs new infra this pass doesn't have: email sending, an invite-token
+flow"). Built the whole flow: admin creates a gym + picks trial/subscription/custom access in one
+form, an invitation email goes out, the owner verifies their email and sets their own password
+(the admin never sees or sets it), and the admin can track/resend/revoke the invitation and later
+manage the subscription — all server-authorized, none of it UI-only gating.
+
+**Audit done first, per the task's own instruction, before writing any SQL.** Read FitDeskApp's
+existing auth/invite/gym-creation code end to end (background research agent + direct file reads).
+Two findings shaped the whole design:
+1. `staff_invitations` (FitDeskApp migration `0002`) **already supports `role='owner'`** — an
+   existing owner inviting a co-owner was already a first-class case — and its whole accept flow
+   (`/auth/confirm?type=invite` → `/invite/accept` → self-insert into `staff_memberships` under
+   `staff_memberships_insert_via_invite`) needed **zero changes** to also work for a brand-new
+   gym's very first owner, created by a platform admin instead of an existing owner. This is
+   reuse, not a parallel system — exactly what the brief asked for ("reuse the existing
+   architecture wherever possible instead of creating duplicate systems").
+2. `organizations` inserts already get a free 14-day trial (FitDeskApp `0028`'s
+   `app.create_default_subscription()` trigger) and a free human-readable `gym_code` (FitDeskApp
+   `0066`'s BEFORE INSERT trigger) — so the admin-side RPC only had to *adjust* the trial row to
+   match what the admin actually chose, never insert a second one, and never had to invent an ID
+   scheme (the task's own "do not expose Supabase UUIDs as the user-facing Gym ID" is already
+   solved by FitDeskApp's own `gym_code`, e.g. `GG-0926A`).
+
+**DB (`supabase/migrations/1012_gym_owner_onboarding.sql`, NOT yet applied to any live
+project — no Supabase MCP tool or `.env.local` in this session, same constraint several prior
+migrations in this file were written under):**
+- `staff_invitations` gains six nullable/defaulted columns, additive only:
+  `email_verified_at` (the real, persisted middle state of "Invitation Sent → Email Verified →
+  Account Active" — set by a new `mark_invitation_viewed()` RPC the **first time** the invitee
+  lands on `/invite/accept` with a valid session, called from that page in the **myfitdesk repo**
+  — see that repo's own CLAUDE.md entry for the one-line addition this required there),
+  `invited_first_name`/`invited_last_name`/`invited_phone` (the admin's own reference snapshot —
+  never authoritative; the owner's real name is whatever they type on the accept form, same as any
+  other invite), `resend_count`/`last_resent_at`.
+- `mark_invitation_viewed(p_invitation_id)` — SECURITY DEFINER, self-scoped by the caller's own
+  JWT email (not admin-gated — the caller is the brand-new owner, who has no admin/org grants at
+  all yet). Needed because `staff_invitations_accept_self`'s RLS policy only permits a
+  pending→accepted transition, not "stay pending but set one more column."
+- `admin_create_gym_owner_invitation(...)` — the whole "Invite gym owner" submit in one
+  transaction: creates `organizations`/`gyms`/`branches`, adjusts the free trial row to the
+  admin's chosen billing mode (`trial` with a custom length / `paid` against a real
+  `platform_packages` row, optionally overriding its period / `custom` admin-granted days), inserts
+  the `staff_invitations` row (`role='owner'`), and writes two `admin_audit_log` rows
+  (`gym.created`, `invitation.sent`) — all inside one `plpgsql` function, so a failure partway
+  through (a bad plan id, a duplicate caught mid-flight) leaves nothing behind. Duplicate/existing-
+  account checks run **before** any insert and return distinct, admin-legible messages for three
+  situations the brief asks to tell apart: already a member of an existing gym, already has a
+  pending invitation, or already has a Supabase Auth account with no gym role yet (the last one is
+  a real scope boundary, not a bug — same one `admin_grant_platform_admin` already documents:
+  `generateLink({type:"invite"})` cannot create a second account for an email that already has one,
+  same as the Admin API itself).
+- `admin_resend_gym_owner_invitation` / `admin_revoke_gym_owner_invitation` /
+  `admin_get_gym_owner_invitation` — resend resets the 7-day expiry and clears
+  `email_verified_at` (a resend is a fresh link); revoke soft-stops a pending invitation without
+  touching the gym or subscription it created (an admin who wants both suspends the gym
+  separately, via the already-built `admin_suspend_organization`); the get function folds
+  `status`/`expires_at`/`email_verified_at` into one `effective_status` (`invited`/
+  `email_verified`/`expired`/`active`/`revoked`) so the app layer never re-derives that logic.
+- `admin_gym_detail` — `CREATE OR REPLACE` (jsonb return, so no `DROP FUNCTION` needed, unlike the
+  table-returning RPCs 1010/1011 had to touch) adding exactly one key, `gym_code`, to the
+  `organization` object — this is what let the Gym Detail header stop printing
+  `gym_{uuid.slice(0,8)}` as its "record id" and show the real business id instead.
+- Same convention as every other write RPC in this file: `SECURITY DEFINER`, pinned `search_path`,
+  `app.is_platform_admin()` gate first (except `mark_invitation_viewed`, self-scoped instead —
+  see above), explicit `revoke execute ... from public, anon, authenticated` then
+  `grant ... to authenticated` (both revokes — this project's own recorded trap).
+
+**App (admin_myfitdesk):**
+- `src/app/admin/gyms/invite-actions.ts` — outside `src/features/**`, same carve-out as
+  FitDeskApp's own `signup/actions.ts`/`dashboard/staff/actions.ts`: needs
+  `supabase.auth.admin.generateLink()` and a Storage write, both service-role-only, which the
+  eslint boundary rule blocks `features/**` from importing. `inviteGymOwner()` calls the RPC via
+  the ordinary RLS-scoped client (same client every other admin write in this app uses), then —
+  only once the gym exists — uploads an optional logo to the shared `gym-logos` Storage bucket via
+  the service client (a brand-new gym has no `staff_membership` yet for that bucket's own
+  org-membership-scoped RLS policy to authorize against) and generates+sends the invite email.
+  **A partial-failure path is handled explicitly, not left to crash**: if the email can't be
+  generated or sent, the gym and its pending invitation are left exactly as created (a fully
+  consistent DB state, nothing orphaned) and the admin sees a plain message pointing at "Resend
+  invitation" — never a half-created gym, per the brief's own "safe so we don't end up with
+  half-created gyms" requirement. `resendGymOwnerInvitation`/`revokeGymOwnerInvitation` are the
+  matching thin wrappers.
+- **New minimal email infra** (`src/core/config/email.ts`, `src/core/email/{transporter,errors,
+  system-email,templates}.ts`) — this admin app had **zero** email-sending code before this
+  (confirmed by research agent: no `nodemailer`, no SMTP env vars, nothing). Copied FitDeskApp's own
+  Nodemailer-over-Resend-SMTP pattern (D-B: reuse by copying, not importing across repos) —
+  `isEmailConfigured()`/graceful degrade exactly like FitDeskApp's `transporter.ts`. Deliberately
+  **not** part of `core/config/server.ts`'s fail-closed schema: an admin panel that refuses to boot
+  because nobody configured SMTP yet is a worse failure than one that creates the gym and tells the
+  admin to copy a link manually. `MYFITDESK_ORIGIN` (new optional server env var, defaults to
+  `https://myfitdesk.vercel.app`) is where the invite link points — this repo has no gym-owner-
+  facing screens of its own (D-B), so the link always lands on the tenant app.
+- `InviteGymOwnerSheet.tsx` — a `Sheet` (this app's existing bottom-sheet primitive, matching
+  "do not unnecessarily redesign the UI") with sectioned fields (gym details + logo, owner
+  details, address, billing mode) and a `useActionState` submit, same shape as `packages/actions.ts`'s
+  create-package Sheet. Billing mode is a 3-way radio (Free Trial / Paid Subscription / Custom
+  access) that conditionally reveals trial-days, plan+period-override, or custom-days fields.
+  Replaces the old disabled button on `/admin/gyms` exactly in place.
+- `OwnerInvitationCard.tsx` on the Gym Detail header (visible on every tab, same placement as the
+  deletion-request banner) — renders only while `effectiveStatus !== "active"`, showing the exact
+  Invitation Sent / Email Verified / Invitation Expired / Invitation Revoked progression the brief
+  asked for, with Resend (while pending/expired/verified) and Revoke (while pending) actions —
+  Revoke behind a `ConfirmDialog`, matching this app's own "dangerous actions need confirmation"
+  convention.
+- **Ongoing subscription/trial management deliberately reuses what's already built, rather than
+  adding new RPCs for it**: `admin_extend_subscription` covers "extend trial" and "extend
+  subscription validity" (it operates on `current_period_end` regardless of which state the row is
+  in); `admin_change_subscription_package` covers "change plan" and, combined with an Extend, covers
+  "activate subscription" (assign a package to a still-trialing gym, then extend to the plan's real
+  period); `admin_cancel_subscription`/`admin_restore_subscription` cover "cancel/deactivate" and
+  "reactivate"; a `custom` grant at invite time is just `admin_extend_subscription` with no package
+  attached. All four already have their own Sheet (`ManageSubscriptionSheet`, built in the
+  Subscription-management milestone below) reachable from both the Gyms list and the Gym Detail
+  header — this pass added no UI here since the capability, and its audit logging, already exists.
+- **Authorization is server-side throughout, not UI-only gating**: every new RPC re-checks
+  `app.is_platform_admin()` itself (the same gate every prior write in this app uses), `generateLink`/
+  Storage writes only ever happen from a `"use server"` file the browser cannot call directly, and
+  the service-role key is never referenced from any Client Component (confirmed: `invite-actions.ts`
+  and `system-email.ts` are the only two files that import `createServiceClient`/`nodemailer`,
+  neither is `"use client"`).
+- `database.types.ts` hand-patched (this file is hand-authored, not generated, per this project's
+  own convention): `organizations.gym_code`, and the four new RPCs' `Args`/`Returns`.
+
+**App (myfitdesk) — the one small, explicitly-scoped cross-repo change (same D-2-style exception
+this file's Dynamic Plans milestone used, extended here since a gym-owner-facing password-setup
+screen structurally cannot live in this admin-only repo per D-B):**
+- `invite/accept/page.tsx` — one new line calling `mark_invitation_viewed()` the moment a pending
+  invitation is found (best-effort, never blocks the page).
+- `invite/accept/actions.ts` / `AcceptInviteForm.tsx` — added a **Confirm password** field (the
+  original only had "New password", the brief asks for "Enter password, Confirm password,
+  Submit") and a Lucide eye/eye-off show/hide toggle on both password fields (`ShowIcon`/
+  `HideIcon`, already aliased in that repo's `core/ui/icons.ts` for an unrelated money-masking
+  toggle — reused here for their more usual job, per the task's own explicit ask for "a hide and
+  show icon from lucid icons").
+- `database.types.ts` hand-patched there too: the six new `staff_invitations` columns and the
+  `mark_invitation_viewed` RPC entry.
+
+**Verification, and its honest limit — same recurring constraint as most of this file's own
+migrations**: `npx tsc --noEmit`, `npx eslint .`, and `npm run build` all clean in **both** repos
+(admin_myfitdesk's own build caught one real bug on the way — see below; myfitdesk's build and its
+existing `npm test` suite, 174/174 across six test files, both stayed green after this pass's small
+changes there). No Supabase MCP tool and no `.env.local` in this session, so **migration `1012` has
+never been applied or run against real data**, and none of the following has been exercised: an
+actual invitation email sent and clicked, the owner's password-set flow completing end-to-end, the
+new `staff_memberships` row landing with `role='owner'`, or the duplicate/existing-account error
+paths against a real database. Applying the migration and running this project's own established
+"real disposable admin, real signed-in session, real `.rpc()` calls, then a real invite email
+through Resend if configured" verification style is the first thing a session with live access
+should do before trusting this in production — per the two "Production incident" write-ups
+elsewhere in this file, an unexecuted `SECURITY DEFINER` function is not verified no matter how
+carefully it was written, and this migration has nine of them.
+
+**A real bug the build caught, not reasoned about**: the first draft of `owner-invitation-card.tsx`
+(a Client Component) imported `OWNER_INVITATION_STATUS_LABEL` from `features/gyms/onboarding.ts`,
+which has `import "server-only"` at its top — Turbopack refused the build outright ("'server-only'
+cannot be imported from a Client Component module"), rather than silently shipping something
+broken. Fixed by splitting the shared type/label-map into `onboarding-types.ts` (no `server-only`
+import) and keeping only the actual Supabase query in the server-only file — the same "don't reuse
+a server-only module's runtime exports from a Client Component" lesson this file's own P0-pass
+history has recorded before, just for a different pair of files.
+
+**Not built, deliberately out of scope for this pass:**
+- **Logo processing.** FitDeskApp's own gym-logo/member-avatar pipeline validates-by-decoding
+  through Sharp and re-encodes to WebP (see this repo's own R2/avatar-storage notes for why that
+  matters — a MIME-type check alone only proves what the client claimed). This admin app has no
+  Sharp dependency and none of that pipeline; the logo upload here is a bare size/MIME-type check
+  before an unprocessed upload to Storage. Lower risk than a public-facing upload (platform-admin-
+  only, not reachable by an arbitrary gym owner), but a real gap against FitDeskApp's own bar —
+  worth porting the same Sharp validation if this becomes a heavily-used path.
+- **A second confirmation email tier for expired-then-resent links using a different template** —
+  resend reuses the exact same `gymOwnerInviteEmail()` template with a fresh link, rather than a
+  distinct "your invitation was renewed" wording. Judged not worth a second template for one word
+  of difference.
+- **Real E2E browser verification** (see above) — this session's environment has no Supabase MCP
+  tool, no `.env.local`, and no browser access to click through either app.
 
 ---
 

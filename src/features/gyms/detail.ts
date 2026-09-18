@@ -19,6 +19,7 @@ type AdminGymDetailJson = {
     id: string;
     name: string;
     slug: string;
+    gym_code: string;
     city: string | null;
     state: string | null;
     country: string | null;
@@ -83,6 +84,10 @@ export type GymDetail = {
   id: string;
   name: string;
   slug: string;
+  /** Human-readable business id (FitDeskApp migration 0066's `gym_code`,
+   * e.g. "GG-0926A") — the user-facing "Gym ID", never the raw Supabase
+   * UUID. */
+  gymCode: string;
   city: string | null;
   state: string | null;
   country: string | null;
@@ -153,6 +158,7 @@ export async function getGymDetail(
     id: o.id,
     name: o.name,
     slug: o.slug,
+    gymCode: o.gym_code,
     city: o.city,
     state: o.state,
     country: o.country,

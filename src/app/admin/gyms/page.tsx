@@ -15,8 +15,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { GymRowActions } from "./gym-row-actions";
 import { ExportGymsButton } from "./export-gyms-button";
+import { InviteGymOwnerSheet } from "./InviteGymOwnerSheet";
 import {
-  InviteIcon,
   ListIcon,
   CalendarCheckIcon,
   TrialsIcon,
@@ -25,7 +25,6 @@ import {
   SuspendIcon,
   type IconType,
 } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 const ACCENT = "var(--accent)";
 const INK = "var(--ink)";
@@ -154,15 +153,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
             sortDir,
           }}
         />
-        <button
-          type="button"
-          disabled
-          title="Not implemented yet"
-          className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <InviteIcon size={ICON_SIZE.button} aria-hidden />
-          Invite gym owner
-        </button>
+        <InviteGymOwnerSheet packages={assignablePackages} />
       </div>
 
       {/* Status summary — doubles as the status filter, so there is no

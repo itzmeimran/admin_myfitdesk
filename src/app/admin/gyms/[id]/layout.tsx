@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
 import { listAssignablePackages } from "@/features/gyms/queries";
+import { getGymOwnerInvitation } from "@/features/gyms/onboarding";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { BackIcon, AlertIcon } from "@/core/ui/icons";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { GymDetailActions } from "./gym-detail-actions";
 import { GymDetailTabs } from "./gym-detail-tabs";
+import { OwnerInvitationCard } from "./owner-invitation-card";
 
 /**
  * Platform Admin → Gyms → [Gym Name]. Shared shell for every
@@ -31,7 +33,11 @@ export default async function GymDetailLayout({
 }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [gym, packages] = await Promise.all([getGymDetail(supabase, id), listAssignablePackages(supabase)]);
+  const [gym, packages, ownerInvitation] = await Promise.all([
+    getGymDetail(supabase, id),
+    listAssignablePackages(supabase),
+    getGymOwnerInvitation(supabase, id),
+  ]);
 
   if (!gym) notFound();
 
@@ -77,6 +83,10 @@ export default async function GymDetailLayout({
         </div>
       ) : null}
 
+      {ownerInvitation && ownerInvitation.effectiveStatus !== "active" ? (
+        <OwnerInvitationCard invitation={ownerInvitation} />
+      ) : null}
+
       <div className="flex flex-col gap-3 border-[1.5px] border-ink bg-paper p-4 md:p-5">
         <div className="flex flex-wrap items-start gap-3.5">
           <span
@@ -95,7 +105,7 @@ export default async function GymDetailLayout({
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-mute">
               <span>{location}</span>
               <span>Enrolled since {enrolledSince}</span>
-              <span className="font-mono text-[11px] text-mute3">gym_{gym.id.slice(0, 8)}</span>
+              <span className="font-mono text-[11px] text-mute3">{gym.gymCode}</span>
             </div>
             <p className="text-[12px] text-mute">
               <span className="font-bold text-ink">

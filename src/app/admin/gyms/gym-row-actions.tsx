@@ -9,6 +9,7 @@ import { ManageSubscriptionSheet, type SubscriptionSheetGym } from "@/features/g
 import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
+import { useAdminEnvironment } from "@/core/env/context";
 import { ManageIcon, PackagesIcon, RestoreIcon, AlertIcon, UsageIcon, NextPageIcon } from "@/core/ui/icons";
 
 /**
@@ -162,8 +163,13 @@ export function SuspendSheet({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
   const [reason, setReason] = useState("");
+  const [prodConfirmText, setProdConfirmText] = useState("");
+
+  const requiresTypedConfirm = environment === "prod";
+  const canSubmit = !requiresTypedConfirm || prodConfirmText.trim().toUpperCase() === "PROD";
 
   function confirm() {
     startTransition(async () => {
@@ -173,6 +179,7 @@ export function SuspendSheet({
         return;
       }
       toast.success(`${name} suspended.`);
+      setProdConfirmText("");
       onClose();
       router.refresh();
     });
@@ -195,6 +202,21 @@ export function SuspendSheet({
             className="w-full resize-none border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
           />
         </label>
+        {requiresTypedConfirm ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-accent">
+              This is PRODUCTION. Type &quot;PROD&quot; to confirm
+            </span>
+            <input
+              type="text"
+              autoComplete="off"
+              value={prodConfirmText}
+              onChange={(e) => setProdConfirmText(e.target.value)}
+              placeholder="PROD"
+              className="w-full border-[1.5px] border-accent bg-paper px-2.5 py-2 text-[13px] font-bold text-ink outline-none"
+            />
+          </label>
+        ) : null}
         <div className="flex gap-2">
           <button
             type="button"
@@ -205,9 +227,9 @@ export function SuspendSheet({
           </button>
           <button
             type="button"
-            disabled={isPending}
+            disabled={isPending || !canSubmit}
             onClick={confirm}
-            className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 bg-accent text-[11.5px] font-bold uppercase tracking-[0.09em] text-paper disabled:cursor-wait disabled:opacity-70"
+            className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 bg-accent text-[11.5px] font-bold uppercase tracking-[0.09em] text-paper disabled:cursor-not-allowed disabled:opacity-50"
           >
             <AlertIcon size={13} aria-hidden />
             {isPending ? "Suspending…" : "Suspend gym"}

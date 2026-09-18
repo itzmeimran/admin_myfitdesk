@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { MenuIcon, CancelIcon, SignOutIcon, SearchIcon, NudgeIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 import { NAV_ITEMS } from "./nav-items";
+import { EnvironmentPill } from "./environment-pill";
 
 /**
  * Everything below `md` (the design's "narrow" flag, <768px — see
@@ -51,9 +52,12 @@ export function AdminChrome({
         <MenuIcon size={20} aria-hidden />
       </button>
 
-      <div className="mr-auto flex min-w-0 flex-col gap-0.5">
-        <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-mute">Platform</span>
-        <span className="truncate text-[13.5px] font-bold tracking-[-0.01em]">All gyms · Production</span>
+      <div className="mr-auto flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-mute">Platform</span>
+          <span className="truncate text-[13.5px] font-bold tracking-[-0.01em]">All gyms</span>
+        </div>
+        <EnvironmentPill compact />
       </div>
 
       {/* Desktop-only search — inert, see docblock. */}

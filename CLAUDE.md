@@ -77,6 +77,160 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 
 ---
 
+## Milestone: DEV/PROD environment switching (2026-09-18)
+
+User request: the dashboard was hardcoded to one Supabase project; add a
+runtime DEV/PROD switch (Settings toggle, remembered across refresh,
+defaulting to DEV, no data mixing, a loading state on switch, PROD made
+visually unmistakable, extra confirmation on dangerous PROD actions) without
+duplicating the app's logic per environment. Full requirements in the task
+brief; not re-copied here.
+
+**Audit done before writing any code:** every Supabase touchpoint in the app
+goes through exactly three factory functions — `core/db/server-client.ts`
+(RLS, cookie-based session, used by every `features/*/queries.ts` and
+`features/*/actions.ts`), `core/db/browser-client.ts` (RLS, unused anywhere
+today — no Client Component calls Supabase directly, everything is Server
+Components + Server Actions), and `core/db/service-client.ts` (bypasses
+RLS, also currently unused — prepared for future wiring per its own
+docblock). No caching layer exists beyond Next.js's own (no react-query/SWR/
+zustand — checked `package.json`), and no realtime subscriptions exist
+anywhere (`grep`'d for `.channel(`/`realtime` — zero hits). That materially
+simplified this: centralizing the environment choice in those three
+factories means every query/action module needed **zero** changes, and
+there was no client-side cache or realtime listener to explicitly tear down
+on switch — both were true non-issues, not gaps papered over.
+
+**Architecture — additive, one cookie, three factories:**
+- `core/config/environments.ts` — the closed `AdminEnvironment` type
+  (`"dev" | "prod"`), default `"dev"`.
+- `core/config/public.ts` / `core/config/server.ts` — rewritten from a
+  single URL/key/secret to `NEXT_PUBLIC_SUPABASE_URL_DEV`/`_PROD`,
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY_DEV`/`_PROD`,
+  `SUPABASE_SECRET_KEY_DEV`/`_PROD` — six required vars total, fail-closed
+  at startup like every other env check in this app, keyed by environment
+  so a caller can never end up pairing a PROD url with a DEV key. Updated
+  `.env.local.example` and `scripts/grant-platform-admin.mjs` (now takes
+  `GRANT_ADMIN_ENV=dev|prod`, defaulting to dev — granting a platform admin
+  is per-project now, since `platform_admins` lives in each project
+  separately).
+- `core/env/cookie.ts` + `core/env/active-environment.ts` — the `admin-env`
+  cookie's name/max-age and its server-side read (`getActiveAdminEnvironment()`,
+  defaults to DEV on a missing/malformed cookie, never defaults to PROD).
+- `core/env/actions.ts` — `setAdminEnvironment()`, the only place the
+  cookie is written. Deliberately does not itself redirect/revalidate — see
+  below for why the switch is a hard reload instead.
+- `core/env/context.tsx` — `AdminEnvironmentProvider`/`useAdminEnvironment()`,
+  mounted once at the root layout (`src/app/layout.tsx`, now an async
+  Server Component) from the same cookie read every server-side Supabase
+  client uses, so a Client Component's idea of the active environment can
+  never drift from what the server actually fetched with.
+- `core/db/{server,service}-client.ts` — both now `async`, both call
+  `getActiveAdminEnvironment()` before picking credentials. `core/db/
+  browser-client.ts` takes the environment as an explicit argument instead
+  (a Client Component has no direct trustworthy cookie read; it gets the
+  value from `useAdminEnvironment()`). All three set `cookieOptions.name`
+  to `` sb-admin-${environment} `` explicitly (verified against `@supabase/
+  ssr`'s source — `cookieOptions.name` maps straight to the auth storage
+  key) rather than relying on its own project-ref-derived default, so a DEV
+  session and a PROD session are stored under different cookie names and
+  can coexist in the same browser. See `core/env/README.md` for the full
+  writeup, including why switching to an environment with no session yet
+  correctly sends the admin to `/login` again (Supabase Auth sessions are
+  project-scoped — this is expected, not a bug to route around).
+
+**Preventing data mixing (task's own emphasis):** the environment switch
+(`src/app/admin/settings/environment-switcher.tsx`) does a **hard browser
+reload** (`window.location.assign`, with a justified eslint-disable — Next's
+own lint rule wants `router.push`/`redirect` here, which this deliberately
+isn't) rather than a client-side transition. Chosen over `router.refresh()`
+specifically because it's the only way to guarantee zero stale state
+(Router Cache, component state, an in-flight request already reading the
+old project) survives the switch — correctness over a marginally smoother
+transition, for the one requirement the brief phrased as an absolute
+("must never get mixed").
+
+**Loading states:** `src/components/Skeleton.tsx` (new shared primitives —
+`skeleton-shimmer` in `globals.css` existed but had never been wired to
+anything) plus a `loading.tsx` at every real route segment under `/admin`
+(root, gyms, gyms/[id] — one file covers all 5 detail tabs since Next.js
+reuses the nearest ancestor segment's `loading.tsx` as the Suspense boundary
+for a layout's `children`, packages, packages/legacy, revenue, settings).
+Covers both ordinary tab navigation and the page-level fetch after an
+env-switch reload. **Known, accepted gap**: `admin/layout.tsx` itself does
+its own `await`s (the auth gate, chrome counts) directly in the layout body,
+which a same-segment `loading.tsx` does not wrap per Next.js's semantics
+(`loading.tsx` wraps `page.tsx` and children below, not the sibling
+`layout.tsx`) — so the very first paint of `/admin` after a hard reload is
+a brief blank moment, not a skeleton. Restructuring that would mean moving
+the fail-closed admin gate into a Suspense-wrapped child, which felt like
+the wrong risk to take on the security gate for this task; a blank moment
+is not stale/wrong data, so it doesn't violate the requirement it's closest
+to, just doesn't fully satisfy the letter of "always show a loader."
+
+**Safety for PROD:** `ConfirmDialog` (`src/components/ConfirmDialog.tsx`)
+gained `requireTypedConfirmation` — the confirm button stays disabled until
+the admin types the given word. Wired with `"PROD"` wherever
+`useAdminEnvironment() === "prod"` to: switching *to* PROD itself, suspend
+gym, cancel subscription, revoke platform admin, and every archive/retire/
+billing-model-flip action on both the legacy Packages screen and the new
+one-package Packages screen (`package-view.tsx` — the "Go live & retire the
+old tiers" and "Switch back to the old tiers" global toggles, per-package
+Archive, per-term Retire). Two of these (archive on the legacy screen,
+archive/retire on the new screen) had **no confirmation dialog of any kind
+before this milestone** — a pre-existing gap this repo's own notes already
+flagged ("no confirmation dialog before Archive... worth reconsidering") —
+so this pass closed that for real rather than just gating an already-guarded
+action more tightly. Also: a persistent accent-colored border around the
+entire viewport (`html[data-admin-env="prod"]` in `globals.css`, present on
+every screen including `/login`) and an `EnvironmentPill` in both the
+sidebar and mobile header, so PROD is visible everywhere, not only on the
+Settings page the toggle itself lives on.
+
+**A genuine bug caught while wiring this, fixed in the same pass:**
+`ConfirmDialog`'s first draft reset the typed-confirmation field in a
+`useEffect`, which `eslint`'s `react-hooks/set-state-in-effect` correctly
+flagged (a same-render `setState` inside an Effect causes a redundant extra
+render). Fixed using React's own recommended "adjust state during render"
+pattern (compare `open` against a `prevOpen` state value, reset inline when
+they differ) instead of an Effect — no behavior change, one fewer render
+per open.
+
+**Verification — and its honest limit, same recurring constraint as
+several milestones above:** `npx tsc --noEmit`, `npx eslint .`, and
+`npm run build` all clean, using a throwaway placeholder `.env.local` with
+all 6 new vars (deleted immediately after, never committed — same pattern
+this file has used before). `@supabase/ssr`'s `cookieOptions.name` →
+`storageKey` mapping was verified by reading the installed package's own
+source (`node_modules/@supabase/ssr/dist/main/createServerClient.js`), not
+assumed. **This session had no Supabase MCP tool and no real dual-project
+credentials, so none of the following has been exercised against real
+DEV/PROD projects**: an actual DEV→PROD→PROD-login→PROD→DEV round trip in a
+browser, confirming a DEV auth cookie and a PROD auth cookie really do
+coexist without either clobbering the other, confirming every existing
+`admin_*` RPC call genuinely returns the right project's data after a
+switch (expected to work exactly as before per-environment, since nothing
+about *how* each RPC is called changed — only *which* project's client
+object it's called against — but per this repo's own hard-won lesson
+`tsc`/`eslint`/`build` passing is not the same as verified), and confirming
+the PROD confirm-dialog gates actually block a mis-click end-to-end in a
+browser. **A session with both projects' real credentials should do that
+round trip before this is trusted in production** — sign in on DEV, switch
+to PROD, confirm it lands on `/login` (no PROD session yet), sign in there,
+confirm DEV data never appears while on PROD and vice versa, confirm the
+PROD border/pill render, confirm a suspend/cancel/archive/revoke action on
+PROD is blocked until "PROD" is typed.
+
+**Not done, deliberately out of scope for this pass:** realtime
+subscriptions aren't touched because none exist in this codebase yet (see
+the audit above) — `core/db/browser-client.ts` is ready to hand a
+same-environment client to a future subscription the moment one is added,
+which is the actual requirement ("disconnect from the previous environment
+and reconnect to the selected one") translated to a codebase that has
+nothing to disconnect today.
+
+---
+
 ## Milestone: Gym Detail redesign to match Claude Design canvas (2026-09-13)
 
 User supplied two new Claude Design exports (`MyFitDesk Platform Admin.dc.html`, `MyFitDesk Gym Detail.dc.html`) with an explicit ask: "when i click on gym page it should show like what I have attached." Branch: `claude/gym-page-design-31pn58`.

@@ -10,21 +10,37 @@
 // revoked_at on) the platform_admins row if one already exists for that
 // user instead of erroring on the unique constraint.
 //
+// This app now has two Supabase projects (DEV and PROD — see
+// core/config/environments.ts / the Settings page's environment switch),
+// so this script needs to be told which one to grant access on. Defaults to
+// dev; the live project is never touched unless you explicitly ask for it.
+//
 // Run:
 //   node --env-file=.env.local scripts/grant-platform-admin.mjs
 //
 // Or override the target without touching .env.local:
-//   GRANT_ADMIN_EMAIL=you@example.com GRANT_ADMIN_PASSWORD='...' node --env-file=.env.local scripts/grant-platform-admin.mjs
+//   GRANT_ADMIN_ENV=prod GRANT_ADMIN_EMAIL=you@example.com GRANT_ADMIN_PASSWORD='...' node --env-file=.env.local scripts/grant-platform-admin.mjs
 
 import { createClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const secretKey = process.env.SUPABASE_SECRET_KEY;
-
-if (!url || !secretKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SECRET_KEY in .env.local");
+const targetEnv = (process.env.GRANT_ADMIN_ENV ?? "dev").trim().toLowerCase();
+if (targetEnv !== "dev" && targetEnv !== "prod") {
+  console.error(`GRANT_ADMIN_ENV must be "dev" or "prod" (got "${targetEnv}")`);
   process.exit(1);
 }
+
+const envSuffix = targetEnv === "prod" ? "PROD" : "DEV";
+const url = process.env[`NEXT_PUBLIC_SUPABASE_URL_${envSuffix}`];
+const secretKey = process.env[`SUPABASE_SECRET_KEY_${envSuffix}`];
+
+if (!url || !secretKey) {
+  console.error(
+    `Missing NEXT_PUBLIC_SUPABASE_URL_${envSuffix} or SUPABASE_SECRET_KEY_${envSuffix} in .env.local`,
+  );
+  process.exit(1);
+}
+
+console.log(`Target: ${targetEnv.toUpperCase()} (${url})`);
 
 const EMAIL = process.env.GRANT_ADMIN_EMAIL;
 const PASSWORD = process.env.GRANT_ADMIN_PASSWORD;

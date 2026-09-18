@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { serverEnv } from "@/core/config/server";
+import { getServiceSupabaseCredentials } from "@/core/config/server";
+import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 import type { Database } from "./database.types";
 
 /**
@@ -17,9 +18,18 @@ import type { Database } from "./database.types";
  * from being imported by `features/**` or any `'use client'` module (see
  * eslint.config.mjs) — query modules under `features/**` should go through
  * a thin server-only wrapper instead once real Supabase wiring lands.
+ *
+ * Resolves to the currently-selected DEV/PROD project the same way
+ * core/db/server-client.ts does (`getActiveAdminEnvironment()`, the
+ * `admin-env` cookie) — a service-role call made while the admin is on
+ * PROD hits PROD, full stop; there is no separate "which project does the
+ * service client use" setting to fall out of sync with the toggle.
  */
-export function createServiceClient() {
-  return createSupabaseClient<Database>(serverEnv.SUPABASE_URL, serverEnv.SUPABASE_SECRET_KEY, {
+export async function createServiceClient() {
+  const environment = await getActiveAdminEnvironment();
+  const { url, secretKey } = getServiceSupabaseCredentials(environment);
+
+  return createSupabaseClient<Database>(url, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }

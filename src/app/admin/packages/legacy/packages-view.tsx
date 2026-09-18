@@ -6,7 +6,9 @@ import { useActionState } from "react";
 import type { Package } from "@/features/packages/mock-data";
 import { createPackage, updatePackage, setPackageStatus, type PackageFormState } from "@/features/packages/actions";
 import { Sheet } from "@/components/Sheet";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
+import { useAdminEnvironment } from "@/core/env/context";
 import { AddIcon, CalendarIcon, CalendarRangeIcon, EditIcon, ArchiveIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 
@@ -62,8 +64,10 @@ export function PackagesView({
   const [sheetOpen, setSheetOpen] = useState(autoOpenSheet);
   const [editing, setEditing] = useState<Package | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
+  const [confirmArchive, setConfirmArchive] = useState<Package | null>(null);
   const router = useRouter();
   const toast = useToast();
+  const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
   const packages = period === "Yearly" ? yearly : monthly;
 
@@ -83,8 +87,18 @@ export function PackagesView({
   }
 
   function handleToggleArchive(pkg: Package) {
-    const nextStatus = pkg.state === "Archived" ? "active" : "archived";
+    // Archiving is the dangerous direction (hides the tier from new
+    // purchases) and goes through a confirmation step; restoring doesn't.
+    if (pkg.state === "Archived") {
+      runStatusChange(pkg, "active");
+    } else {
+      setConfirmArchive(pkg);
+    }
+  }
+
+  function runStatusChange(pkg: Package, nextStatus: "active" | "archived") {
     setArchiving(pkg.raw.id);
+    setConfirmArchive(null);
     startTransition(async () => {
       const { error } = await setPackageStatus(pkg.raw.id, nextStatus);
       setArchiving(null);
@@ -226,6 +240,18 @@ export function PackagesView({
         Caps are enforced in features/billing/limits.ts. Archiving a tier hides it from new
         purchases but never deletes it — past invoices still reference it.
       </p>
+
+      <ConfirmDialog
+        open={confirmArchive !== null}
+        danger
+        title={confirmArchive ? `Archive ${confirmArchive.name}?` : ""}
+        description="Hides this tier from new purchases immediately. Existing subscribers and past invoices are unaffected — this can be reversed with Restore."
+        confirmLabel="Archive package"
+        pending={isPending}
+        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        onConfirm={() => confirmArchive && runStatusChange(confirmArchive, "archived")}
+        onCancel={() => setConfirmArchive(null)}
+      />
 
       {/* Keyed by which row is being edited ("new" for create): a remount
           gives useActionState a fresh action and a fresh result, so the

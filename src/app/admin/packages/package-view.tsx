@@ -20,7 +20,9 @@ import {
 } from "@/features/plans/actions";
 import { TERMS, listPriceMinor, effectivePriceMinor } from "@/features/plans/terms";
 import { Sheet } from "@/components/Sheet";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
+import { useAdminEnvironment } from "@/core/env/context";
 import { formatMinorWhole, toMinorUnits } from "@/core/money/format";
 import {
   AddIcon,
@@ -223,10 +225,15 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
   const { run, isBusy } = useMutation();
   const toast = useToast();
   const router = useRouter();
+  const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
+  const [confirmGoLive, setConfirmGoLive] = useState(false);
+  const [confirmRevert, setConfirmRevert] = useState(false);
   const live = billingModel === "dynamic";
+  const prodConfirm = environment === "prod" ? "PROD" : undefined;
 
   function goLive() {
+    setConfirmGoLive(false);
     startTransition(async () => {
       const result = await goLiveAndArchiveLegacy();
       if (result.error) {
@@ -252,11 +259,25 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
         <button
           type="button"
           disabled={isBusy("model")}
-          onClick={() => run("model", () => setBillingModel("legacy"), "Gym owners now see the old tiers.")}
+          onClick={() => setConfirmRevert(true)}
           className="flex min-h-[36px] w-full items-center justify-center gap-1.5 border-[1.5px] border-mute px-3 text-[11px] font-bold text-paper disabled:cursor-wait disabled:opacity-60 sm:w-auto sm:justify-start"
         >
           Switch back to the old tiers
         </button>
+        <ConfirmDialog
+          open={confirmRevert}
+          danger
+          title="Switch buyers back to the old tiers?"
+          description="Every gym owner's subscription screen immediately goes back to showing the legacy Starter/Growth/Pro tiers instead of this package."
+          confirmLabel="Switch back"
+          pending={isBusy("model")}
+          requireTypedConfirmation={prodConfirm}
+          onConfirm={() => {
+            setConfirmRevert(false);
+            run("model", () => setBillingModel("legacy"), "Gym owners now see the old tiers.");
+          }}
+          onCancel={() => setConfirmRevert(false)}
+        />
       </div>
     );
   }
@@ -277,12 +298,23 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
         type="button"
         disabled={!hasPackages || isPending}
         title={hasPackages ? undefined : "Set up a package first."}
-        onClick={goLive}
+        onClick={() => setConfirmGoLive(true)}
         className={`${PRIMARY} w-full sm:w-auto`}
       >
         <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
         {isPending ? "Going live…" : "Go live & retire the old tiers"}
       </button>
+      <ConfirmDialog
+        open={confirmGoLive}
+        danger
+        title="Go live with this package?"
+        description="Gym owners will immediately see this package instead of the old tiers, and any old tier still active will be retired."
+        confirmLabel="Go live"
+        pending={isPending}
+        requireTypedConfirmation={prodConfirm}
+        onConfirm={goLive}
+        onCancel={() => setConfirmGoLive(false)}
+      />
     </div>
   );
 }
@@ -486,7 +518,9 @@ function capLabel(value: number | null) {
 
 function DetailsCard({ pkg }: { pkg: SimplePackage }) {
   const [open, setOpen] = useState(false);
+  const [confirmArchive, setConfirmArchive] = useState(false);
   const { run, isBusy } = useMutation();
+  const environment = useAdminEnvironment();
   const archived = pkg.status === "archived";
 
   return (
@@ -507,11 +541,9 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
             type="button"
             disabled={isBusy("status")}
             onClick={() =>
-              run(
-                "status",
-                () => setPlanStatus(pkg.id, archived ? "active" : "archived"),
-                archived ? `${pkg.name} restored.` : `${pkg.name} archived.`,
-              )
+              archived
+                ? run("status", () => setPlanStatus(pkg.id, "active"), `${pkg.name} restored.`)
+                : setConfirmArchive(true)
             }
             className={GHOST}
           >
@@ -520,6 +552,21 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
           </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmArchive}
+        danger
+        title={`Archive ${pkg.name}?`}
+        description="Hides this package from new gyms immediately. Existing subscribers and past invoices are unaffected — this can be reversed with Restore."
+        confirmLabel="Archive package"
+        pending={isBusy("status")}
+        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        onConfirm={() => {
+          setConfirmArchive(false);
+          run("status", () => setPlanStatus(pkg.id, "archived"), `${pkg.name} archived.`);
+        }}
+        onCancel={() => setConfirmArchive(false)}
+      />
 
       <div className="flex flex-col gap-1 border-t border-line pt-2.5 text-[12.5px]">
         {[
@@ -681,8 +728,12 @@ function FeaturesCard({ pkg }: { pkg: SimplePackage }) {
 
 function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
   const { run, isBusy } = useMutation();
+  const environment = useAdminEnvironment();
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const extras = pkg.extraTerms.filter((c) => c.status === "active");
   if (extras.length === 0) return null;
+
+  const confirmCycle = extras.find((c) => c.id === confirmId) ?? null;
 
   return (
     <div className={`${CARD} border-accent`}>
@@ -705,7 +756,7 @@ function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
             <button
               type="button"
               disabled={isBusy(cycle.id)}
-              onClick={() => run(cycle.id, () => archiveTerm(cycle.id), `${cycle.billingPeriod} retired.`)}
+              onClick={() => setConfirmId(cycle.id)}
               className={`${GHOST} ml-auto`}
             >
               <ArchiveIcon size={13} aria-hidden />
@@ -714,6 +765,23 @@ function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
           </li>
         ))}
       </ul>
+
+      <ConfirmDialog
+        open={confirmCycle !== null}
+        danger
+        title={confirmCycle ? `Retire ${confirmCycle.billingPeriod}?` : ""}
+        description="Gym owners can no longer buy this billing term. Existing subscribers on it are unaffected."
+        confirmLabel="Retire term"
+        pending={confirmCycle ? isBusy(confirmCycle.id) : false}
+        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        onConfirm={() => {
+          if (!confirmCycle) return;
+          const cycle = confirmCycle;
+          setConfirmId(null);
+          run(cycle.id, () => archiveTerm(cycle.id), `${cycle.billingPeriod} retired.`);
+        }}
+        onCancel={() => setConfirmId(null)}
+      />
     </div>
   );
 }

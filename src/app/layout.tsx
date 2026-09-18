@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo_Black, Space_Grotesk } from "next/font/google";
+import { getActiveAdminEnvironment } from "@/core/env/active-environment";
+import { AdminEnvironmentProvider } from "@/core/env/context";
 import "./globals.css";
 
 const archivoBlack = Archivo_Black({
@@ -18,13 +20,18 @@ export const metadata: Metadata = {
   description: "Platform back-office for the team operating MyFitDesk.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const environment = await getActiveAdminEnvironment();
+
   return (
     <html
       lang="en"
       className={`${archivoBlack.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      data-admin-env={environment}
     >
-      <body className="min-h-full flex flex-col bg-sand text-ink">{children}</body>
+      <body className="min-h-full flex flex-col bg-sand text-ink">
+        <AdminEnvironmentProvider environment={environment}>{children}</AdminEnvironmentProvider>
+      </body>
     </html>
   );
 }

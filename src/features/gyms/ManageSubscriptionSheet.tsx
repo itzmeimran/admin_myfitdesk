@@ -7,6 +7,7 @@ import { extendSubscription, changeSubscriptionPackage, cancelSubscription, rest
 import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
+import { useAdminEnvironment } from "@/core/env/context";
 import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon } from "@/core/ui/icons";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
@@ -45,6 +46,7 @@ export function ManageSubscriptionSheet({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState<"extend" | "package" | "lifecycle" | null>(null);
   const [days, setDays] = useState("7");
@@ -167,6 +169,7 @@ export function ManageSubscriptionSheet({
         confirmLabel="Cancel subscription"
         danger
         pending={isPending}
+        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
         onConfirm={() => {
           setConfirmCancel(false);
           run("lifecycle", () => cancelSubscription(gym.organizationId));

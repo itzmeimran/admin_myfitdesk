@@ -11,10 +11,13 @@ import {
   type GrantAdminFormState,
 } from "@/features/settings/actions";
 import { useToast } from "@/components/Toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useAdminEnvironment } from "@/core/env/context";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { InviteIcon, RevokeIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 import { formatShortDate } from "@/core/dates/format";
+import { EnvironmentSwitcher } from "./environment-switcher";
 
 /**
  * Admin roster — the one Settings feature built out of the design's 4
@@ -37,8 +40,10 @@ import { formatShortDate } from "@/core/dates/format";
 export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
   const router = useRouter();
   const toast = useToast();
+  const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const [confirmRevoke, setConfirmRevoke] = useState<PlatformAdminRow | null>(null);
 
   function runRowAction(userId: string, action: () => Promise<{ error: string | null }>, successMessage: string) {
     setBusyUserId(userId);
@@ -63,6 +68,8 @@ export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
           webhook endpoints aren&apos;t built yet.
         </p>
       </div>
+
+      <EnvironmentSwitcher />
 
       <GrantAdminForm onGranted={() => router.refresh()} />
 
@@ -119,13 +126,7 @@ export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
                       <button
                         type="button"
                         disabled={busy}
-                        onClick={() =>
-                          runRowAction(
-                            admin.userId,
-                            () => revokePlatformAdmin(admin.userId),
-                            `${admin.email} revoked.`,
-                          )
-                        }
+                        onClick={() => setConfirmRevoke(admin)}
                         className="press-scale inline-flex min-h-[32px] items-center gap-1.5 border-[1.5px] border-line px-2.5 text-[11px] font-bold text-accent disabled:cursor-wait disabled:opacity-60"
                       >
                         <RevokeIcon size={13} aria-hidden />
@@ -145,6 +146,23 @@ export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
         audit trail, and reactivating restores it. You cannot revoke your own access, to avoid
         locking yourself out with no recovery flow.
       </p>
+
+      <ConfirmDialog
+        open={confirmRevoke !== null}
+        danger
+        title={confirmRevoke ? `Revoke ${confirmRevoke.email}'s admin access?` : ""}
+        description="They immediately lose access to this dashboard. This is reversible — Reactivate restores it later."
+        confirmLabel="Revoke access"
+        pending={isPending && busyUserId === confirmRevoke?.userId}
+        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        onConfirm={() => {
+          if (!confirmRevoke) return;
+          const admin = confirmRevoke;
+          setConfirmRevoke(null);
+          runRowAction(admin.userId, () => revokePlatformAdmin(admin.userId), `${admin.email} revoked.`);
+        }}
+        onCancel={() => setConfirmRevoke(null)}
+      />
     </div>
   );
 }

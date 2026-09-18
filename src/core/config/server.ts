@@ -1,13 +1,16 @@
 import "server-only";
 import { z } from "zod";
-import { publicEnv } from "./public";
+import { getPublicSupabaseCredentials } from "./public";
+import type { AdminEnvironment } from "./environments";
 
 const serverEnvSchema = z.object({
-  SUPABASE_SECRET_KEY: z.string().min(1),
+  SUPABASE_SECRET_KEY_DEV: z.string().min(1),
+  SUPABASE_SECRET_KEY_PROD: z.string().min(1),
 });
 
 const parsed = serverEnvSchema.safeParse({
-  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+  SUPABASE_SECRET_KEY_DEV: process.env.SUPABASE_SECRET_KEY_DEV,
+  SUPABASE_SECRET_KEY_PROD: process.env.SUPABASE_SECRET_KEY_PROD,
 });
 
 if (!parsed.success) {
@@ -18,13 +21,24 @@ if (!parsed.success) {
   );
 }
 
+const secretKeyByEnvironment: Record<AdminEnvironment, string> = {
+  dev: parsed.data.SUPABASE_SECRET_KEY_DEV,
+  prod: parsed.data.SUPABASE_SECRET_KEY_PROD,
+};
+
+export type ServiceSupabaseCredentials = { url: string; secretKey: string };
+
 /**
  * Server-only. The `import "server-only"` above turns an accidental import
  * from a 'use client' file into a build error, not a runtime leak.
- * SUPABASE_SECRET_KEY bypasses RLS — never pass it to a component prop,
- * never log it, never expose it through an API response.
+ * A secret key bypasses RLS — never pass it to a component prop, never log
+ * it, never expose it through an API response. Keyed by environment so a
+ * caller can never accidentally pair a PROD url with a DEV secret or vice
+ * versa — both come from the same lookup, for the same environment.
  */
-export const serverEnv = {
-  SUPABASE_URL: publicEnv.NEXT_PUBLIC_SUPABASE_URL,
-  SUPABASE_SECRET_KEY: parsed.data.SUPABASE_SECRET_KEY,
-};
+export function getServiceSupabaseCredentials(environment: AdminEnvironment): ServiceSupabaseCredentials {
+  return {
+    url: getPublicSupabaseCredentials(environment).url,
+    secretKey: secretKeyByEnvironment[environment],
+  };
+}

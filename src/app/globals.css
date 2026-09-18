@@ -44,6 +44,20 @@ body {
   font-family: var(--font-body), sans-serif;
 }
 
+/* Global PROD tell — a persistent border around the entire viewport,
+   present on every screen (including /login), not just the pages that
+   remember to render a badge. Requirement: an admin must never be able to
+   mistake PROD for DEV. `position: fixed` + `pointer-events: none` so it
+   never shifts layout or intercepts clicks. */
+html[data-admin-env="prod"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 3px var(--accent);
+}
+
 * {
   scrollbar-width: none;
   -ms-overflow-style: none;

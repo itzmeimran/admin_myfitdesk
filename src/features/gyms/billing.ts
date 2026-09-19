@@ -4,6 +4,7 @@ import type { Database } from "@/core/db/database.types";
 import { formatMinorWhole } from "@/core/money/format";
 import { formatShortDate } from "@/core/dates/format";
 import type { InvoiceStatus } from "../revenue/mock-data";
+import { paymentMethodLabel } from "./payment-method";
 
 /** Subscription & Billing tab (task brief §4) — platform_payments scoped to
  * one organization, via `admin_gym_billing_history()` (supabase/migrations/
@@ -24,6 +25,10 @@ export type BillingHistoryRow = {
   amount: string;
   status: InvoiceStatus;
   provider: string;
+  /** "Cash"/"UPI"/etc. for a manually-recorded payment (features/gyms/
+   * payment-method.ts), "Online" for a razorpay row (method is always null
+   * there — the gateway itself is that row's "method"). */
+  method: string;
   paidAt: string | null;
   period: string;
   packageName: string;
@@ -33,6 +38,7 @@ export type BillingHistoryRow = {
 export type BillingHistoryParams = {
   status?: string;
   provider?: string;
+  method?: string;
   dateFrom?: string;
   dateTo?: string;
   sortCol?: string;
@@ -48,6 +54,7 @@ type AdminGymBillingHistoryRow = {
   currency: string;
   status: string;
   provider: string;
+  method: string | null;
   paid_at: string | null;
   period_start: string | null;
   period_end: string | null;
@@ -67,6 +74,7 @@ export async function getGymBillingHistory(
     p_provider: params.provider || undefined,
     p_date_from: params.dateFrom || undefined,
     p_date_to: params.dateTo || undefined,
+    p_method: params.method || undefined,
     p_sort_col: params.sortCol,
     p_sort_dir: params.sortDir,
     p_limit: params.limit ?? 25,
@@ -85,6 +93,7 @@ export async function getGymBillingHistory(
       amount: formatMinorWhole(row.amount_minor, row.currency),
       status: STATUS_MAP[row.status as keyof typeof STATUS_MAP] ?? "Pending",
       provider: row.provider,
+      method: paymentMethodLabel(row.method),
       paidAt: row.paid_at ? formatShortDate(new Date(row.paid_at), now) : null,
       period:
         row.period_start && row.period_end

@@ -1236,6 +1236,7 @@ export type Database = {
           id: string
           initiated_by: string | null
           invoice_number: string | null
+          method: string | null
           organization_id: string
           package_id: string | null
           paid_at: string | null
@@ -1254,6 +1255,7 @@ export type Database = {
           id?: string
           initiated_by?: string | null
           invoice_number?: string | null
+          method?: string | null
           organization_id: string
           package_id?: string | null
           paid_at?: string | null
@@ -1272,6 +1274,7 @@ export type Database = {
           id?: string
           initiated_by?: string | null
           invoice_number?: string | null
+          method?: string | null
           organization_id?: string
           package_id?: string | null
           paid_at?: string | null
@@ -1735,6 +1738,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_assignable_packages: {
+        Args: never
+        Returns: {
+          billing_period: string
+          code: string
+          currency: string
+          effective_price_minor: number
+          id: string
+          name: string
+          price_minor: number
+        }[]
+      }
       admin_billing_pipeline: { Args: never; Returns: Json }
       admin_cancel_subscription: {
         Args: { p_organization_id: string }
@@ -1841,7 +1856,13 @@ export type Database = {
       admin_delete_plan_feature: { Args: { p_id: string }; Returns: undefined }
       admin_delete_plan_offer: { Args: { p_id: string }; Returns: undefined }
       admin_extend_subscription: {
-        Args: { p_days: number; p_organization_id: string }
+        Args: {
+          p_days: number
+          p_organization_id: string
+          p_payment_amount_minor?: number
+          p_payment_method?: string
+          p_payment_note?: string
+        }
         Returns: undefined
       }
       admin_grant_platform_admin: {
@@ -1875,6 +1896,7 @@ export type Database = {
           p_date_from?: string
           p_date_to?: string
           p_limit?: number
+          p_method?: string
           p_offset?: number
           p_organization_id: string
           p_provider?: string
@@ -1888,6 +1910,7 @@ export type Database = {
           currency: string
           id: string
           invoice_number: string
+          method: string
           package_name: string
           paid_at: string
           period_end: string

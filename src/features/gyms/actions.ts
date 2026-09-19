@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
 import { listGymsPage, type GymListParams } from "./queries";
+import { PAYMENT_METHODS, type PaymentMethod } from "./payment-method";
 
 /**
  * Subscription management on the Gyms directory (CLAUDE.md's Plan, P1 item
@@ -27,17 +28,40 @@ function revalidateGyms() {
   revalidatePath("/admin");
 }
 
-export async function extendSubscription(organizationId: string, days: number): Promise<ActionResult> {
+/** An optional payment the admin actually collected (typically cash, handed
+ * over in person) alongside an Extend — recorded on organization_subscriptions'
+ * platform_payments via the RPC's own trailing args, never a separate write,
+ * so it can never end up extending access without a matching invoice or vice
+ * versa. */
+export type ManualPaymentInput = { amountMinor: number; method: PaymentMethod; note?: string };
+
+export async function extendSubscription(
+  organizationId: string,
+  days: number,
+  payment?: ManualPaymentInput | null,
+): Promise<ActionResult> {
   if (!Number.isInteger(days) || days <= 0) {
     return { error: "Days must be a positive whole number." };
+  }
+  if (payment) {
+    if (!Number.isInteger(payment.amountMinor) || payment.amountMinor <= 0) {
+      return { error: "Payment amount must be a positive amount." };
+    }
+    if (!PAYMENT_METHODS.some((m) => m.value === payment.method)) {
+      return { error: "Choose a valid payment method." };
+    }
   }
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_extend_subscription", {
     p_organization_id: organizationId,
     p_days: days,
+    p_payment_amount_minor: payment ? payment.amountMinor : undefined,
+    p_payment_method: payment ? payment.method : undefined,
+    p_payment_note: payment?.note || undefined,
   });
   if (error) return { error: error.message };
   revalidateGyms();
+  revalidatePath("/admin/gyms/[id]", "layout");
   return { error: null };
 }
 

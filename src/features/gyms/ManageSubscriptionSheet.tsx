@@ -3,11 +3,19 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AssignablePackage } from "./queries";
-import { extendSubscription, changeSubscriptionPackage, cancelSubscription, restoreSubscription } from "./actions";
+import {
+  extendSubscription,
+  changeSubscriptionPackage,
+  cancelSubscription,
+  restoreSubscription,
+  type ManualPaymentInput,
+} from "./actions";
+import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD, type PaymentMethod } from "./payment-method";
 import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
+import { toMinorUnits } from "@/core/money/format";
 import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon } from "@/core/ui/icons";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
@@ -50,12 +58,18 @@ export function ManageSubscriptionSheet({
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState<"extend" | "package" | "lifecycle" | null>(null);
   const [days, setDays] = useState("7");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(DEFAULT_PAYMENT_METHOD);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [packageId, setPackageId] = useState(() =>
     gym.packageId && packages.some((p) => p.id === gym.packageId) ? gym.packageId : "",
   );
 
-  function run(kind: "extend" | "package" | "lifecycle", action: () => Promise<{ error: string | null }>) {
+  function run(
+    kind: "extend" | "package" | "lifecycle",
+    action: () => Promise<{ error: string | null }>,
+    successMessage = "Subscription updated.",
+  ) {
     setBusy(kind);
     startTransition(async () => {
       const { error } = await action();
@@ -64,7 +78,7 @@ export function ManageSubscriptionSheet({
         toast.error(error);
         return;
       }
-      toast.success("Subscription updated.");
+      toast.success(successMessage);
       router.refresh();
     });
   }
@@ -89,6 +103,38 @@ export function ManageSubscriptionSheet({
             />
             <span className="text-[11.5px] text-mute">days from today (or from the current renewal date, if later)</span>
           </div>
+
+          <div className="flex flex-col gap-2 border-t border-line pt-2.5">
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute3">
+              Payment collected (optional)
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="Amount, e.g. 999"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                className="w-32 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+              />
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                className="flex-1 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[10.5px] text-mute3">
+              Fill this in only if you collected the payment yourself (e.g. cash handed over in person) — it records
+              an invoice against this gym. Leave the amount blank for a free/goodwill extension.
+            </p>
+          </div>
+
           <button
             type="button"
             disabled={isPending}
@@ -98,7 +144,20 @@ export function ManageSubscriptionSheet({
                 toast.error("Days must be a positive whole number.");
                 return;
               }
-              run("extend", () => extendSubscription(gym.organizationId, n));
+              let payment: ManualPaymentInput | null = null;
+              if (paymentAmount.trim() !== "") {
+                const minor = toMinorUnits(paymentAmount);
+                if (minor === null || minor <= 0) {
+                  toast.error("Payment amount isn't a valid amount.");
+                  return;
+                }
+                payment = { amountMinor: minor, method: paymentMethod };
+              }
+              run(
+                "extend",
+                () => extendSubscription(gym.organizationId, n, payment),
+                payment ? "Subscription extended and payment recorded." : "Subscription extended.",
+              );
             }}
             className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-ink bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-wait disabled:opacity-70"
           >
@@ -120,6 +179,7 @@ export function ManageSubscriptionSheet({
             {packages.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
+                {p.listPrice ? ` (was ${p.listPrice})` : ""}
               </option>
             ))}
           </select>

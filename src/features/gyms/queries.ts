@@ -339,7 +339,24 @@ export type AssignablePackage = {
   // Widened from "monthly" | "yearly" — see AdminGymRow's billing_period
   // above for why (dynamic plan cycles carry an arbitrary admin label).
   billingPeriod: string;
+  /** What a gym would actually pay today — plan_effective_price() applied,
+   * so an enabled plan_offers discount is already baked in. */
   price: string;
+  /** The undiscounted price_minor, formatted, only when it differs from
+   * `price` — i.e. only when a discount is actually active. null otherwise,
+   * so callers can render it struck-through instead of always showing two
+   * numbers. */
+  listPrice: string | null;
+};
+
+type AssignablePackageRow = {
+  id: string;
+  name: string;
+  code: string;
+  billing_period: string;
+  price_minor: number;
+  effective_price_minor: number;
+  currency: string;
 };
 
 /** Backs the "change package" select in the Gyms manage-subscription sheet
@@ -348,20 +365,26 @@ export type AssignablePackage = {
  * reassigning a subscription shouldn't be able to move a gym onto one).
  * Deliberately unfiltered by plan_id — an admin can reassign a gym onto
  * either a legacy package or a dynamic plan cycle, whichever is right for
- * that gym, independent of which one is globally live for new buyers. */
+ * that gym, independent of which one is globally live for new buyers.
+ *
+ * Reads `admin_assignable_packages()` (supabase/migrations/1014_admin_
+ * manual_payment.sql) rather than a bare `platform_packages` select — a
+ * dynamic cycle's own enabled `plan_offers` discount is otherwise invisible
+ * here, so this used to show the pre-discount price_minor for any package
+ * an admin had actually discounted. */
 export async function listAssignablePackages(supabase: SupabaseClient<Database>): Promise<AssignablePackage[]> {
-  const { data, error } = await supabase
-    .from("platform_packages")
-    .select("id, name, code, billing_period, price_minor, currency")
-    .eq("status", "active")
-    .order("sort_order");
+  const { data, error } = await supabase.rpc("admin_assignable_packages");
   if (error) throw new Error(`Failed to load packages: ${error.message}`);
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    name: row.name,
-    code: row.code,
-    billingPeriod: row.billing_period,
-    price: formatMinorWhole(row.price_minor, row.currency),
-  }));
+  return ((data ?? []) as AssignablePackageRow[]).map((row) => {
+    const discounted = row.effective_price_minor < row.price_minor;
+    return {
+      id: row.id,
+      name: row.name,
+      code: row.code,
+      billingPeriod: row.billing_period,
+      price: formatMinorWhole(row.effective_price_minor, row.currency),
+      listPrice: discounted ? formatMinorWhole(row.price_minor, row.currency) : null,
+    };
+  });
 }

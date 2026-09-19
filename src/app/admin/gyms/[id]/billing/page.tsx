@@ -12,6 +12,7 @@ import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { formatMinorWhole } from "@/core/money/format";
 import { formatShortDate } from "@/core/dates/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
+import { PAYMENT_METHODS } from "@/features/gyms/payment-method";
 import { BillingActions } from "./billing-actions";
 import Link from "next/link";
 
@@ -43,6 +44,7 @@ export default async function GymBillingPage({
 
   const status = first(sp.status);
   const provider = first(sp.provider);
+  const method = first(sp.method);
   const dateFrom = first(sp.from);
   const dateTo = first(sp.to);
   const sortRaw = first(sp.sort) ?? "created_at";
@@ -56,6 +58,7 @@ export default async function GymBillingPage({
     getGymBillingHistory(supabase, id, {
       status,
       provider,
+      method,
       dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
       dateTo: dateTo ? new Date(`${dateTo}T23:59:59`).toISOString() : undefined,
       sortCol,
@@ -67,7 +70,7 @@ export default async function GymBillingPage({
   ]);
   if (!gym) notFound();
 
-  const hasFilters = !!status || !!provider || !!dateFrom || !!dateTo;
+  const hasFilters = !!status || !!provider || !!method || !!dateFrom || !!dateTo;
   const sub = gym.subscription;
   const now = new Date();
   const avgMinor = total > 0 ? Math.round(gym.lifetimePaidMinor / total) : 0;
@@ -136,7 +139,15 @@ export default async function GymBillingPage({
         <FilterSelect
           param="provider"
           placeholder="Any provider"
-          options={[{ value: "razorpay", label: "Razorpay" }]}
+          options={[
+            { value: "razorpay", label: "Razorpay" },
+            { value: "manual", label: "Manual" },
+          ]}
+        />
+        <FilterSelect
+          param="method"
+          placeholder="Any payment method"
+          options={PAYMENT_METHODS.map((m) => ({ value: m.value, label: m.label }))}
         />
         <DateRangeFilter />
         {hasFilters ? (
@@ -157,6 +168,7 @@ export default async function GymBillingPage({
                 Status
               </SortLink>
               <th scope="col" className="mfd-micro-label border-b border-line px-3 py-2.5">Provider</th>
+              <th scope="col" className="mfd-micro-label border-b border-line px-3 py-2.5">Method</th>
               <SortLink pathname={pathname} searchParams={sp} sortKey="paid_at" currentSort={sortCol} currentDir={sortDir} align="right">
                 Paid
               </SortLink>
@@ -177,6 +189,7 @@ export default async function GymBillingPage({
                   </span>
                 </td>
                 <td className="whitespace-nowrap border-b border-line px-3 py-2.5 capitalize text-mute">{r.provider}</td>
+                <td className="whitespace-nowrap border-b border-line px-3 py-2.5 text-mute">{r.method}</td>
                 <td className="whitespace-nowrap border-b border-line px-3 py-2.5 text-right text-mute">{r.paidAt ?? "—"}</td>
                 <td className="whitespace-nowrap border-b border-line px-4 py-2.5 text-right font-bold">{r.amount}</td>
               </tr>

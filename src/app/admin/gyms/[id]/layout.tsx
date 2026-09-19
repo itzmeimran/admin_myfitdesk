@@ -87,13 +87,19 @@ export default async function GymDetailLayout({
         <OwnerInvitationCard invitation={ownerInvitation} />
       ) : null}
 
+      <div className="z-10 flex flex-col gap-3.5 bg-paper md:sticky md:top-0">
       <div className="flex flex-col gap-3 border-[1.5px] border-ink bg-paper p-4 md:p-5">
         <div className="flex flex-wrap items-start gap-3.5">
           <span
-            aria-hidden="true"
-            className="flex h-12 w-12 flex-shrink-0 items-center justify-center bg-ink font-display text-[16px] tracking-[-0.02em] text-hi md:h-14 md:w-14 md:text-[19px]"
+            aria-hidden={gym.logoUrl ? undefined : "true"}
+            className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden bg-ink font-display text-[16px] tracking-[-0.02em] text-hi md:h-14 md:w-14 md:text-[19px]"
           >
-            {initials || "—"}
+            {gym.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={gym.logoUrl} alt={`${gym.name} logo`} className="h-full w-full bg-paper object-contain" />
+            ) : (
+              initials || "—"
+            )}
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -130,6 +136,7 @@ export default async function GymDetailLayout({
         branchCount={gym.usage.branchCount}
         staffCount={gym.usage.staffCount}
       />
+      </div>
 
       {children}
     </div>

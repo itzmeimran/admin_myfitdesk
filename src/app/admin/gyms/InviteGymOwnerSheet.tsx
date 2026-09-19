@@ -41,14 +41,14 @@ export function InviteGymOwnerSheet({ packages }: { packages: AssignablePackage[
         className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
       >
         <InviteIcon size={ICON_SIZE.button} aria-hidden />
-        Invite gym owner
+        Onboard gym
       </button>
 
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
         eyebrow="Creates a gym + sends an owner invitation"
-        title="Invite a gym owner"
+        title="Onboard a gym"
         maxHeightClassName="max-h-[92%]"
       >
         {state.success ? (

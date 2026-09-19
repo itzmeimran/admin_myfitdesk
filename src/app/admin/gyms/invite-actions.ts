@@ -33,7 +33,9 @@ import { emailEnv, isEmailConfigured } from "@/core/config/email";
 import { sendSystemEmail } from "@/core/email/system-email";
 import { gymOwnerInviteEmail } from "@/core/email/templates";
 
-import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES, logoExtension } from "@/core/storage/logo-limits";
+import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES } from "@/core/storage/logo-limits";
+import { processLogoImage } from "@/core/storage/process-logo-image";
+import { uploadGymLogoObject } from "@/core/storage/gym-logo-storage";
 
 const billingModeSchema = z.enum(["trial", "paid", "custom"]);
 
@@ -159,25 +161,24 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
   };
 
   // Logo upload — best-effort, after the gym exists (it needs a real
-  // organization id for its storage path), via the service client since a
-  // brand-new gym has no staff_membership yet for the bucket's own
-  // org-membership-scoped RLS policy to authorize against.
+  // organization id for its storage key). Same R2/Supabase pipeline as the
+  // gym Settings tab (core/storage/gym-logo-storage.ts), validated and
+  // re-encoded through Sharp first.
   if (hasLogo) {
     try {
-      const serviceClient = await createServiceClient();
-      const file = logo as File;
-      const path = `${result.organization_id}/logo.${logoExtension(file.type)}`;
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const { error: uploadError } = await serviceClient.storage
-        .from("gym-logos")
-        .upload(path, buffer, { contentType: file.type, upsert: true });
-      if (!uploadError) {
-        const { data: publicUrl } = serviceClient.storage.from("gym-logos").getPublicUrl(path);
+      const processed = await processLogoImage(Buffer.from(await (logo as File).arrayBuffer()));
+      const { url } = await uploadGymLogoObject(
+        await createServiceClient(),
+        result.organization_id,
+        processed.buffer,
+        processed.contentType,
+      );
+      if (url) {
         // Not a direct organizations update: admins have no UPDATE policy
         // there, so that would silently change zero rows.
         await supabase.rpc("admin_update_gym_logo", {
           p_organization_id: result.organization_id,
-          p_logo_url: publicUrl.publicUrl,
+          p_logo_url: url,
         });
       }
       // A logo failure is never fatal to onboarding — the gym and its

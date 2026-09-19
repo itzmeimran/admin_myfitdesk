@@ -77,6 +77,18 @@ Superseding the old flat TODO list below (kept in git history if needed). Re-che
 
 ---
 
+## Milestone: Gym logos on Cloudflare R2 (2026-09-19)
+
+Ported FitDeskApp's gym-logo storage pipeline (by copying, per D-B) so admin uploads land where the tenant app serves them from. Replaces the old bare-MIME-check + Supabase-only upload flagged as a gap in the Gym Owner Onboarding milestone below.
+
+- New: `core/config/r2.ts` (optional env, same variable names as FitDeskApp — copy values across), `core/storage/{r2-client,r2-object-key,process-logo-image,gym-logo-storage}.ts`. One module instead of FitDeskApp's router + providers; admin only needs the `legacy` and `public` targets (never the `private` bucket).
+- Same key (`{orgId}/gym-logo.webp`), same rollout modes (`legacy`/`mirror`/`prefer-target`/`target`), same "auto" rule (R2 when configured, else Supabase Storage `gym-logos`), and Sharp validate-by-decode → 512px WebP. Used by both `[id]/settings/logo-actions.ts` and the invite flow in `invite-actions.ts`.
+- **`R2_STORAGE_ROLLOUT_MODE` / `AVATAR_STORAGE_PROVIDER` here must match the tenant deployment**, or logos land in a bucket the tenant app doesn't read.
+- New deps: `@aws-sdk/client-s3`, `sharp`. Keys documented (commented) in `.env.local.example`; user is adding the real values.
+- Verified: `tsc` and `eslint` clean. **Not exercised against a real bucket** — no R2 keys in this session. First real upload should confirm the URL resolves.
+
+---
+
 ## Milestone: Gym Owner Onboarding (2026-09-18)
 
 Full task brief: enable "Invite gym owner" (previously the one deliberately-deferred disabled

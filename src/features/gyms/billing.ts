@@ -9,14 +9,15 @@ import { paymentMethodLabel } from "./payment-method";
 /** Subscription & Billing tab (task brief §4) — platform_payments scoped to
  * one organization, via `admin_gym_billing_history()` (supabase/migrations/
  * 1009_admin_gym_detail.sql). Same status vocabulary as the Revenue page
- * (revenue/queries.ts's STATUS_MAP) — platform_payments.status is a 4-value
+ * (revenue/queries.ts's STATUS_MAP) — platform_payments.status is a 5-value
  * CHECK constraint the generated types can't narrow, hence the same
  * `as keyof typeof STATUS_MAP` cast used there. */
-const STATUS_MAP: Record<"created" | "succeeded" | "failed" | "refunded", InvoiceStatus> = {
+const STATUS_MAP: Record<"created" | "succeeded" | "failed" | "refunded" | "cancelled", InvoiceStatus> = {
   succeeded: "Succeeded",
   failed: "Failed",
   refunded: "Refunded",
   created: "Pending",
+  cancelled: "Cancelled",
 };
 
 export type BillingHistoryRow = {

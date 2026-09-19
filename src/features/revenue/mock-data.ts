@@ -29,8 +29,13 @@ export const REV_TILES: RevenueTile[] = [
  * platform_payments can genuinely sit at status `'created'` — checkout
  * started, not yet resolved — which the design's own Succeeded/Failed/
  * Refunded vocabulary has no state for. See src/features/revenue/queries.ts.
+ *
+ * "Cancelled" (supabase/migrations/1016_auto_cancel_stale_payments.sql) is
+ * a 5th real value: a Pending order that was never completed (the gym owner
+ * abandoned checkout) and got auto-expired after sitting stale for an hour
+ * — distinct from Failed (an attempt that was actually declined/errored).
  */
-export type InvoiceStatus = "Succeeded" | "Failed" | "Refunded" | "Pending";
+export type InvoiceStatus = "Succeeded" | "Failed" | "Refunded" | "Pending" | "Cancelled";
 
 export type Invoice = {
   no: string;

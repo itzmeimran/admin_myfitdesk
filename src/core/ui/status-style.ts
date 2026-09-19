@@ -20,6 +20,12 @@ const PILL: Record<string, PillTone> = {
   Trialing: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
   Grace: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
   "Read-only": { backgroundColor: "var(--accent)", color: "var(--paper)" },
+  // Shared by two different vocabularies: a Cancelled *subscription*
+  // (organization_subscriptions.status) and, since supabase/migrations/
+  // 1016_auto_cancel_stale_payments.sql, a Cancelled *payment*
+  // (revenue/mock-data.ts's InvoiceStatus) — an abandoned checkout that
+  // never charged anything. Same muted "no longer active, nothing to do"
+  // meaning in both cases, so one tone is correct for both.
   Cancelled: { backgroundColor: "var(--sand)", color: "var(--mute)" },
   // Admin roster (Settings page) — a revoked platform_admins row, same
   // muted tone as Cancelled since both mean "no longer has access".

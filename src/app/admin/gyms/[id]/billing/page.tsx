@@ -134,6 +134,7 @@ export default async function GymBillingPage({
             { value: "created", label: "Pending" },
             { value: "failed", label: "Failed" },
             { value: "refunded", label: "Refunded" },
+            { value: "cancelled", label: "Cancelled" },
           ]}
         />
         <FilterSelect

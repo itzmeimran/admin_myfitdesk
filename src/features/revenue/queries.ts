@@ -14,11 +14,12 @@ import type { RevenueTile, Invoice, InvoiceStatus } from "./mock-data";
  * charges to gym owners, never the tenant `payments` table.
  */
 
-const STATUS_MAP: Record<"created" | "succeeded" | "failed" | "refunded", InvoiceStatus> = {
+const STATUS_MAP: Record<"created" | "succeeded" | "failed" | "refunded" | "cancelled", InvoiceStatus> = {
   succeeded: "Succeeded",
   failed: "Failed",
   refunded: "Refunded",
   created: "Pending",
+  cancelled: "Cancelled",
 };
 
 function formatInvoicePeriod(start: string | null, end: string | null, now: Date): string {
@@ -65,7 +66,7 @@ export async function listInvoices(supabase: SupabaseClient<Database>): Promise<
         : "—",
       period: formatInvoicePeriod(row.period_start, row.period_end, now),
       // platform_payments.status is `text` with a CHECK constraint limiting
-      // it to these 4 values, not a native Postgres enum — codegen can only
+      // it to these 5 values, not a native Postgres enum — codegen can only
       // narrow enum columns, so this is `string` in database.types.ts even
       // though the DB guarantees the narrower set.
       status: STATUS_MAP[row.status as keyof typeof STATUS_MAP],

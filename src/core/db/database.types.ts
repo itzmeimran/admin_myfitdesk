@@ -2158,6 +2158,10 @@ export type Database = {
         Args: { p_organization_id: string; p_reason?: string }
         Returns: undefined
       }
+      admin_update_gym_logo: {
+        Args: { p_organization_id: string; p_logo_url: string | null }
+        Returns: undefined
+      }
       admin_update_organization_profile: {
         Args: {
           p_address_line?: string

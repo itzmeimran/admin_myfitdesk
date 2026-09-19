@@ -33,8 +33,7 @@ import { emailEnv, isEmailConfigured } from "@/core/config/email";
 import { sendSystemEmail } from "@/core/email/system-email";
 import { gymOwnerInviteEmail } from "@/core/email/templates";
 
-const MAX_LOGO_BYTES = 5 * 1024 * 1024;
-const ALLOWED_LOGO_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES, logoExtension } from "@/core/storage/logo-limits";
 
 const billingModeSchema = z.enum(["trial", "paid", "custom"]);
 
@@ -167,21 +166,23 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
     try {
       const serviceClient = await createServiceClient();
       const file = logo as File;
-      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const path = `${result.organization_id}/logo.${ext}`;
+      const path = `${result.organization_id}/logo.${logoExtension(file.type)}`;
       const buffer = Buffer.from(await file.arrayBuffer());
       const { error: uploadError } = await serviceClient.storage
         .from("gym-logos")
         .upload(path, buffer, { contentType: file.type, upsert: true });
       if (!uploadError) {
         const { data: publicUrl } = serviceClient.storage.from("gym-logos").getPublicUrl(path);
-        await supabase.from("organizations").update({ logo_url: publicUrl.publicUrl }).eq("id", result.organization_id);
+        // Not a direct organizations update: admins have no UPDATE policy
+        // there, so that would silently change zero rows.
+        await supabase.rpc("admin_update_gym_logo", {
+          p_organization_id: result.organization_id,
+          p_logo_url: publicUrl.publicUrl,
+        });
       }
       // A logo failure is never fatal to onboarding — the gym and its
-      // invitation are already created; the admin can add a logo later
-      // from the gym's own Settings tab (admin_update_organization_profile
-      // deliberately doesn't touch logo_url either, per its own comment —
-      // this direct update is consistent with that boundary, not a bypass).
+      // invitation already exist; the admin can set a logo later from the
+      // gym's Settings tab.
     } catch {
       // best-effort, as above
     }

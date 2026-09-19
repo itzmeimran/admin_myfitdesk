@@ -63,6 +63,7 @@ export {
 
   // Data in / out
   LuDownload as ExportIcon,
+  LuUpload as UploadIcon,
   LuSearch as SearchIcon,
   LuList as ListIcon,
   LuChevronLeft as PrevPageIcon,

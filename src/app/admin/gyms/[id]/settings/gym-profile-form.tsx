@@ -12,9 +12,9 @@ import { ICON_SIZE } from "@/core/ui/icon-size";
 const initialState: ProfileFormState = { error: null };
 
 /** The Settings tab's "General" section, made real (task brief §10/§2's
- * "Edit gym" action) — `admin_update_organization_profile()`. Deliberately
- * excludes logo (no upload pipeline exists to validate a URL against) and
- * every secret-bearing table (payment/WhatsApp integrations) per the
+ * "Edit gym" action) — `admin_update_organization_profile()`. The logo has
+ * its own uploader (gym-logo-upload.tsx); this RPC never touches it.
+ * Deliberately excludes every secret-bearing table (payment/WhatsApp integrations) per the
  * brief's own "do NOT expose sensitive secrets" instruction. */
 export function GymProfileForm({ gym }: { gym: GymDetail }) {
   const toast = useToast();

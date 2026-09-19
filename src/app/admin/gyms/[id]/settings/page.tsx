@@ -4,6 +4,7 @@ import { getGymDetail } from "@/features/gyms/detail";
 import { getGymConfiguration } from "@/features/gyms/config";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { GymProfileForm } from "./gym-profile-form";
+import { GymLogoUpload } from "./gym-logo-upload";
 
 /**
  * Settings tab (task brief §10) — General is a real, writable form
@@ -22,6 +23,7 @@ export default async function GymSettingsPage({ params }: { params: Promise<{ id
     <div className="flex flex-col gap-4">
       <section className="flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4">
         <h2 className="mfd-micro-label">General</h2>
+        <GymLogoUpload organizationId={gym.id} gymName={gym.name} logoUrl={gym.logoUrl} />
         <GymProfileForm gym={gym} />
       </section>
 

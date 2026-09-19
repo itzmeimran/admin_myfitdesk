@@ -6,6 +6,24 @@ import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 import type { Database } from "./database.types";
 
 /**
+ * A token minted by Supabase Auth a moment ago can be rejected by PostgREST
+ * with "JWT issued at future" when the two services' clocks differ by a
+ * second or so — seen right after sign-in, when the first dashboard render
+ * fires several RPCs at once. It resolves itself as soon as the clocks catch
+ * up, so retry briefly instead of crashing the page to the error boundary.
+ */
+async function fetchTolerantOfClockSkew(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const delaysMs = [400, 900, 1600];
+  for (let attempt = 0; ; attempt++) {
+    const response = await fetch(input, init);
+    if (response.status !== 401 || attempt >= delaysMs.length) return response;
+    const body = await response.clone().text().catch(() => "");
+    if (!body.includes("JWT issued at future")) return response;
+    await new Promise((resolve) => setTimeout(resolve, delaysMs[attempt]));
+  }
+}
+
+/**
  * RLS applies — uses the signed-in user's session, not the secret key. The
  * default client for Server Components, Server Actions, and Route Handlers.
  *
@@ -41,6 +59,7 @@ export async function createClient() {
   const { url, publishableKey } = getPublicSupabaseCredentials(environment);
 
   return createServerClient<Database>(url, publishableKey, {
+    global: { fetch: fetchTolerantOfClockSkew },
     cookieOptions: { name: `sb-admin-${environment}` },
     cookies: {
       getAll() {

@@ -48,6 +48,12 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
     periodLabel: gym.period,
     renewsLabel: gym.renews,
     isCancelled: gym.status === "Cancelled",
+    // admin_gyms_list()/admin_gym_directory() (this row's own source) don't
+    // carry the queued-package fields admin_gym_detail() does — the sheet
+    // just won't show the "already queued" notice from this list-row entry
+    // point; opening it from the Gym Detail page (gym-detail-actions.tsx)
+    // shows the real one.
+    pending: null,
   };
 
   return (

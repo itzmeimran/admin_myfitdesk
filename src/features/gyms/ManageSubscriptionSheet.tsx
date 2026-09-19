@@ -6,6 +6,7 @@ import type { AssignablePackage } from "./queries";
 import {
   extendSubscription,
   changeSubscriptionPackage,
+  clearPendingSubscriptionPackage,
   cancelSubscription,
   restoreSubscription,
   type ManualPaymentInput,
@@ -32,6 +33,10 @@ export type SubscriptionSheetGym = {
   periodLabel: string;
   renewsLabel: string;
   isCancelled: boolean;
+  /** migration 1013 — a package already queued for this gym, shown so an
+   * admin doesn't schedule a second one without realising one exists, and
+   * given a way to clear it. Null when nothing is queued. */
+  pending: { packageLabel: string; startsLabel: string } | null;
 };
 
 /**
@@ -56,7 +61,7 @@ export function ManageSubscriptionSheet({
   const toast = useToast();
   const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
-  const [busy, setBusy] = useState<"extend" | "package" | "lifecycle" | null>(null);
+  const [busy, setBusy] = useState<"extend" | "package" | "clear" | "lifecycle" | null>(null);
   const [days, setDays] = useState("7");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(DEFAULT_PAYMENT_METHOD);
@@ -66,7 +71,7 @@ export function ManageSubscriptionSheet({
   );
 
   function run(
-    kind: "extend" | "package" | "lifecycle",
+    kind: "extend" | "package" | "clear" | "lifecycle",
     action: () => Promise<{ error: string | null }>,
     successMessage = "Subscription updated.",
   ) {
@@ -168,6 +173,25 @@ export function ManageSubscriptionSheet({
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Change package</span>
+          {gym.pending ? (
+            <div className="flex flex-col gap-1.5 border-[1.5px] border-hi bg-hi/15 px-2.5 py-2">
+              <p className="text-[11px] font-bold text-ink">
+                {gym.pending.packageLabel} is already queued — starts {gym.pending.startsLabel}.
+              </p>
+              <p className="text-[10.5px] text-mute3">
+                Picking another package below replaces this queued one. Today&apos;s access, price and caps are
+                unaffected either way.
+              </p>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => run("clear", () => clearPendingSubscriptionPackage(gym.organizationId), "Scheduled change cleared.")}
+                className="flex min-h-[32px] items-center justify-center text-[10.5px] font-bold text-accent underline underline-offset-2 disabled:cursor-wait disabled:opacity-60"
+              >
+                {busy === "clear" ? "Clearing…" : "Clear scheduled change"}
+              </button>
+            </div>
+          ) : null}
           <select
             value={packageId}
             onChange={(e) => setPackageId(e.target.value)}
@@ -184,7 +208,9 @@ export function ManageSubscriptionSheet({
             ))}
           </select>
           <p className="text-[10.5px] text-mute3">
-            Takes effect immediately at the existing renewal date — this doesn&apos;t prorate or move the date.
+            If the gym is still inside its current period (trialing or already paid), this queues the new package to
+            start automatically when that period ends — today&apos;s access, price and caps are untouched until then.
+            Only applies immediately if the gym has already lapsed past its renewal date.
           </p>
           <button
             type="button"
@@ -193,7 +219,7 @@ export function ManageSubscriptionSheet({
             className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
           >
             <PackagesIcon size={13} aria-hidden />
-            {busy === "package" ? "Changing…" : "Change package"}
+            {busy === "package" ? "Saving…" : "Change package"}
           </button>
         </div>
 

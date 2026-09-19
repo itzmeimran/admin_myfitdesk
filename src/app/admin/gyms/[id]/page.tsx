@@ -208,6 +208,12 @@ export default async function GymOverviewPage({ params }: { params: Promise<{ id
               {isTrialing && sub.currentPeriodEnd ? (
                 <Row k="Trial ends in" v={`${Math.max(daysBetween(now, new Date(sub.currentPeriodEnd)), 0)} days`} />
               ) : null}
+              {sub.pending ? (
+                <>
+                  <Row k="Upcoming package" v={sub.pending.packageName ?? "Package"} />
+                  <Row k="Upcoming package starts" v={formatShortDate(new Date(sub.pending.periodStart), now)} />
+                </>
+              ) : null}
             </dl>
           ) : (
             <p className="text-[12.5px] text-mute">This gym has no subscription record.</p>

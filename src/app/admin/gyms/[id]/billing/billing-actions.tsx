@@ -30,6 +30,16 @@ export function BillingActions({ gym, packages }: { gym: GymDetail; packages: As
       ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
       : "—",
     isCancelled,
+    pending: sub?.pending
+      ? {
+          packageLabel: sub.pending.packageName ?? "Package",
+          startsLabel: new Date(sub.pending.periodStart).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+        }
+      : null,
   };
 
   return (
@@ -48,7 +58,11 @@ export function BillingActions({ gym, packages }: { gym: GymDetail; packages: As
         />
         <ActionCard
           title="Change package"
-          body="Move the gym onto another active package. Caps change immediately."
+          body={
+            subscriptionGym.pending
+              ? `${subscriptionGym.pending.packageLabel} is already queued for ${subscriptionGym.pending.startsLabel}.`
+              : "Queues a package to start at the gym's own renewal date — never replaces a live trial or paid period today."
+          }
           cta="Choose package"
           icon={PackagesIcon}
           onClick={() => setOpen(true)}

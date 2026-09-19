@@ -59,6 +59,20 @@ type AdminGymDetailJson = {
     auto_renew: boolean;
     cancelled_at: string | null;
     created_at: string;
+    // migration 1013 — a package queued (via "Change package" while the
+    // gym is still inside a live period) to take over at period_start,
+    // which is always the current subscription's own period_end. Null
+    // when nothing is queued.
+    pending: {
+      package_id: string;
+      package_name: string | null;
+      package_code: string | null;
+      billing_period: string | null;
+      price_minor: number | null;
+      currency: string | null;
+      period_start: string;
+      period_end: string;
+    } | null;
   } | null;
   usage: {
     member_count: number;
@@ -123,6 +137,16 @@ export type GymDetail = {
     autoRenew: boolean;
     cancelledAt: string | null;
     createdAt: string;
+    pending: {
+      packageId: string;
+      packageName: string | null;
+      packageCode: string | null;
+      billingPeriod: string | null;
+      priceMinor: number | null;
+      currency: string | null;
+      periodStart: string;
+      periodEnd: string;
+    } | null;
   } | null;
   usage: {
     memberCount: number;
@@ -197,6 +221,18 @@ export async function getGymDetail(
           autoRenew: raw.subscription.auto_renew,
           cancelledAt: raw.subscription.cancelled_at,
           createdAt: raw.subscription.created_at,
+          pending: raw.subscription.pending
+            ? {
+                packageId: raw.subscription.pending.package_id,
+                packageName: raw.subscription.pending.package_name,
+                packageCode: raw.subscription.pending.package_code,
+                billingPeriod: raw.subscription.pending.billing_period,
+                priceMinor: raw.subscription.pending.price_minor,
+                currency: raw.subscription.pending.currency,
+                periodStart: raw.subscription.pending.period_start,
+                periodEnd: raw.subscription.pending.period_end,
+              }
+            : null,
         }
       : null,
     usage: {

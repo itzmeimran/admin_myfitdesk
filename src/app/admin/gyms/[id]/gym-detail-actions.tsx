@@ -47,6 +47,16 @@ export function GymDetailActions({ gym, packages }: { gym: GymDetail; packages: 
     periodLabel,
     renewsLabel,
     isCancelled: gym.status === "Cancelled",
+    pending: sub?.pending
+      ? {
+          packageLabel: sub.pending.packageName ?? "Package",
+          startsLabel: new Date(sub.pending.periodStart).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          }),
+        }
+      : null,
   };
 
   return (

@@ -65,6 +65,13 @@ export async function extendSubscription(
   return { error: null };
 }
 
+/**
+ * migration 1013 — schedules `packageId` to take over when the gym's
+ * current period ends, rather than applying it today: if the gym is
+ * already past its current_period_end (grace/read_only/no active period)
+ * the RPC applies it immediately instead, since there is no live period
+ * left to protect. See that migration's own header for the full reasoning.
+ */
 export async function changeSubscriptionPackage(organizationId: string, packageId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_change_subscription_package", {
@@ -73,6 +80,21 @@ export async function changeSubscriptionPackage(organizationId: string, packageI
   });
   if (error) return { error: error.message };
   revalidateGyms();
+  revalidatePath("/admin/gyms/[id]", "layout");
+  return { error: null };
+}
+
+/** Undoes a queued "Change package" before it activates — a no-op target
+ * (nothing scheduled) comes back as an error rather than silently
+ * succeeding twice. */
+export async function clearPendingSubscriptionPackage(organizationId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_clear_pending_subscription_package", {
+    p_organization_id: organizationId,
+  });
+  if (error) return { error: error.message };
+  revalidateGyms();
+  revalidatePath("/admin/gyms/[id]", "layout");
   return { error: null };
 }
 

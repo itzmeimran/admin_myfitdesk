@@ -123,6 +123,25 @@ export default async function GymBillingPage({
         </div>
       </section>
 
+      {sub?.pending ? (
+        <section className="flex flex-col gap-1.5 border-[1.5px] border-hi bg-hi/12 px-4 py-3.5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-ink2">Upcoming package</span>
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="font-display text-lg">{sub.pending.packageName ?? "Package"}</span>
+            {sub.pending.priceMinor != null ? (
+              <span className="text-[13px] font-bold text-ink">
+                {formatMinorWhole(sub.pending.priceMinor, sub.pending.currency ?? "INR")} per{" "}
+                {capitalizeBillingPeriod(sub.pending.billingPeriod).toLowerCase()} cycle
+              </span>
+            ) : null}
+          </div>
+          <p className="text-[12px] text-ink2">
+            Starts {formatShortDate(new Date(sub.pending.periodStart), now)}, the day the current package ends —
+            today&apos;s access, price and caps are unaffected until then.
+          </p>
+        </section>
+      ) : null}
+
       <BillingActions gym={gym} packages={packages} />
 
       <div className="flex flex-wrap items-center gap-2.5">

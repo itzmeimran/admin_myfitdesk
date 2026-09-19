@@ -586,6 +586,12 @@ export type Database = {
           grace_days: number
           organization_id: string
           package_id: string | null
+          // FitDeskApp migration 0074 — a package queued to take over at
+          // current_period_end, promoted by that repo's activate-pending-
+          // subscriptions cron. All three null, or all three set.
+          pending_package_id: string | null
+          pending_period_start: string | null
+          pending_period_end: string | null
           provider_mandate_id: string | null
           provider_subscription_id: string | null
           status: string
@@ -600,6 +606,9 @@ export type Database = {
           grace_days?: number
           organization_id: string
           package_id?: string | null
+          pending_package_id?: string | null
+          pending_period_start?: string | null
+          pending_period_end?: string | null
           provider_mandate_id?: string | null
           provider_subscription_id?: string | null
           status?: string
@@ -614,6 +623,9 @@ export type Database = {
           grace_days?: number
           organization_id?: string
           package_id?: string | null
+          pending_package_id?: string | null
+          pending_period_start?: string | null
+          pending_period_end?: string | null
           provider_mandate_id?: string | null
           provider_subscription_id?: string | null
           status?: string
@@ -630,6 +642,13 @@ export type Database = {
           {
             foreignKeyName: "organization_subscriptions_package_id_fkey"
             columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "platform_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_subscriptions_pending_package_id_fkey"
+            columns: ["pending_package_id"]
             isOneToOne: false
             referencedRelation: "platform_packages"
             referencedColumns: ["id"]
@@ -1757,6 +1776,12 @@ export type Database = {
       }
       admin_change_subscription_package: {
         Args: { p_organization_id: string; p_package_id: string }
+        Returns: undefined
+      }
+      // migration 1013 — undoes a package queued by
+      // admin_change_subscription_package before it activates.
+      admin_clear_pending_subscription_package: {
+        Args: { p_organization_id: string }
         Returns: undefined
       }
       admin_create_gym_owner_invitation: {

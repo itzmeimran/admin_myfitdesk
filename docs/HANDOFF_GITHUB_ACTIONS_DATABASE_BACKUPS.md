@@ -4,8 +4,12 @@
 
 This file is for the separate ChatGPT session currently configuring GitHub Actions to create PostgreSQL dumps and upload them to Cloudflare R2. The application/control-plane work is already implemented in this repository. The GitHub Actions session should integrate with that work instead of creating a second backup system, duplicate metadata tables, or a competing retention model.
 
-Repository: `itzmeimran/admin_myfitdesk`  
-Completed implementation commit on `main`: `b824a74` (`Add disaster recovery and database backups`)  
+Repository: `itzmeimran/admin_myfitdesk`
+
+Completed implementation commit on `main`: `b824a74` (`Add disaster recovery and database backups`)
+
+Migration parser fix and this completed operational handoff: `7c45824` (`Fix disaster recovery migration and document backup setup`)
+
 Primary implementation documentation: `docs/DISASTER_RECOVERY.md`
 
 ## What has already been completed

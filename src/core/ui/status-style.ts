@@ -38,6 +38,15 @@ const PILL: Record<string, PillTone> = {
   // resolved. Reuses Grace's amber/accent-wash tone since both mean "in
   // flight, not resolved yet" — see revenue/mock-data.ts's InvoiceStatus.
   Pending: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
+  Ready: { backgroundColor: "var(--sand)", color: "var(--ink)" },
+  Verified: { backgroundColor: "var(--sand)", color: "var(--ink)" },
+  Creating: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
+  Queued: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
+  Restoring: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
+  Protected: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
+  Corrupted: { backgroundColor: "var(--accent)", color: "var(--paper)" },
+  "Delete Requested": { backgroundColor: "var(--accent)", color: "var(--paper)" },
+  "Maintenance Enabled": { backgroundColor: "var(--accent)", color: "var(--paper)" },
   // Gym Detail additions (this app's own hard-suspend concept, and the
   // Branches/Staff/Members tabs' own small status vocabularies) — kept in
   // the same shared map so every pill across the app, list or detail page,

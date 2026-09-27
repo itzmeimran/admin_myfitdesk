@@ -1,0 +1,102 @@
+name: Database backup
+
+on:
+  schedule:
+    # GitHub cron is UTC. This runs at minute 7 each hour to avoid the
+    # high-contention top-of-hour window. Daily/monthly promotion happens at
+    # 00:07 UTC inside the worker.
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: development
+        type: choice
+        options: [development, production, both]
+      backup_type:
+        description: Backup trigger
+        required: true
+        default: manual
+        type: choice
+        options: [manual, scheduled, pre_migration]
+      request_id:
+        description: Optional queued database_backups UUID from the admin app
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-backup-${{ github.event_name == 'schedule' && 'scheduled' || inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  development:
+    if: github.event_name == 'schedule' || inputs.environment == 'development' || inputs.environment == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: development
+    env:
+      DR_ENVIRONMENT: development
+      DATABASE_IDENTIFIER: ${{ secrets.BACKUP_DATABASE_IDENTIFIER }}
+      SUPABASE_DB_URL: ${{ secrets.BACKUP_SUPABASE_DB_URL }}
+      BACKUP_R2_ACCOUNT_ID: ${{ secrets.BACKUP_R2_ACCOUNT_ID }}
+      BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+      BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+      BACKUP_R2_BUCKET: ${{ secrets.BACKUP_R2_BUCKET }}
+      BACKUP_R2_ENDPOINT: ${{ secrets.BACKUP_R2_ENDPOINT }}
+      BACKUP_TYPE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.backup_type }}
+      BACKUP_REQUEST_ID: ${{ inputs.request_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
+      - run: npm ci --ignore-scripts
+      - name: Create and verify backup
+        run: node scripts/disaster-recovery-worker.mjs backup
+
+  production:
+    if: github.event_name == 'schedule' || inputs.environment == 'production' || inputs.environment == 'both'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Separate from production-restore so hourly backups never wait for a
+    # human approval that is appropriate only for destructive restores.
+    environment: production-backup
+    env:
+      DR_ENVIRONMENT: production
+      DATABASE_IDENTIFIER: ${{ secrets.BACKUP_DATABASE_IDENTIFIER }}
+      SUPABASE_DB_URL: ${{ secrets.BACKUP_SUPABASE_DB_URL }}
+      BACKUP_R2_ACCOUNT_ID: ${{ secrets.BACKUP_R2_ACCOUNT_ID }}
+      BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+      BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+      BACKUP_R2_BUCKET: ${{ secrets.BACKUP_R2_BUCKET }}
+      BACKUP_R2_ENDPOINT: ${{ secrets.BACKUP_R2_ENDPOINT }}
+      BACKUP_TYPE: ${{ github.event_name == 'schedule' && 'scheduled' || inputs.backup_type }}
+      BACKUP_REQUEST_ID: ${{ inputs.request_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
+      - run: npm ci --ignore-scripts
+      - name: Create and verify backup
+        run: node scripts/disaster-recovery-worker.mjs backup

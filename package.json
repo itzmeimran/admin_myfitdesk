@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:dr": "node --test scripts/disaster-recovery-policy.test.mjs",
+    "backup:pre-migration": "node scripts/create-pre-migration-backup.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",

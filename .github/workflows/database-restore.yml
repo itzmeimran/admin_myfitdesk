@@ -1,0 +1,57 @@
+name: Database restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: development
+        type: choice
+        options: [development, production]
+      restore_request_id:
+        description: Queued database_restore_history UUID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: database-restore-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Configure required reviewers on `production-restore`. The scheduled
+    # backup uses `production-backup` and is therefore never held up by this
+    # destructive-operation approval gate.
+    environment: ${{ inputs.environment == 'production' && 'production-restore' || 'development' }}
+    env:
+      DR_ENVIRONMENT: ${{ inputs.environment }}
+      RESTORE_REQUEST_ID: ${{ inputs.restore_request_id }}
+      DATABASE_IDENTIFIER: ${{ secrets.BACKUP_DATABASE_IDENTIFIER }}
+      SUPABASE_DB_URL: ${{ secrets.BACKUP_SUPABASE_DB_URL }}
+      BACKUP_R2_ACCOUNT_ID: ${{ secrets.BACKUP_R2_ACCOUNT_ID }}
+      BACKUP_R2_ACCESS_KEY_ID: ${{ secrets.BACKUP_R2_ACCESS_KEY_ID }}
+      BACKUP_R2_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_R2_SECRET_ACCESS_KEY }}
+      BACKUP_R2_BUCKET: ${{ secrets.BACKUP_R2_BUCKET }}
+      BACKUP_R2_ENDPOINT: ${{ secrets.BACKUP_R2_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
+      - run: npm ci --ignore-scripts
+      - name: Restore verified backup
+        run: node scripts/disaster-recovery-worker.mjs restore

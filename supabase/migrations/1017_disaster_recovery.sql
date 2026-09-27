@@ -291,7 +291,14 @@ create or replace function public.admin_set_maintenance_mode(
 returns void language plpgsql security definer set search_path = public, app, pg_temp as $$
 begin
   if not app.is_platform_admin() then raise exception 'Platform administrator access required' using errcode = '42501'; end if;
-  if p_environment = 'production' and p_confirmation <> case when p_enabled then 'ENABLE MAINTENANCE' else 'DISABLE MAINTENANCE' end then
+  if p_environment = 'production'
+     and p_confirmation <> (
+       case
+         when p_enabled then 'ENABLE MAINTENANCE'
+         else 'DISABLE MAINTENANCE'
+       end
+     )
+  then
     raise exception 'Typed confirmation does not match';
   end if;
   update disaster_recovery_config

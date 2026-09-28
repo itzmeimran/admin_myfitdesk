@@ -65,6 +65,35 @@ export async function extendSubscription(
   return { error: null };
 }
 
+/** Records an offline payment against the package the gym actually bought.
+ * The RPC derives duration/currency from that package and follows the same
+ * scheduling rule as online checkout: a different package waits for the
+ * live period to finish; a same-package renewal extends immediately. */
+export async function recordManualSubscriptionRenewal(
+  organizationId: string,
+  packageId: string,
+  payment: ManualPaymentInput,
+): Promise<ActionResult & { scheduled?: boolean }> {
+  if (!Number.isInteger(payment.amountMinor) || payment.amountMinor <= 0) {
+    return { error: "Payment amount must be a positive amount." };
+  }
+  if (!PAYMENT_METHODS.some((m) => m.value === payment.method)) {
+    return { error: "Choose a valid payment method." };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_record_manual_subscription_renewal", {
+    p_organization_id: organizationId,
+    p_package_id: packageId,
+    p_payment_amount_minor: payment.amountMinor,
+    p_payment_method: payment.method,
+    p_payment_note: payment.note || undefined,
+  });
+  if (error) return { error: error.message };
+  revalidateGyms();
+  revalidatePath("/admin/gyms/[id]", "layout");
+  return { error: null, scheduled: data };
+}
+
 /**
  * migration 1013 — schedules `packageId` to take over when the gym's
  * current period ends, rather than applying it today: if the gym is
@@ -96,6 +125,60 @@ export async function clearPendingSubscriptionPackage(organizationId: string): P
   revalidateGyms();
   revalidatePath("/admin/gyms/[id]", "layout");
   return { error: null };
+}
+
+/**
+ * FitDeskApp migration 0074's other half (supabase/migrations/1014_admin_
+ * schedule_subscription_package.sql) — queues a package to start
+ * automatically at the gym's existing renewal date, distinct from
+ * changeSubscriptionPackage above (which reassigns immediately, at the
+ * existing date, per 1004's own "no billing engine to prorate" design).
+ * Surfaces on FitDeskApp's own /dashboard/billing as "Upcoming plan" —
+ * nothing else needs telling; that page reads pending_package_id directly.
+ */
+export async function schedulePackage(organizationId: string, packageId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_schedule_subscription_package", {
+    p_organization_id: organizationId,
+    p_package_id: packageId,
+  });
+  if (error) return { error: error.message };
+  revalidateGyms();
+  return { error: null };
+}
+
+export async function clearScheduledPackage(organizationId: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_clear_scheduled_package", { p_organization_id: organizationId });
+  if (error) return { error: error.message };
+  revalidateGyms();
+  return { error: null };
+}
+
+export type ScheduledPackageInfo = {
+  packageId: string;
+  packageName: string;
+  periodStart: string;
+  periodEnd: string;
+} | null;
+
+/** Read side for the Manage Subscription sheet — fetched fresh every time
+ * the sheet opens rather than threaded through as a prop, so it can never
+ * show a stale schedule after the sheet itself just changed it. */
+export async function getScheduledPackage(organizationId: string): Promise<ScheduledPackageInfo> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_get_scheduled_package", { p_organization_id: organizationId });
+  if (error) throw new Error(error.message);
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { package_id: string | null; package_name: string | null; period_start: string | null; period_end: string | null }
+    | null;
+  if (!row?.package_id || !row.period_start || !row.period_end) return null;
+  return {
+    packageId: row.package_id,
+    packageName: row.package_name ?? "Package",
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+  };
 }
 
 export async function cancelSubscription(organizationId: string): Promise<ActionResult> {

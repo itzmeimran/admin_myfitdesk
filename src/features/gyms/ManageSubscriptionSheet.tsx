@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AssignablePackage } from "./queries";
 import {
   extendSubscription,
+  recordManualSubscriptionRenewal,
   changeSubscriptionPackage,
   clearPendingSubscriptionPackage,
   cancelSubscription,
   restoreSubscription,
   type ManualPaymentInput,
+  schedulePackage,
+  clearScheduledPackage,
+  getScheduledPackage,
+  type ScheduledPackageInfo,
 } from "./actions";
 import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD, type PaymentMethod } from "./payment-method";
 import { Sheet } from "@/components/Sheet";
@@ -17,8 +22,9 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { toMinorUnits } from "@/core/money/format";
-import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon } from "@/core/ui/icons";
+import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon, CalendarIcon } from "@/core/ui/icons";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
+import { formatShortDate } from "@/core/dates/format";
 
 /** Normalized view of "a gym you can manage the subscription of" — the
  * Gyms list row and the Gym Detail header describe a gym with different
@@ -61,17 +67,46 @@ export function ManageSubscriptionSheet({
   const toast = useToast();
   const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
-  const [busy, setBusy] = useState<"extend" | "package" | "clear" | "lifecycle" | null>(null);
+  const [busy, setBusy] = useState<"renew" | "extend" | "package" | "clear" | "lifecycle" | "schedule" | "clear-schedule" | null>(null);
   const [days, setDays] = useState("7");
-  const [paymentAmount, setPaymentAmount] = useState("");
+  const initialRenewalPackage = packages.find((p) => p.id === gym.packageId) ?? packages[0];
+  const [renewalPackageId, setRenewalPackageId] = useState(initialRenewalPackage?.id ?? "");
+  const [paymentAmount, setPaymentAmount] = useState(
+    initialRenewalPackage ? (initialRenewalPackage.effectivePriceMinor / 100).toFixed(2) : "",
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(DEFAULT_PAYMENT_METHOD);
+  const [paymentNote, setPaymentNote] = useState("");
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [packageId, setPackageId] = useState(() =>
     gym.packageId && packages.some((p) => p.id === gym.packageId) ? gym.packageId : "",
   );
+  const [scheduled, setScheduled] = useState<ScheduledPackageInfo>(null);
+  const [scheduledLoading, setScheduledLoading] = useState(true);
+  const [schedulePackageId, setSchedulePackageId] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kicks off the loading state for the fetch this same effect starts; the state can't be derived any other way without inventing an external store for one sheet
+    setScheduledLoading(true);
+    getScheduledPackage(gym.organizationId)
+      .then((info) => {
+        if (!cancelled) setScheduled(info);
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Couldn't load the scheduled package.");
+      })
+      .finally(() => {
+        if (!cancelled) setScheduledLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-fetch only when the sheet opens for a (possibly new) gym, not on every toast identity change
+  }, [open, gym.organizationId]);
 
   function run(
-    kind: "extend" | "package" | "clear" | "lifecycle",
+    kind: "renew" | "extend" | "package" | "clear" | "lifecycle" | "schedule" | "clear-schedule",
     action: () => Promise<{ error: string | null }>,
     successMessage = "Subscription updated.",
   ) {
@@ -84,6 +119,11 @@ export function ManageSubscriptionSheet({
         return;
       }
       toast.success(successMessage);
+      if (kind === "schedule" || kind === "clear-schedule") {
+        getScheduledPackage(gym.organizationId)
+          .then(setScheduled)
+          .catch(() => {});
+      }
       router.refresh();
     });
   }
@@ -96,7 +136,79 @@ export function ManageSubscriptionSheet({
         </p>
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Extend</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Record paid renewal</span>
+          <select
+            value={renewalPackageId}
+            onChange={(e) => {
+              const nextId = e.target.value;
+              const selected = packages.find((p) => p.id === nextId);
+              setRenewalPackageId(nextId);
+              if (selected) setPaymentAmount((selected.effectivePriceMinor / 100).toFixed(2));
+            }}
+            className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+          >
+            <option value="" disabled>Select the package they paid for</option>
+            {packages.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
+              </option>
+            ))}
+          </select>
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="Amount received"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              className="min-w-0 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            />
+            <select
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+              className="min-w-0 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+            >
+              {PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </div>
+          <input
+            type="text"
+            maxLength={500}
+            placeholder="Payment note (optional)"
+            value={paymentNote}
+            onChange={(e) => setPaymentNote(e.target.value)}
+            className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+          />
+          <p className="text-[10.5px] leading-relaxed text-mute3">
+            Uses the selected package&apos;s database duration and records a paid manual invoice. A different package
+            waits until the current paid/trial period ends; the same package renews from the later of today or the
+            current renewal date.
+          </p>
+          <button
+            type="button"
+            disabled={isPending || !renewalPackageId || !paymentAmount.trim()}
+            onClick={() => {
+              const minor = toMinorUnits(paymentAmount);
+              if (minor === null || minor <= 0) {
+                toast.error("Payment amount isn't a valid amount.");
+                return;
+              }
+              const payment: ManualPaymentInput = { amountMinor: minor, method: paymentMethod, note: paymentNote };
+              run(
+                "renew",
+                () => recordManualSubscriptionRenewal(gym.organizationId, renewalPackageId, payment),
+                "Manual renewal and payment recorded.",
+              );
+            }}
+            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-ink bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-wait disabled:opacity-70"
+          >
+            <ExtendIcon size={13} aria-hidden />
+            {busy === "renew" ? "Recording…" : "Record renewal"}
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2 border-t border-line pt-3">
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Free / goodwill extension</span>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -106,40 +218,9 @@ export function ManageSubscriptionSheet({
               onChange={(e) => setDays(e.target.value)}
               className="w-20 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
             />
-            <span className="text-[11.5px] text-mute">days from today (or from the current renewal date, if later)</span>
+            <span className="text-[11.5px] text-mute">days from today (or the current renewal date, if later)</span>
           </div>
-
-          <div className="flex flex-col gap-2 border-t border-line pt-2.5">
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute3">
-              Payment collected (optional)
-            </span>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="Amount, e.g. 999"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                className="w-32 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-              />
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                className="flex-1 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-              >
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="text-[10.5px] text-mute3">
-              Fill this in only if you collected the payment yourself (e.g. cash handed over in person) — it records
-              an invoice against this gym. Leave the amount blank for a free/goodwill extension.
-            </p>
-          </div>
-
+          <p className="text-[10.5px] text-mute3">Moves access only. It deliberately creates no invoice or revenue.</p>
           <button
             type="button"
             disabled={isPending}
@@ -149,25 +230,12 @@ export function ManageSubscriptionSheet({
                 toast.error("Days must be a positive whole number.");
                 return;
               }
-              let payment: ManualPaymentInput | null = null;
-              if (paymentAmount.trim() !== "") {
-                const minor = toMinorUnits(paymentAmount);
-                if (minor === null || minor <= 0) {
-                  toast.error("Payment amount isn't a valid amount.");
-                  return;
-                }
-                payment = { amountMinor: minor, method: paymentMethod };
-              }
-              run(
-                "extend",
-                () => extendSubscription(gym.organizationId, n, payment),
-                payment ? "Subscription extended and payment recorded." : "Subscription extended.",
-              );
+              run("extend", () => extendSubscription(gym.organizationId, n), "Subscription extended without payment.");
             }}
-            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-ink bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-wait disabled:opacity-70"
+            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
           >
             <ExtendIcon size={13} aria-hidden />
-            {busy === "extend" ? "Extending…" : "Extend subscription"}
+            {busy === "extend" ? "Extending…" : "Extend without payment"}
           </button>
         </div>
 
@@ -221,6 +289,59 @@ export function ManageSubscriptionSheet({
             <PackagesIcon size={13} aria-hidden />
             {busy === "package" ? "Saving…" : "Change package"}
           </button>
+        </div>
+
+        <div className="flex flex-col gap-2 border-t border-line pt-3">
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Schedule a package</span>
+          {scheduledLoading ? (
+            <p className="text-[10.5px] text-mute3">Checking for a scheduled package…</p>
+          ) : scheduled ? (
+            <div className="flex flex-col gap-2 border-[1.5px] border-hi/60 bg-hi/10 px-3 py-2.5">
+              <p className="text-[12px] font-bold text-ink">
+                {scheduled.packageName} starts {formatShortDate(new Date(scheduled.periodStart))}
+              </p>
+              <p className="text-[10.5px] text-mute3">
+                Queued automatically — nothing else to do. Runs through {formatShortDate(new Date(scheduled.periodEnd))}.
+              </p>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => run("clear-schedule", () => clearScheduledPackage(gym.organizationId))}
+                className="flex min-h-[34px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[10.5px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+              >
+                {busy === "clear-schedule" ? "Clearing…" : "Clear scheduled package"}
+              </button>
+            </div>
+          ) : (
+            <>
+              <select
+                value={schedulePackageId}
+                onChange={(e) => setSchedulePackageId(e.target.value)}
+                className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+              >
+                <option value="" disabled>
+                  Select a package
+                </option>
+                {packages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10.5px] text-mute3">
+                Starts automatically at {gym.renewsLabel} — today&apos;s access, price and caps are untouched until then.
+              </p>
+              <button
+                type="button"
+                disabled={isPending || !schedulePackageId}
+                onClick={() => run("schedule", () => schedulePackage(gym.organizationId, schedulePackageId))}
+                className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+              >
+                <CalendarIcon size={13} aria-hidden />
+                {busy === "schedule" ? "Scheduling…" : "Schedule package"}
+              </button>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">

@@ -39,6 +39,7 @@ export {
   LuPackage as PackagesIcon,
   LuLayers as PlansIcon,
   LuReceiptIndianRupee as RevenueIcon,
+  LuMessageCircle as WhatsAppIcon,
   LuSettings as SettingsIcon,
   LuMenu as MenuIcon,
 

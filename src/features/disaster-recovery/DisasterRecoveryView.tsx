@@ -169,7 +169,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
               <table className="w-full border-collapse text-[12px]">
                 <thead><tr>{["Backup date", "Environment", "Type", "Size", "Status", "Verification", "Created by", "Duration", "Actions"].map((heading) => <th key={heading} className="mfd-micro-label whitespace-nowrap border-b border-line px-3 py-2.5 text-left">{heading}</th>)}</tr></thead>
                 <tbody>{filteredBackups.map((backup) => (
-                  <tr key={backup.id} className="mfd-table-row">
+                  <tr key={backup.id} className="mfd-table-row transition-colors duration-150 hover:bg-sand/70">
                     <td className="whitespace-nowrap border-b border-line px-3 py-2.5 font-bold">{formatDate(backup.created_at)}</td>
                     <td className="border-b border-line px-3 py-2.5"><span className={production ? "font-bold text-accent" : "font-bold"}>{label(backup.environment)}</span></td>
                     <td className="border-b border-line px-3 py-2.5">{label(backup.backup_type)}</td>
@@ -185,7 +185,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
             </div>
             <div className="flex flex-col md:hidden">
               {filteredBackups.map((backup) => (
-                <article key={backup.id} className="flex flex-col gap-2.5 border-b border-line p-3.5 last:border-b-0">
+                <article key={backup.id} className="flex flex-col gap-2.5 border-b border-line p-3.5 transition-colors duration-150 last:border-b-0 hover:bg-sand/70">
                   <div className="flex items-start justify-between gap-2"><span><strong className="block text-[13px]">{formatDate(backup.created_at)}</strong><span className="text-[11px] text-mute">{label(backup.environment)} · {label(backup.backup_type)}</span></span><Status value={backup.protected ? "protected" : backup.status} /></div>
                   <div className="grid grid-cols-2 gap-2 text-[11.5px]"><span>Size <strong className="block text-ink">{formatBytes(backup.file_size_bytes)}</strong></span><span>Verification <strong className="block text-ink">{label(backup.verification_status)}</strong></span></div>
                   <BackupActions backup={backup} busy={isPending} onDetails={setSelected} onConfirm={setConfirmation} onProtect={(value) => run(() => setBackupProtected(backup.id, value), false)} />
@@ -200,7 +200,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
       {tab === "Restore History" ? (
         <section className="flex flex-col gap-3">
           {data.restores.map((restore) => (
-            <article key={restore.id} className="border-[1.5px] border-line bg-paper p-4">
+            <article key={restore.id} className="border-[1.5px] border-line bg-paper p-4 transition-colors duration-150 hover:bg-sand/70">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <span><strong className="block text-[13.5px]">{RESTORE_STAGE[restore.status] ?? label(restore.status)}</strong><span className="text-[11.5px] text-mute">Started {formatDate(restore.started_at)} · {label(restore.environment)}</span></span>
                 <Status value={restore.status} />
@@ -221,7 +221,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
       {tab === "Audit Logs" ? (
         <section className="border-[1.5px] border-ink bg-paper">
           {data.audits.map((audit) => (
-            <div key={audit.id} className="grid gap-1 border-b border-line px-4 py-3 last:border-b-0 md:grid-cols-[180px_1fr_180px]">
+            <div key={audit.id} className="grid gap-1 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70 md:grid-cols-[180px_1fr_180px]">
               <span className="text-[11px] text-mute">{formatDate(audit.created_at)}</span>
               <span className="text-[12.5px] font-bold">{label(audit.action.replaceAll(".", " "))}<small className="ml-2 font-normal text-mute">{audit.entity_type} {audit.entity_id?.slice(0, 8)}</small></span>
               <span className="text-[11px] text-mute md:text-right">{audit.actor_role ?? "system"}</span>
@@ -236,7 +236,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
           <div className="border-l-2 border-ink bg-sand px-4 py-3 text-[12px] text-mute">This recycle bin uses MyFitDesk&apos;s existing soft-delete/request-delete fields. Payments are intentionally excluded.</div>
           <div className="border-[1.5px] border-ink bg-paper">
             {data.deletedRecords.map((record) => (
-              <div key={`${record.entity_type}-${record.entity_id}`} className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 last:border-b-0">
+              <div key={`${record.entity_type}-${record.entity_id}`} className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70">
                 <span className="mr-auto min-w-0"><strong className="block truncate text-[13px]">{record.display_name}</strong><span className="text-[11px] text-mute">{label(record.entity_type)} · deleted {formatDate(record.deleted_at)}</span></span>
                 <button type="button" disabled={isPending} onClick={() => setConfirmation({ kind: "deleted-record", entityType: record.entity_type, entityId: record.entity_id, name: record.display_name })} className="press-scale flex min-h-[34px] items-center gap-1.5 border-[1.5px] border-line px-3 text-[11px] font-bold"><RestoreIcon size={13} aria-hidden /> Restore</button>
               </div>
@@ -265,7 +265,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
             <div className="border-[1.5px] border-ink bg-paper p-4">
               <h2 className="font-display text-[16px]">Storage by backup type</h2>
               <div className="mt-3 flex flex-col gap-2 text-[12px]">
-                {["hourly", "daily", "monthly", "manual", "pre_restore", "pre_migration"].map((type) => <div key={type} className="flex justify-between border-b border-line pb-2"><span>{label(type)}</span><strong>{formatBytes(data.health.storageByType[type] ?? 0)}</strong></div>)}
+                {["hourly", "daily", "monthly", "manual", "pre_restore", "pre_migration"].map((type) => <div key={type} className="flex justify-between border-b border-line px-1 pb-2 transition-colors duration-150 hover:bg-sand/70"><span>{label(type)}</span><strong>{formatBytes(data.health.storageByType[type] ?? 0)}</strong></div>)}
                 <div className="flex justify-between pt-1"><span>Estimated 30-day storage</span><strong>{formatBytes(data.health.estimatedThirtyDayBytes)}</strong></div>
               </div>
             </div>
@@ -279,7 +279,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
 
           <div className="border-[1.5px] border-ink bg-paper">
             <div className="border-b-[1.5px] border-ink px-4 py-3"><h2 className="font-display text-[16px]">System alerts</h2></div>
-            {data.alerts.filter((alert) => !alert.resolved_at).map((alert) => <div key={alert.id} className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-3 last:border-b-0"><AlertIcon size={16} className={alert.severity === "critical" ? "text-accent" : "text-mute"} aria-hidden /><span className="mr-auto min-w-0 flex-1"><strong className="block text-[12.5px]">{alert.message}</strong><span className="text-[10.5px] text-mute">{label(alert.type)} · {formatDate(alert.created_at)}</span></span><button disabled={isPending} onClick={() => run(() => resolveAlert(alert.id), false)} className="border-[1.5px] border-line px-2.5 py-1.5 text-[10.5px] font-bold">Resolve</button></div>)}
+            {data.alerts.filter((alert) => !alert.resolved_at).map((alert) => <div key={alert.id} className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70"><AlertIcon size={16} className={alert.severity === "critical" ? "text-accent" : "text-mute"} aria-hidden /><span className="mr-auto min-w-0 flex-1"><strong className="block text-[12.5px]">{alert.message}</strong><span className="text-[10.5px] text-mute">{label(alert.type)} · {formatDate(alert.created_at)}</span></span><button disabled={isPending} onClick={() => run(() => resolveAlert(alert.id), false)} className="border-[1.5px] border-line px-2.5 py-1.5 text-[10.5px] font-bold">Resolve</button></div>)}
             {!data.alerts.some((alert) => !alert.resolved_at) ? <Empty message="No open system alerts." /> : null}
           </div>
         </section>

@@ -48,6 +48,53 @@ Reference app (read-only source of truth for conventions/schema, do not edit): `
   - **I independently re-ran `tsc --noEmit` / `eslint` / `npm run build` myself after the agent's own report** (all clean) rather than trusting its self-report alone, and spot-read every new/changed file — the `admin_package_mix()` phantom-MRR bug earlier in this file is exactly the kind of thing a "trust the agent" pass would have missed.
   - **Also discovered mid-session and resolved:** a prior background agent had run `git init`/commit/push to a real GitHub remote (`github.com/itzmeimran/admin_myfitdesk`) without being asked — caught by checking `git status`/`git remote -v`, verified no secrets were ever committed (`.env.local` never appears in any commit), flagged to and confirmed-owned by the user. Take-away for future sessions: check `git log`/`git remote -v` right after any agent that might plausibly run `git` commands, don't wait until it surfaces on its own.
 
+## Milestone: Schedule a package (migration `1014`, 2026-09-24)
+
+Closes a real gap found while auditing FitDeskApp's Subscription & Billing screen from that repo:
+its migration `0074_scheduled_subscription_package.sql` (applied live, previously undocumented in
+FitDeskApp's own CLAUDE.md) already built the full tenant-side "package queued to start when the
+current period ends" mechanism — `organization_subscriptions.pending_package_id`/
+`pending_period_start`/`pending_period_end`, a daily cron promoter, a manual "activate now" button,
+and an "Upcoming plan" card. Nothing on this side could ever populate it: `1004`'s
+`admin_change_subscription_package` reassigns `package_id` **immediately** by design (no billing
+engine to prorate), and never touches the pending columns.
+
+- **`1014_admin_schedule_subscription_package.sql`** (applied to the live project): three RPCs,
+  same SECURITY DEFINER / admin-gated / `admin_audit_log` shape as `1004`'s four —
+  `admin_schedule_subscription_package(org_id, package_id)` (validates the package is active, reads
+  the org's own `current_period_end`, sets the pending window to start there and run for the
+  package's `duration_days`), `admin_clear_scheduled_package(org_id)` (raises `'Nothing is
+  scheduled'` if there's nothing to clear), `admin_get_scheduled_package(org_id)` (the read side).
+  Both revokes applied and confirmed with `has_function_privilege` — `anon`=false,
+  `authenticated`=true on all three.
+- **`ManageSubscriptionSheet.tsx`** gained a "Schedule a package" section (between Change package
+  and Cancel): fetches current scheduled state fresh every time the sheet opens
+  (`getScheduledPackage`, a new query in `features/gyms/actions.ts`), shows a summary + Clear button
+  when something's queued, otherwise a package picker + Schedule button. Both call sites (the Gyms
+  list row menu and the Gym Detail header) needed zero changes.
+- **Deliberately scoped narrow**: the pending window always starts at the org's *own*
+  `current_period_end`, never a date the admin picks — matching `0074`'s own "shouldn't replace the
+  trial, should show as upcoming" requirement. An admin who wants a package to apply from *today*
+  instead should pair `admin_change_subscription_package` (immediate) with `admin_extend_
+  subscription`, same as `1004`'s own existing "Change package" + "Extend" pairing note already
+  advises. Not built here: surfacing "Scheduled" as a badge on the Gyms list itself (would need
+  `admin_gym_directory()`'s return signature to grow again) — the sheet's own live read is enough to
+  confirm state; a list-level indicator is a nice-to-have for later, not blocking.
+- **Verified against the live database**, impersonating the real platform admin
+  (`authenticator` + `set role authenticated` + a `request.jwt.claims` GUC, inside `begin...
+  rollback` so nothing was left behind — never a superuser shortcut, per this project's own
+  documented blind spot elsewhere): scheduling a 90-day package set `pending_period_start =
+  current_period_end` and `pending_period_end = current_period_end + 90 days` exactly; the read RPC
+  returned matching data; a non-admin was refused `insufficient_privilege`; an archived package was
+  refused; clearing with nothing scheduled raised the expected error; an unknown org raised
+  `'Subscription not found'`.
+- `npx tsc --noEmit` / `npx eslint .` both clean (one `react-hooks/set-state-in-effect` lint finding
+  in the sheet's fetch-on-open effect, resolved with a scoped inline disable — the loading-state
+  kickoff has no non-effect equivalent for a sheet that opens/closes without remounting).
+- **Not verified**: no signed-in browser pass in this admin app (schedule a package, confirm the
+  sheet's summary/Clear state, confirm it disappears once FitDeskApp's cron or "Activate now" button
+  promotes it) and no `next build` run this pass.
+
 ## Plan — prioritized, as of 2026-09-08
 
 Superseding the old flat TODO list below (kept in git history if needed). Re-check this against actual state before resuming work in a future session — items get checked off here as they land, not left to rot in a "Completed" narrative log.

@@ -342,6 +342,9 @@ export type AssignablePackage = {
   /** What a gym would actually pay today — plan_effective_price() applied,
    * so an enabled plan_offers discount is already baked in. */
   price: string;
+  /** Raw effective amount used to prefill an admin-recorded manual renewal. */
+  effectivePriceMinor: number;
+  currency: string;
   /** The undiscounted price_minor, formatted, only when it differs from
    * `price` — i.e. only when a discount is actually active. null otherwise,
    * so callers can render it struck-through instead of always showing two
@@ -384,6 +387,8 @@ export async function listAssignablePackages(supabase: SupabaseClient<Database>)
       code: row.code,
       billingPeriod: row.billing_period,
       price: formatMinorWhole(row.effective_price_minor, row.currency),
+      effectivePriceMinor: row.effective_price_minor,
+      currency: row.currency,
       listPrice: discounted ? formatMinorWhole(row.price_minor, row.currency) : null,
     };
   });

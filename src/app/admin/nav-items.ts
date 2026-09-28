@@ -3,6 +3,7 @@ import {
   GymsIcon,
   PackagesIcon,
   RevenueIcon,
+  WhatsAppIcon,
   SettingsIcon,
   DatabaseIcon,
   type IconType,
@@ -41,6 +42,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/admin/gyms", label: "Gyms", icon: GymsIcon },
   { href: "/admin/packages", label: "Packages", icon: PackagesIcon },
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon },
+  { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon },
   { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];

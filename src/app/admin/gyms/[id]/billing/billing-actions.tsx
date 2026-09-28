@@ -50,9 +50,9 @@ export function BillingActions({ gym, packages }: { gym: GymDetail; packages: As
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <ActionCard
-          title="Extend access"
-          body="Push the period end without charging. Useful during a support escalation."
-          cta="Extend"
+          title="Record paid renewal"
+          body="Choose what the gym paid for, record the offline payment and renew for that package's duration."
+          cta="Record renewal"
           icon={ExtendIcon}
           onClick={() => setOpen(true)}
         />

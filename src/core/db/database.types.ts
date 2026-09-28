@@ -1598,6 +1598,209 @@ export type Database = {
           },
         ]
       }
+      whatsapp_credit_balances: {
+        Row: {
+          balance: number
+          organization_id: string
+          purchased_total: number
+          updated_at: string
+          used_total: number
+        }
+        Insert: {
+          balance?: number
+          organization_id: string
+          purchased_total?: number
+          updated_at?: string
+          used_total?: number
+        }
+        Update: {
+          balance?: number
+          organization_id?: string
+          purchased_total?: number
+          updated_at?: string
+          used_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_credit_balances_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_credit_packages: {
+        Row: {
+          code: string
+          created_at: string
+          credits: number
+          currency: string
+          id: string
+          name: string
+          price_minor: number
+          sort_order: number
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          credits: number
+          currency?: string
+          id?: string
+          name: string
+          price_minor: number
+          sort_order?: number
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          name?: string
+          price_minor?: number
+          sort_order?: number
+          status?: string
+        }
+        Relationships: []
+      }
+      whatsapp_credit_purchases: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          credits: number
+          currency: string
+          id: string
+          initiated_by: string | null
+          organization_id: string
+          package_id: string | null
+          paid_at: string | null
+          provider: string
+          provider_metadata: Json | null
+          provider_order_id: string | null
+          provider_payment_id: string | null
+          status: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          credits: number
+          currency?: string
+          id?: string
+          initiated_by?: string | null
+          organization_id: string
+          package_id?: string | null
+          paid_at?: string | null
+          provider?: string
+          provider_metadata?: Json | null
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          credits?: number
+          currency?: string
+          id?: string
+          initiated_by?: string | null
+          organization_id?: string
+          package_id?: string | null
+          paid_at?: string | null
+          provider?: string
+          provider_metadata?: Json | null
+          provider_order_id?: string | null
+          provider_payment_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_credit_purchases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_credit_purchases_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_credit_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_credit_rates: {
+        Row: {
+          category: string
+          credits_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          credits_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          credits_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_credit_transactions: {
+        Row: {
+          balance_after: number
+          created_at: string
+          created_by: string | null
+          delta: number
+          id: string
+          message_id: string | null
+          organization_id: string
+          purchase_id: string | null
+          reason: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          created_by?: string | null
+          delta: number
+          id?: string
+          message_id?: string | null
+          organization_id: string
+          purchase_id?: string | null
+          reason: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          created_by?: string | null
+          delta?: number
+          id?: string
+          message_id?: string | null
+          organization_id?: string
+          purchase_id?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_credit_transactions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_credit_transactions_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_credit_purchases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_integrations: {
         Row: {
           business_name: string | null
@@ -1784,6 +1987,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: undefined
       }
+      admin_clear_scheduled_package: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       admin_create_gym_owner_invitation: {
         Args: {
           p_address_line?: string
@@ -1809,6 +2016,15 @@ export type Database = {
       admin_get_gym_owner_invitation: {
         Args: { p_organization_id: string }
         Returns: Json
+      }
+      admin_get_scheduled_package: {
+        Args: { p_organization_id: string }
+        Returns: {
+          package_id: string | null
+          package_name: string | null
+          period_end: string | null
+          period_start: string | null
+        }[]
       }
       admin_resend_gym_owner_invitation: {
         Args: { p_invitation_id: string }
@@ -1880,6 +2096,17 @@ export type Database = {
       }
       admin_delete_plan_feature: { Args: { p_id: string }; Returns: undefined }
       admin_delete_plan_offer: { Args: { p_id: string }; Returns: undefined }
+      admin_create_whatsapp_credit_package: {
+        Args: {
+          p_code: string
+          p_credits: number
+          p_currency?: string
+          p_name: string
+          p_price_minor: number
+          p_sort_order?: number
+        }
+        Returns: string
+      }
       admin_extend_subscription: {
         Args: {
           p_days: number
@@ -1889,6 +2116,53 @@ export type Database = {
           p_payment_note?: string
         }
         Returns: undefined
+      }
+      admin_grant_whatsapp_credits: {
+        Args: {
+          p_credits: number
+          p_note?: string
+          p_organization_id: string
+        }
+        Returns: number
+      }
+      admin_record_manual_subscription_renewal: {
+        Args: {
+          p_organization_id: string
+          p_package_id: string
+          p_payment_amount_minor: number
+          p_payment_method: string
+          p_payment_note?: string
+        }
+        Returns: boolean
+      }
+      admin_set_whatsapp_credit_package_status: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_update_whatsapp_credit_package: {
+        Args: {
+          p_credits: number
+          p_currency: string
+          p_id: string
+          p_name: string
+          p_price_minor: number
+          p_sort_order: number
+        }
+        Returns: undefined
+      }
+      admin_whatsapp_credit_gyms: {
+        Args: { p_limit?: number; p_offset?: number; p_search?: string }
+        Returns: {
+          balance: number
+          city: string | null
+          gym_code: string | null
+          gym_name: string
+          integration_status: string | null
+          organization_id: string
+          purchased_total: number
+          total_count: number
+          used_total: number
+        }[]
       }
       admin_grant_platform_admin: {
         Args: { p_email: string }
@@ -2166,6 +2440,10 @@ export type Database = {
       }
       admin_revoke_platform_admin: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      admin_schedule_subscription_package: {
+        Args: { p_organization_id: string; p_package_id: string }
         Returns: undefined
       }
       admin_set_billing_model: { Args: { p_model: string }; Returns: undefined }

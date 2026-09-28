@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             role="status"
             onClick={() => dismiss(t.id)}
-            className={`toast-in pointer-events-auto w-full max-w-sm cursor-pointer border-[1.5px] px-4 py-3 text-[12.5px] font-bold shadow-lg ${
+            className={`toast-in pointer-events-auto w-full max-w-sm cursor-pointer border-[1.5px] px-4 py-3 text-[12.5px] font-bold shadow-lg transition-opacity hover:opacity-80 ${
               t.variant === "success" ? "border-ink bg-ink text-hi" : "border-accent bg-accent/8 text-accent"
             }`}
           >

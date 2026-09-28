@@ -170,8 +170,8 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
               key={f}
               href={href}
               aria-pressed={on}
-              className={`flex min-h-[52px] flex-1 flex-col gap-0.5 border-[1.5px] px-3 py-2 ${
-                on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink"
+              className={`flex min-h-[52px] flex-1 flex-col gap-0.5 border-[1.5px] px-3 py-2 transition-colors ${
+                on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink hover:border-ink hover:bg-sand"
               }`}
               style={{ minWidth: 108 }}
             >

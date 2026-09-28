@@ -46,7 +46,7 @@ export function Dialog({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="-mr-1.5 -mt-1.5 flex h-9 w-9 flex-shrink-0 items-center justify-center text-mute"
+            className="-mr-1.5 -mt-1.5 flex h-9 w-9 flex-shrink-0 items-center justify-center text-mute transition-colors hover:bg-sand hover:text-ink"
           >
             <CancelIcon size={17} aria-hidden />
           </button>

@@ -120,7 +120,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="flex min-h-[40px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:opacity-60"
+            className="flex min-h-[40px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink transition-colors hover:border-ink hover:bg-sand disabled:opacity-60"
           >
             {cancelLabel}
           </button>
@@ -128,7 +128,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={pending || !typedConfirmationSatisfied}
-            className={`flex min-h-[40px] flex-1 items-center justify-center text-[11.5px] font-bold uppercase tracking-[0.09em] disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`press-scale flex min-h-[40px] flex-1 items-center justify-center text-[11.5px] font-bold uppercase tracking-[0.09em] disabled:cursor-not-allowed disabled:opacity-50 ${
               danger ? "bg-accent text-paper" : "bg-ink text-hi"
             }`}
           >

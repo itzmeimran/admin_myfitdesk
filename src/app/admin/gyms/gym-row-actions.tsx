@@ -63,7 +63,7 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
         onClick={() => setMenuOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        className="inline-flex min-h-[30px] items-center gap-1.5 border-[1.5px] border-line px-2.5 text-[11px] font-bold text-ink"
+        className="inline-flex min-h-[30px] items-center gap-1.5 border-[1.5px] border-line px-2.5 text-[11px] font-bold text-ink transition-colors hover:border-ink hover:bg-sand"
       >
         <ManageIcon size={13} aria-hidden />
         Manage
@@ -227,7 +227,7 @@ export function SuspendSheet({
           <button
             type="button"
             onClick={onClose}
-            className="flex min-h-[42px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
+            className="flex min-h-[42px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink transition-colors hover:border-ink hover:bg-sand"
           >
             Cancel
           </button>

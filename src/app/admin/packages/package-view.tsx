@@ -64,9 +64,9 @@ const LABEL = "text-[9px] font-bold uppercase tracking-[0.12em] text-mute";
 const INPUT =
   "w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink";
 const PRIMARY =
-  "press-scale flex min-h-[44px] items-center justify-center gap-2 bg-hi px-4 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-wait disabled:opacity-70";
+  "press-scale flex min-h-[44px] items-center justify-center gap-2 bg-hi px-4 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink transition-colors hover:bg-[#e0ae3d] disabled:cursor-wait disabled:opacity-70";
 const GHOST =
-  "flex min-h-[36px] items-center justify-center gap-1.5 border-[1.5px] border-line px-3 text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60";
+  "press-scale flex min-h-[36px] items-center justify-center gap-1.5 border-[1.5px] border-line px-3 text-[11px] font-bold text-ink transition-colors hover:border-ink hover:bg-sand disabled:cursor-wait disabled:opacity-60";
 
 /** Runs a Server Action that returns `{ error }`, toasting either way and
  * refreshing the Server Component tree on success. Every non-form button on

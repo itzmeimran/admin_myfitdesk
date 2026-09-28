@@ -41,7 +41,7 @@ export function SortLink({
     <th scope="col" className={`mfd-micro-label border-b border-line px-3 py-2.5 ${align === "right" ? "text-right" : ""} ${className}`}>
       <Link
         href={`${pathname}?${params.toString()}`}
-        className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`}
+        className={`inline-flex items-center gap-1 transition-colors hover:text-ink ${active ? "text-ink" : ""}`}
         aria-sort={active ? (currentDir === "asc" ? "ascending" : "descending") : "none"}
       >
         {children}

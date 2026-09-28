@@ -16,7 +16,7 @@ export function PageSizeSelect({ pageSize }: { pageSize: number }) {
       <span className="mfd-micro-label">Per page</span>
       <select
         value={pageSize}
-        className="min-h-[30px] border-[1.5px] border-line bg-paper px-2 text-[11.5px] font-bold text-ink outline-none"
+        className="min-h-[30px] cursor-pointer border-[1.5px] border-line bg-paper px-2 text-[11.5px] font-bold text-ink outline-none transition-colors hover:border-ink focus:border-ink"
         onChange={(e) => {
           const params = new URLSearchParams(searchParams.toString());
           params.set("pageSize", e.target.value);

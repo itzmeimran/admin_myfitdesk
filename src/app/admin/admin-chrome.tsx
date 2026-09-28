@@ -47,7 +47,7 @@ export function AdminChrome({
         type="button"
         aria-label="Open menu"
         onClick={() => setMenuOpen(true)}
-        className="-ml-2 flex h-11 w-11 flex-shrink-0 items-center justify-center text-ink md:hidden"
+        className="-ml-2 flex h-11 w-11 flex-shrink-0 items-center justify-center text-ink transition-colors hover:bg-sand md:hidden"
       >
         <MenuIcon size={20} aria-hidden />
       </button>
@@ -139,7 +139,7 @@ export function AdminChrome({
                   type="button"
                   aria-label="Close menu"
                   onClick={() => setMenuOpen(false)}
-                  className="-mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center text-mute3"
+                  className="-mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center text-mute3 transition-colors hover:bg-white/10 hover:text-paper"
                 >
                   <CancelIcon size={18} aria-hidden />
                 </button>

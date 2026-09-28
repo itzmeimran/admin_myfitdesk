@@ -141,6 +141,36 @@ html[data-admin-env="prod"] body::before {
   }
 }
 
+/* Baseline micro-interactions for every <button> in the app — the app had
+   dozens of buttons (icon-only close/dismiss buttons, dropdown menu items,
+   sheet/dialog confirm-cancel pairs) with no hover affordance and no
+   `cursor: pointer` at all, since the browser's own UA stylesheet only gives
+   that to `<a>`, never to `<button>`. Centralized here rather than added to
+   each of those call sites individually, same reasoning as `.press-scale`/
+   `.mfd-table-row` above and below. Individual buttons still layer their own
+   `hover:bg-*`/`hover:border-*` on top of this floor. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+@media (prefers-reduced-motion: no-preference) {
+  button:not(:disabled) {
+    transition:
+      filter 0.12s ease-out,
+      opacity 0.12s ease-out,
+      transform 0.1s ease-out,
+      background-color 0.12s ease-out,
+      border-color 0.12s ease-out,
+      color 0.12s ease-out;
+  }
+  button:not(:disabled):hover {
+    filter: brightness(0.94);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -196,6 +226,10 @@ html[data-admin-env="prod"] body::before {
    agrees with the button's. */
 .mfd-table-row {
   min-height: 44px;
+  transition: background-color 0.12s ease-out;
+}
+.mfd-table-row:hover {
+  background-color: color-mix(in srgb, var(--sand) 70%, transparent);
 }
 
 /* 4. 168px flex-basis for KPI tiles — the tenant app has no equivalent

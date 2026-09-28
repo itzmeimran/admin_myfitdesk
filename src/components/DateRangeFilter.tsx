@@ -28,7 +28,7 @@ export function DateRangeFilter({ fromParam = "from", toParam = "to" }: { fromPa
         value={from}
         onChange={(e) => update(fromParam, e.target.value)}
         aria-label="From date"
-        className="min-h-[36px] border-[1.5px] border-line bg-paper px-2 text-[12px] text-ink outline-none focus:border-ink"
+        className="min-h-[36px] cursor-pointer border-[1.5px] border-line bg-paper px-2 text-[12px] text-ink outline-none transition-colors hover:border-ink focus:border-ink"
       />
       <span className="text-[11px] text-mute3">to</span>
       <input
@@ -36,7 +36,7 @@ export function DateRangeFilter({ fromParam = "from", toParam = "to" }: { fromPa
         value={to}
         onChange={(e) => update(toParam, e.target.value)}
         aria-label="To date"
-        className="min-h-[36px] border-[1.5px] border-line bg-paper px-2 text-[12px] text-ink outline-none focus:border-ink"
+        className="min-h-[36px] cursor-pointer border-[1.5px] border-line bg-paper px-2 text-[12px] text-ink outline-none transition-colors hover:border-ink focus:border-ink"
       />
     </div>
   );

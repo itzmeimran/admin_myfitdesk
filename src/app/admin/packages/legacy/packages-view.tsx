@@ -130,8 +130,8 @@ export function PackagesView({
                 type="button"
                 aria-pressed={on}
                 onClick={() => setPeriod(p)}
-                className={`-ml-[1.5px] flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[11.5px] font-bold first:ml-0 ${
-                  on ? "bg-ink text-hi" : "bg-paper text-ink"
+                className={`-ml-[1.5px] flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[11.5px] font-bold transition-colors first:ml-0 ${
+                  on ? "bg-ink text-hi" : "bg-paper text-ink hover:bg-sand"
                 }`}
               >
                 <Icon size={14} aria-hidden />

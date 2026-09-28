@@ -89,7 +89,7 @@ export function SettingsView({ admins }: { admins: PlatformAdminRow[] }) {
               const status = admin.revokedAt ? "Revoked" : "Active";
               const busy = isPending && busyUserId === admin.userId;
               return (
-                <tr key={admin.userId} className="border-b border-line last:border-b-0">
+                <tr key={admin.userId} className="mfd-table-row border-b border-line last:border-b-0">
                   <td className="px-3 py-2.5 font-medium text-ink">
                     {admin.email}
                     {admin.isSelf ? <span className="ml-1.5 text-[10.5px] text-mute3">(you)</span> : null}

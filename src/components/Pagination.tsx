@@ -78,8 +78,8 @@ export function Pagination({
             aria-disabled={page <= 1}
             tabIndex={page <= 1 ? -1 : undefined}
             href={hrefWith(pathname, searchParams, { page: String(Math.max(1, page - 1)) })}
-            className={`flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-ink ${
-              page <= 1 ? "pointer-events-none cursor-not-allowed text-mute3" : ""
+            className={`flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-ink transition-colors ${
+              page <= 1 ? "pointer-events-none cursor-not-allowed text-mute3" : "hover:border-ink hover:bg-sand"
             }`}
           >
             <PrevPageIcon size={14} aria-hidden />
@@ -89,8 +89,8 @@ export function Pagination({
             aria-disabled={page >= totalPages}
             tabIndex={page >= totalPages ? -1 : undefined}
             href={hrefWith(pathname, searchParams, { page: String(Math.min(totalPages, page + 1)) })}
-            className={`flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-ink ${
-              page >= totalPages ? "pointer-events-none cursor-not-allowed text-mute3" : ""
+            className={`flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-ink transition-colors ${
+              page >= totalPages ? "pointer-events-none cursor-not-allowed text-mute3" : "hover:border-ink hover:bg-sand"
             }`}
           >
             <NextPageIcon size={14} aria-hidden />

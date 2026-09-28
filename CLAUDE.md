@@ -95,6 +95,62 @@ engine to prorate), and never touches the pending columns.
   sheet's summary/Clear state, confirm it disappears once FitDeskApp's cron or "Activate now" button
   promotes it) and no `next build` run this pass.
 
+## Milestone: Global micro-interactions pass — hover states + cursor pointer (2026-09-28)
+
+User audit: "no micro interactions like hover animation, hover effects, on buttons and table rows,
+no cursor pointer." True cause: the browser's own UA stylesheet only gives `cursor: pointer` to
+`<a>`, never to `<button>` — and this app has dozens of raw `<button>`s (icon-only close/dismiss
+buttons on `Sheet`/`Dialog`/`ConfirmDialog`, dropdown menu triggers, table-row action buttons) that
+had no `cursor-pointer` and no `hover:` class of any kind. `.press-scale` (existing, gives an
+`:active` scale-down) and per-file `hover:bg-sand/70` (added ad hoc in 2 of 9 tables — WhatsApp
+credits, disaster recovery) covered only a fraction of the app.
+
+- **Two global CSS rules in `globals.css`, not per-file edits**, matching this file's own
+  established pattern of centralizing shared behavior (`.press-scale`, `.mfd-table-row`) instead of
+  repeating it at every call site:
+  - Every `<button>` in the app now gets `cursor: pointer` (`cursor: not-allowed` while `disabled`)
+    plus a `prefers-reduced-motion`-gated hover: `filter: brightness(0.94)` with a matching
+    `transition`. This alone fixed the cursor complaint and gave every previously-bare button (Sheet/
+    Dialog close ×, ConfirmDialog Cancel/Confirm, dropdown triggers) a real hover cue with zero
+    per-file changes. The transition list explicitly includes `transform` so this rule's higher
+    specificity (`button:not(:disabled)` vs `.press-scale`'s plain class selector) doesn't silently
+    drop `.press-scale`'s own `:active` scale transition.
+  - `.mfd-table-row` (already applied to `<tr>` in 7 of 9 admin tables) gained a baked-in
+    `hover:background-color` + transition, so Gyms/Members/Team/Billing/Revenue/Overview's tables
+    all get row-hover feedback from one class definition, with a `color-mix()` `@supports` layer
+    (falls back to solid `var(--sand)`) rather than needing Tailwind's `/70` opacity syntax repeated
+    per file.
+- **Targeted fixes** where the global floor wasn't enough (an icon-only ghost button needs a visible
+  bg change, not just a subtle brightness dip, and non-`<button>` clickables don't inherit the global
+  rule at all): `Sheet`/`Dialog` close buttons, `ConfirmDialog`'s Cancel/Confirm pair, `Pagination`'s
+  prev/next links, `FilterSelect`/`PageSizeSelect`/`DateRangeFilter` (cursor + hover border on
+  `<select>`/`<input type=date>`, which don't get the button rule), the Gyms status-filter chips
+  (`<Link>` cards, inactive state had zero hover), `Toast`'s dismiss `<div>` (not a button, needed its
+  own `hover:opacity-80`), the Gyms row "Manage" dropdown trigger + its Suspend sheet's Cancel button,
+  the mobile header's hamburger/drawer-close buttons, the legacy Packages Monthly/Yearly toggle, and
+  the one-package screen's shared `PRIMARY`/`GHOST` button constants (fixes every button built from
+  them in one edit, same leverage reasoning as the CSS-level changes).
+- `settings-view.tsx`'s admin-roster table row switched from a bare `border-b` `<tr>` to the shared
+  `.mfd-table-row` class, so its table matches every other admin table instead of being the one with
+  no row-hover at all.
+- **Verified live**, not just reasoned about: `npx tsc --noEmit` / `npx eslint .` both clean; started
+  the dev server in the Browser pane preview and confirmed against the real rendered `/login` page —
+  `getComputedStyle()` on the Sign In button showed `cursor: pointer` and the new transition list, a
+  real hover screenshot showed the button visibly darken, and `document.styleSheets` inspection
+  confirmed both new CSS rules (including the `color-mix()`/`@supports` fallback) compiled into the
+  actual stylesheet Tailwind/PostCSS produced. Could not sign in and screenshot a real data table row
+  hovering — this session's `.env.local` has no `NEXT_PUBLIC_SUPABASE_*_DEV`/`_PROD` values, the same
+  "no live Supabase access this session" gap several earlier milestones in this file recorded — but
+  the CSS rule that drives that hover was confirmed compiled and matches the exact class every table's
+  `<tr>` already carries, so the remaining risk is materially lower than an unexecuted RPC.
+- **Not done, deliberately out of scope for this pass**: focus-visible outlines/keyboard-navigation
+  affordances (the user asked specifically about hover/cursor, not keyboard a11y — worth a separate
+  pass if raised); the mobile bottom-tab nav links (no hover concept on touch, left as-is); every
+  remaining one-off `<button>` in less-trafficked screens (WhatsApp credits, disaster recovery,
+  Invite gym owner's billing-mode radios, gym-detail action buttons) — these already inherit the
+  global cursor+brightness-hover floor from the CSS-level fix, just without a hand-tuned second-layer
+  hover on top of it the way the highest-traffic controls above got.
+
 ## Plan — prioritized, as of 2026-09-08
 
 Superseding the old flat TODO list below (kept in git history if needed). Re-check this against actual state before resuming work in a future session — items get checked off here as they land, not left to rot in a "Completed" narrative log.

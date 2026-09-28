@@ -37,7 +37,7 @@ export function FilterSelect({
     <select
       value={current}
       onChange={(e) => onChange(e.target.value)}
-      className={`min-h-[36px] border-[1.5px] border-line bg-paper px-2.5 text-[12px] font-bold text-ink outline-none focus:border-ink ${className}`}
+      className={`min-h-[36px] cursor-pointer border-[1.5px] border-line bg-paper px-2.5 text-[12px] font-bold text-ink outline-none transition-colors hover:border-ink focus:border-ink ${className}`}
     >
       <option value="">{placeholder}</option>
       {options.map((o) => (

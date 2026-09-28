@@ -54,7 +54,7 @@ export function Sheet({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="-mr-2 -mt-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-mute3 md:text-mute"
+            className="-mr-2 -mt-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-mute3 transition-colors hover:bg-white/10 hover:text-paper md:text-mute md:hover:bg-sand md:hover:text-ink"
           >
             <CancelIcon size={18} aria-hidden />
           </button>
@@ -89,8 +89,8 @@ export function SheetRow({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[52px] items-center gap-3 border-[1.5px] px-3.5 py-2.5 text-left ${
-        active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-ink"
+      className={`flex min-h-[52px] items-center gap-3 border-[1.5px] px-3.5 py-2.5 text-left transition-colors ${
+        active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-ink hover:border-ink hover:bg-sand"
       }`}
     >
       {Icon ? <Icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden /> : null}

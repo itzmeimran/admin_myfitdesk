@@ -41,6 +41,41 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_gym_notes: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          organization_id: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          organization_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_gym_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -1960,6 +1995,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_gym_note: {
+        Args: { p_category?: string; p_content: string; p_organization_id: string }
+        Returns: string
+      }
       admin_assignable_packages: {
         Args: never
         Returns: {
@@ -2248,6 +2287,31 @@ export type Database = {
       admin_gym_detail: {
         Args: { p_organization_id: string }
         Returns: Json
+      }
+      admin_gym_overview: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      admin_gym_whatsapp_messages: {
+        Args: { p_limit?: number; p_offset?: number; p_organization_id: string; p_status?: string }
+        Returns: {
+          category: string
+          created_at: string
+          credits_used: number
+          delivered_at: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          meta_message_id: string | null
+          phone_number_e164: string
+          read_at: string | null
+          recipient: string
+          sender_mode: string | null
+          sent_at: string | null
+          status: string
+          template: string
+          total_count: number
+        }[]
       }
       admin_gym_directory: {
         Args: never

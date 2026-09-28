@@ -18,8 +18,14 @@ export default function GymDetailLoading() {
           <SkeletonBlock className="h-[11px] w-[280px]" />
         </div>
       </div>
+      <SkeletonBlock className="h-[54px] w-full" />
       <SkeletonTiles count={4} />
-      <SkeletonTable rows={6} cols={5} />
+      <SkeletonTiles count={5} />
+      <SkeletonTable rows={7} cols={5} />
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <SkeletonBlock className="h-[180px] w-full" />
+        <SkeletonBlock className="h-[180px] w-full" />
+      </div>
     </div>
   );
 }

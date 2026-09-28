@@ -7,6 +7,7 @@ import { getGymOwnerInvitation } from "@/features/gyms/onboarding";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { BackIcon, AlertIcon } from "@/core/ui/icons";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
+import { daysBetween } from "@/core/dates/format";
 import { GymDetailActions } from "./gym-detail-actions";
 import { GymDetailTabs } from "./gym-detail-tabs";
 import { OwnerInvitationCard } from "./owner-invitation-card";
@@ -41,7 +42,6 @@ export default async function GymDetailLayout({
 
   if (!gym) notFound();
 
-  const location = [gym.city, gym.state, gym.country].filter(Boolean).join(", ") || "—";
   const initials = gym.name
     .split(/\s+/)
     .filter(Boolean)
@@ -54,6 +54,11 @@ export default async function GymDetailLayout({
     year: "numeric",
   });
   const billingLabel = capitalizeBillingPeriod(gym.subscription?.billingPeriod);
+  const expiry = gym.subscription?.currentPeriodEnd ? new Date(gym.subscription.currentPeriodEnd) : null;
+  const remaining = expiry ? daysBetween(new Date(), expiry) : null;
+  const expiryLabel = expiry
+    ? expiry.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: gym.defaultTimezone })
+    : null;
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -108,23 +113,21 @@ export default async function GymDetailLayout({
                 {gym.status}
               </span>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-mute">
-              <span>{location}</span>
-              <span>Enrolled since {enrolledSince}</span>
-              <span className="font-mono text-[11px] text-mute3">{gym.gymCode}</span>
-            </div>
-            <p className="text-[12px] text-mute">
+            <p className="text-[12.5px] text-mute">
               <span className="font-bold text-ink">
                 {gym.subscription?.packageName ?? (gym.status === "Trialing" ? "Trial (no package)" : "No package")}
               </span>{" "}
               · {billingLabel}
-              {gym.owner ? (
-                <>
-                  {" · "}
-                  {gym.owner.name} ({gym.owner.email})
-                </>
-              ) : null}
+              {expiryLabel ? ` · Expires ${expiryLabel}` : ""}
+              {remaining !== null ? ` · ${remaining < 0 ? `${Math.abs(remaining)} days overdue` : `${remaining} days remaining`}` : ""}
             </p>
+            <div className="grid grid-cols-1 gap-x-5 gap-y-1 text-[11.5px] text-mute sm:grid-cols-2 xl:grid-cols-4">
+              <span><strong className="text-ink2">Owner:</strong> {gym.owner?.name ?? "Not assigned"}</span>
+              <span><strong className="text-ink2">Phone:</strong> {gym.owner?.phone ?? gym.contactPhone ?? "—"}</span>
+              <span className="min-w-0 truncate"><strong className="text-ink2">Email:</strong> {gym.owner?.email ?? gym.contactEmail ?? "—"}</span>
+              <span><strong className="text-ink2">Gym ID:</strong> <span className="font-mono text-[10.5px]">{gym.gymCode}</span></span>
+              <span className="sm:col-span-2 xl:col-span-4"><strong className="text-ink2">Joined:</strong> {enrolledSince}</span>
+            </div>
           </div>
           <GymDetailActions gym={gym} packages={packages} />
         </div>

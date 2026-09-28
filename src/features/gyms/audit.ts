@@ -51,6 +51,7 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   "package.update": "Package updated",
   "package.archive": "Package archived",
   "package.restore": "Package restored",
+  "admin_note.added": "Admin note added",
 };
 
 export async function getGymAuditLog(

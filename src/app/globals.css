@@ -241,3 +241,39 @@ button:disabled,
   flex: 1 1 168px;
   min-width: 0;
 }
+
+/* Match FitDeskApp's proven readability floor. Small operational labels in
+   the admin had accumulated arbitrary 8–11.5px utilities; they were
+   especially faint on a phone. Unlayered rules intentionally outrank
+   Tailwind's utility layer. */
+.text-\[8px\],
+.text-\[8\.5px\],
+.text-\[9px\],
+.text-\[9\.5px\],
+.text-\[10px\],
+.text-\[10\.5px\],
+.text-\[11px\],
+.text-\[11\.5px\] {
+  font-size: 12px;
+}
+
+@media (max-width: 767px) {
+  .text-\[8px\],
+  .text-\[8\.5px\],
+  .text-\[9px\],
+  .text-\[9\.5px\],
+  .text-\[10px\],
+  .text-\[10\.5px\],
+  .text-\[11px\],
+  .text-\[11\.5px\] {
+    font-size: 13px;
+  }
+}
+
+/* A consistent keyboard focus treatment was missing from several custom
+   buttons and links. It also gives touch/keyboard interactions a clearer
+   sense of state without changing the visual language. */
+:where(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

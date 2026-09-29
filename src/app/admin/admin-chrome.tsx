@@ -7,7 +7,7 @@ import { signOut } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { MenuIcon, CancelIcon, SignOutIcon, SearchIcon, NudgeIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
-import { NAV_ITEMS } from "./nav-items";
+import { MOBILE_NAV_ITEMS, NAV_ITEMS } from "./nav-items";
 import { EnvironmentPill } from "./environment-pill";
 
 /**
@@ -21,10 +21,10 @@ import { EnvironmentPill } from "./environment-pill";
  * `menuOpen` state; the search input and bell are stateless today but live
  * here too since the design specs them as part of the same header row.
  *
- * The search input and alerts bell are both visual-only in the design (no
- * bound state, no onClick) — disabled here with a clear title rather than
- * faking a filter or a dropdown that doesn't exist yet, per the "don't fake
- * unwired functionality" rule.
+ * The desktop search submits to the real server-filtered Gyms directory.
+ * The alert icon links to Overview's live "Needs attention" band when a
+ * badge exists and becomes a quiet status indicator at zero, so neither
+ * control presents a dead interaction.
  */
 export function AdminChrome({
   email,
@@ -60,55 +60,63 @@ export function AdminChrome({
         <EnvironmentPill compact />
       </div>
 
-      {/* Desktop-only search — inert, see docblock. */}
-      <label className="hidden w-[230px] items-center gap-2 border-[1.5px] border-line bg-paper px-2.5 md:flex" style={{ minHeight: 34 }}>
+      <form
+        action="/admin/gyms"
+        method="get"
+        role="search"
+        className="hidden w-[230px] items-center gap-2 border-[1.5px] border-line bg-paper px-2.5 transition-colors focus-within:border-ink md:flex"
+        style={{ minHeight: 34 }}
+      >
         <SearchIcon size={15} className="text-mute2" aria-hidden />
         <input
           type="text"
-          placeholder="Search gyms, owners, invoices"
-          disabled
-          title="Not implemented yet"
-          className="w-full border-0 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-mute2 disabled:cursor-not-allowed"
+          name="q"
+          aria-label="Search gyms, owners or city"
+          placeholder="Search gyms, owners or city"
+          className="w-full border-0 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-mute2"
         />
-      </label>
+      </form>
 
-      <button
-        type="button"
-        aria-label={`Alerts, ${alertsCount} unread`}
-        disabled
-        title="Not implemented yet"
-        className="relative flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink bg-paper text-ink disabled:cursor-not-allowed disabled:opacity-90"
-      >
-        <NudgeIcon size={16} aria-hidden />
-        {/* Grace + read-only subscriptions (AdminChromeCounts.alertsCount) —
-            there's no alerts dropdown behind this yet (button stays
-            disabled), so the badge only shows when there's actually
-            something to flag rather than always rendering a number. */}
-        {alertsCount > 0 ? (
+      {alertsCount > 0 ? (
+        <Link
+          href="/admin#mfd-attn"
+          aria-label={`View ${alertsCount} accounts needing attention`}
+          title="View accounts needing attention"
+          className="press-scale relative flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink bg-paper text-ink"
+        >
+          <NudgeIcon size={16} aria-hidden />
           <span className="absolute -right-[7px] -top-[7px] flex h-[17px] min-w-[17px] items-center justify-center bg-accent px-1 text-[9.5px] font-bold text-paper">
             {alertsCount}
           </span>
-        ) : null}
-      </button>
+        </Link>
+      ) : (
+        <span
+          aria-label="No accounts currently need attention"
+          title="No accounts need attention"
+          className="relative flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-line bg-paper text-mute3"
+        >
+          <NudgeIcon size={16} aria-hidden />
+        </span>
+      )}
 
       <span className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink text-[11px] font-bold md:hidden">
         {initials}
       </span>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t-[1.5px] border-ink bg-paper md:hidden">
-        {NAV_ITEMS.map((item) => {
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t-[1.5px] border-ink bg-paper md:hidden" aria-label="Primary mobile navigation">
+        {MOBILE_NAV_ITEMS.map((item) => {
           const badge = badgeFor(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
-              className={`relative flex min-h-[54px] flex-col items-center justify-center gap-1 px-0.5 ${
+              className={`relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 px-0.5 transition-colors ${
                 isActive(item.href) ? "bg-ink text-hi" : "text-mute"
               }`}
             >
               <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
-              <span className="text-[9.5px] font-bold leading-none">
+              <span className="text-center text-[11px] font-bold leading-[1.05]">
                 {item.label === "Platform revenue" ? "Revenue" : item.label}
               </span>
               {badge ? (

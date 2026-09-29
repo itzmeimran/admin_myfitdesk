@@ -6,15 +6,22 @@ import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
 import { SearchBox } from "@/components/SearchBox";
 import { Pagination } from "@/components/Pagination";
-import { formatMinorWhole, toMinorUnits } from "@/core/money/format";
-import { AddIcon, ArchiveIcon, EditIcon, RestoreIcon, WhatsAppIcon } from "@/core/ui/icons";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { formatMinor, formatMinorWhole, toMinorUnits } from "@/core/money/format";
+import { AddIcon, ArchiveIcon, EditIcon, RestoreIcon, SettingsIcon, WhatsAppIcon } from "@/core/ui/icons";
 import {
   createWhatsAppCreditPackage,
   grantWhatsAppCredits,
+  setWhatsAppMetaCostRate,
   setWhatsAppCreditPackageStatus,
   updateWhatsAppCreditPackage,
 } from "./actions";
-import type { WhatsAppCreditGym, WhatsAppCreditPackage } from "./queries";
+import type {
+  WhatsAppCreditGym,
+  WhatsAppCreditPackage,
+  WhatsAppMetaCategory,
+  WhatsAppProfitability,
+} from "./queries";
 
 const INPUT =
   "w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink disabled:bg-sand disabled:text-mute";
@@ -51,6 +58,7 @@ export function WhatsAppCreditsView({
   page,
   pageSize,
   searchParams,
+  profitability,
 }: {
   packages: WhatsAppCreditPackage[];
   gyms: WhatsAppCreditGym[];
@@ -58,10 +66,12 @@ export function WhatsAppCreditsView({
   page: number;
   pageSize: number;
   searchParams: Record<string, string | string[] | undefined>;
+  profitability: WhatsAppProfitability;
 }) {
   const mutation = useMutation();
   const [editing, setEditing] = useState<WhatsAppCreditPackage | "new" | null>(null);
   const [granting, setGranting] = useState<WhatsAppCreditGym | null>(null);
+  const [ratesOpen, setRatesOpen] = useState(false);
   const activePackages = packages.filter((item) => item.status === "active");
 
   return (
@@ -82,6 +92,111 @@ export function WhatsAppCreditsView({
           <AddIcon size={14} aria-hidden /> New credit package
         </button>
       </div>
+
+      <section className="flex flex-col gap-3 border-t-2 border-ink pt-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-[18px]">WhatsApp usage &amp; profitability</h2>
+            <p className="mt-0.5 max-w-3xl text-[11.5px] leading-relaxed text-mute">
+              Recharge income versus estimated Meta cost for MyFitDesk-managed sends. A gym&apos;s own WABA usage is
+              shown separately because that Meta bill belongs to the gym.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangeFilter />
+            <button
+              type="button"
+              onClick={() => setRatesOpen(true)}
+              className="press-scale flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink bg-paper px-3 text-[10.5px] font-bold uppercase tracking-[0.08em] text-ink"
+            >
+              <SettingsIcon size={13} aria-hidden /> Meta rates
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-6">
+          <EconomicsTile
+            label="Recharge income"
+            value={formatMinor(profitability.rechargeIncomeMinor, profitability.currency)}
+            detail={`${profitability.rechargeCount.toLocaleString("en-IN")} successful recharges`}
+            emphasis
+          />
+          <EconomicsTile
+            label="Estimated Meta cost"
+            value={formatMinor(profitability.estimatedMetaCostMinor, profitability.currency)}
+            detail={`${profitability.managedMessages.toLocaleString("en-IN")} managed sends`}
+          />
+          <EconomicsTile
+            label="Estimated gross margin"
+            value={formatMinor(profitability.grossMarginMinor, profitability.currency)}
+            detail={profitability.marginPercent === null ? "No recharge income in range" : `${profitability.marginPercent.toFixed(1)}% margin`}
+            accent={profitability.grossMarginMinor < 0}
+          />
+          <EconomicsTile
+            label="Credits sold"
+            value={profitability.creditsSold.toLocaleString("en-IN")}
+            detail="From successful recharges"
+          />
+          <EconomicsTile
+            label="Credits consumed"
+            value={profitability.creditsUsed.toLocaleString("en-IN")}
+            detail={`${profitability.creditChargeEvents.toLocaleString("en-IN")} charged sends`}
+          />
+          <EconomicsTile
+            label="Own WABA sends"
+            value={profitability.ownWabaMessages.toLocaleString("en-IN")}
+            detail="Excluded from your Meta cost"
+          />
+        </div>
+
+        {profitability.unpricedMessages > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-[1.5px] border-hi bg-hi/15 px-3 py-2.5 text-[11.5px] text-ink">
+            <span>
+              <strong>{profitability.unpricedMessages.toLocaleString("en-IN")} managed messages</strong> have no
+              effective Meta rate, so the cost and margin shown above are understated.
+            </span>
+            <button type="button" onClick={() => setRatesOpen(true)} className="font-bold text-accent underline underline-offset-2">
+              Configure rates
+            </button>
+          </div>
+        ) : null}
+
+        <div className="overflow-x-auto border-[1.5px] border-line bg-paper">
+          <table className="w-full min-w-[680px] border-collapse text-[12px]">
+            <thead>
+              <tr className="text-left">
+                <th className="mfd-micro-label border-b border-line px-3 py-2.5">Category</th>
+                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Current Meta rate</th>
+                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Managed sends</th>
+                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Delivered / read</th>
+                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Estimated cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {profitability.categories.map((row) => (
+                <tr key={row.category} className="mfd-table-row">
+                  <td className="border-b border-line px-3 py-2.5 font-bold capitalize">{row.category}</td>
+                  <td className="border-b border-line px-3 py-2.5 text-right">
+                    {row.currentRateMinor === null ? (
+                      <button type="button" onClick={() => setRatesOpen(true)} className="font-bold text-accent underline underline-offset-2">Not set</button>
+                    ) : (
+                      <><strong>{formatMetaRate(row.currentRateMinor, profitability.currency)}</strong><span className="block text-[10px] text-mute">per accepted message</span></>
+                    )}
+                  </td>
+                  <td className="border-b border-line px-3 py-2.5 text-right">{row.messages.toLocaleString("en-IN")}</td>
+                  <td className="border-b border-line px-3 py-2.5 text-right text-mute">{row.delivered.toLocaleString("en-IN")}</td>
+                  <td className="border-b border-line px-3 py-2.5 text-right font-bold">{formatMinor(row.estimatedCostMinor, profitability.currency)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[10.5px] leading-relaxed text-mute3">
+          Meta payable is an estimate: the Cloud API records message lifecycle data, not invoice amounts. Rates are
+          effective-dated, and historical sends keep using the rate that applied when they were sent. Reconcile the
+          final amount against Meta&apos;s invoice before accounting close.
+        </p>
+      </section>
 
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -214,8 +329,23 @@ export function WhatsAppCreditsView({
 
       <PackageSheet packageValue={editing} onClose={() => setEditing(null)} />
       <GrantSheet gym={granting} packages={activePackages} onClose={() => setGranting(null)} />
+      <MetaRatesSheet open={ratesOpen} profitability={profitability} onClose={() => setRatesOpen(false)} />
     </div>
   );
+}
+
+function EconomicsTile({ label, value, detail, emphasis, accent }: { label: string; value: string; detail: string; emphasis?: boolean; accent?: boolean }) {
+  return (
+    <div className={`flex min-w-0 flex-col gap-1 border-[1.5px] p-3.5 ${emphasis ? "border-ink bg-ink text-paper" : "border-line bg-paper"}`}>
+      <span className={`text-[9.5px] font-bold uppercase tracking-[0.1em] ${emphasis ? "text-mute3" : "text-mute"}`}>{label}</span>
+      <strong className={`font-display text-[20px] tracking-[-0.02em] ${accent ? "text-accent" : emphasis ? "text-hi" : "text-ink"}`}>{value}</strong>
+      <span className={`text-[10.5px] ${emphasis ? "text-mute3" : "text-mute"}`}>{detail}</span>
+    </div>
+  );
+}
+
+function formatMetaRate(minor: number, currency: string) {
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(minor / 100);
 }
 
 function PackageSheet({
@@ -285,6 +415,108 @@ function PackageSheet({
       <button type="button" disabled={mutation.isPending} onClick={save} className="flex min-h-[40px] items-center justify-center bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:opacity-60">
         {mutation.busyKey === "save-package" ? "Saving…" : pkg ? "Save package" : "Create package"}
       </button>
+    </Sheet>
+  );
+}
+
+function MetaRatesSheet({
+  open,
+  profitability,
+  onClose,
+}: {
+  open: boolean;
+  profitability: WhatsAppProfitability;
+  onClose: () => void;
+}) {
+  const mutation = useMutation();
+  const categories: WhatsAppMetaCategory[] = ["utility", "marketing", "authentication"];
+  const [rates, setRates] = useState<Record<WhatsAppMetaCategory, string>>({ utility: "", marketing: "", authentication: "" });
+  const [effectiveDate, setEffectiveDate] = useState(() => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date()));
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setRates({ utility: "", marketing: "", authentication: "" });
+      setEffectiveDate(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date()));
+    }
+  }
+
+  function save() {
+    const valid: Array<{ category: WhatsAppMetaCategory; costMinor: number }> = [];
+    let validationError: string | null = null;
+    for (const category of categories) {
+      const raw = rates[category].trim();
+      if (!raw) continue;
+      if (!/^\d+(\.\d{1,4})?$/.test(raw)) {
+        validationError = `${category}: use up to four decimal places.`;
+        break;
+      }
+      const costMinor = Number(raw) * 100;
+      if (!Number.isFinite(costMinor) || costMinor <= 0) {
+        validationError = `${category}: rate must be greater than zero.`;
+        break;
+      }
+      valid.push({ category, costMinor });
+    }
+    if (validationError) {
+      mutation.run("rate-validation", async () => ({ error: validationError }), "");
+      return;
+    }
+    if (!valid.length) {
+      mutation.run("rate-validation", async () => ({ error: "Enter at least one Meta rate to update." }), "");
+      return;
+    }
+    const effectiveFrom = new Date(`${effectiveDate}T00:00:00+05:30`).toISOString();
+    mutation.run(
+      "save-rates",
+      async () => {
+        for (const item of valid) {
+          const result = await setWhatsAppMetaCostRate(item.category, item.costMinor, profitability.currency, effectiveFrom);
+          if (result.error) return result;
+        }
+        return { error: null };
+      },
+      `${valid.length} Meta ${valid.length === 1 ? "rate" : "rates"} added.`,
+      onClose,
+    );
+  }
+
+  return (
+    <Sheet open={open} onClose={onClose} eyebrow="Effective-dated cost model" title="Update Meta rates">
+      <div className="flex flex-col gap-4">
+        <p className="text-[11.5px] leading-relaxed text-mute">
+          Enter the amount Meta charges MyFitDesk for one accepted managed-sender message. Leave a category blank to
+          keep its current rate. New rates do not rewrite historical estimates.
+        </p>
+        <label className={LABEL}>
+          Effective from
+          <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={INPUT} />
+        </label>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {categories.map((category) => {
+            const current = profitability.categories.find((row) => row.category === category)?.currentRateMinor ?? null;
+            return (
+              <label key={category} className={LABEL}>
+                <span className="capitalize">{category}</span>
+                <input
+                  inputMode="decimal"
+                  value={rates[category]}
+                  onChange={(e) => setRates({ ...rates, [category]: e.target.value })}
+                  placeholder={current === null ? `Amount in ${profitability.currency}` : `Current ${formatMetaRate(current, profitability.currency)}`}
+                  className={INPUT}
+                />
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-[10.5px] leading-relaxed text-mute3">
+          Use the per-message amount from Meta&apos;s current India rate card or your invoice allocation. Taxes and
+          foreign-exchange differences may make the final invoice vary from this estimate.
+        </p>
+        <button type="button" disabled={mutation.isPending || !effectiveDate} onClick={save} className="flex min-h-[42px] items-center justify-center bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:opacity-60">
+          {mutation.busyKey === "save-rates" ? "Saving rates…" : "Save effective rates"}
+        </button>
+      </div>
     </Sheet>
   );
 }

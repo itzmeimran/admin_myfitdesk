@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
+import type { WhatsAppMetaCategory } from "./queries";
 
 type ActionResult = { error: string | null };
 
@@ -99,4 +100,34 @@ export async function grantWhatsAppCredits(
   if (error) return { error: error.message };
   revalidateCredits();
   return { error: null, balance: data };
+}
+
+export async function setWhatsAppMetaCostRate(
+  category: WhatsAppMetaCategory,
+  costMinor: number,
+  currency = "INR",
+  effectiveFrom?: string,
+): Promise<ActionResult> {
+  const parsed = z
+    .object({
+      category: z.enum(["utility", "marketing", "authentication"]),
+      // Numeric rather than integer on purpose: Meta rates can be a fraction
+      // of the currency's smallest unit after conversion/tax allocation.
+      costMinor: z.number().positive("Meta unit cost must be positive.").max(10_000_000),
+      currency: z.string().trim().regex(/^[A-Za-z]{3}$/, "Use a three-letter currency code."),
+      effectiveFrom: z.string().datetime().optional(),
+    })
+    .safeParse({ category, costMinor, currency, effectiveFrom });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the Meta rate." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_whatsapp_meta_cost_rate", {
+    p_category: parsed.data.category,
+    p_cost_minor: parsed.data.costMinor,
+    p_currency: parsed.data.currency.toUpperCase(),
+    p_effective_from: parsed.data.effectiveFrom,
+  });
+  if (error) return { error: error.message };
+  revalidateCredits();
+  return { error: null };
 }

@@ -39,6 +39,7 @@ export type SubscriptionSheetGym = {
   periodLabel: string;
   renewsLabel: string;
   isCancelled: boolean;
+  isTrialing: boolean;
   /** migration 1013 — a package already queued for this gym, shown so an
    * admin doesn't schedule a second one without realising one exists, and
    * given a way to clear it. Null when nothing is queued. */
@@ -68,7 +69,7 @@ export function ManageSubscriptionSheet({
   const environment = useAdminEnvironment();
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState<"renew" | "extend" | "package" | "clear" | "lifecycle" | "schedule" | "clear-schedule" | null>(null);
-  const [days, setDays] = useState("7");
+  const [days, setDays] = useState(gym.isTrialing ? "14" : "7");
   const initialRenewalPackage = packages.find((p) => p.id === gym.packageId) ?? packages[0];
   const [renewalPackageId, setRenewalPackageId] = useState(initialRenewalPackage?.id ?? "");
   const [paymentAmount, setPaymentAmount] = useState(
@@ -129,9 +130,14 @@ export function ManageSubscriptionSheet({
   }
 
   return (
-    <Sheet open={open} onClose={onClose} eyebrow="Writes to organization_subscriptions" title={`Manage ${gym.name}`}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      eyebrow={gym.isTrialing ? "Trial access" : "Writes to organization_subscriptions"}
+      title={gym.isTrialing ? `Extend ${gym.name}'s trial` : `Manage ${gym.name}`}
+    >
       <div className="flex flex-col gap-4">
-        <p className="text-[11.5px] leading-relaxed text-mute">
+        <p className="order-first text-[11.5px] leading-relaxed text-mute">
           {gym.packageLabel} · {gym.periodLabel} · Renews {gym.renewsLabel}
         </p>
 
@@ -207,8 +213,25 @@ export function ManageSubscriptionSheet({
           </button>
         </div>
 
-        <div className="flex flex-col gap-2 border-t border-line pt-3">
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Free / goodwill extension</span>
+        <div className={`order-first flex flex-col gap-2 border-[1.5px] p-3 ${gym.isTrialing ? "border-hi bg-hi/10" : "border-line bg-paper"}`}>
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
+            {gym.isTrialing ? "Extend trial" : "Free / goodwill extension"}
+          </span>
+          {gym.isTrialing ? (
+            <div className="flex flex-wrap gap-1.5" aria-label="Common trial extensions">
+              {[7, 14, 30].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setDays(String(value))}
+                  aria-pressed={days === String(value)}
+                  className={`min-h-[32px] border px-3 text-[10.5px] font-bold ${days === String(value) ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink"}`}
+                >
+                  +{value} days
+                </button>
+              ))}
+            </div>
+          ) : null}
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -218,9 +241,15 @@ export function ManageSubscriptionSheet({
               onChange={(e) => setDays(e.target.value)}
               className="w-20 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
             />
-            <span className="text-[11.5px] text-mute">days from today (or the current renewal date, if later)</span>
+            <span className="text-[11.5px] text-mute">
+              days added after the current {gym.isTrialing ? "trial end" : "renewal date"} (or from today if already expired)
+            </span>
           </div>
-          <p className="text-[10.5px] text-mute3">Moves access only. It deliberately creates no invoice or revenue.</p>
+          <p className="text-[10.5px] text-mute3">
+            {gym.isTrialing
+              ? "Keeps the subscription in Trialing status and records the exact before/after dates in the admin audit log. No invoice or revenue is created."
+              : "Moves access only. It deliberately creates no invoice or revenue."}
+          </p>
           <button
             type="button"
             disabled={isPending}
@@ -230,12 +259,16 @@ export function ManageSubscriptionSheet({
                 toast.error("Days must be a positive whole number.");
                 return;
               }
-              run("extend", () => extendSubscription(gym.organizationId, n), "Subscription extended without payment.");
+              run(
+                "extend",
+                () => extendSubscription(gym.organizationId, n),
+                gym.isTrialing ? `Trial extended by ${n} days.` : "Subscription extended without payment.",
+              );
             }}
             className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
           >
             <ExtendIcon size={13} aria-hidden />
-            {busy === "extend" ? "Extending…" : "Extend without payment"}
+            {busy === "extend" ? "Extending…" : gym.isTrialing ? `Extend trial by ${days || "…"} days` : "Extend without payment"}
           </button>
         </div>
 

@@ -46,3 +46,17 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];
+
+/** The five high-frequency destinations that fit a phone navigation bar.
+ * Packages and Recovery stay available in the hamburger drawer; duplicating
+ * every desktop destination into the bottom bar made seven cramped targets
+ * with unreadable labels. */
+const MOBILE_NAV_HREFS = new Set([
+  "/admin",
+  "/admin/gyms",
+  "/admin/revenue",
+  "/admin/whatsapp-credits",
+  "/admin/settings",
+]);
+
+export const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => MOBILE_NAV_HREFS.has(item.href));

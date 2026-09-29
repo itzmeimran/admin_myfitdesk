@@ -30,6 +30,7 @@ export function BillingActions({ gym, packages }: { gym: GymDetail; packages: As
       ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
       : "—",
     isCancelled,
+    isTrialing: gym.status === "Trialing",
     pending: sub?.pending
       ? {
           packageLabel: sub.pending.packageName ?? "Package",
@@ -50,9 +51,9 @@ export function BillingActions({ gym, packages }: { gym: GymDetail; packages: As
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <ActionCard
-          title="Record paid renewal"
-          body="Choose what the gym paid for, record the offline payment and renew for that package's duration."
-          cta="Record renewal"
+          title={gym.status === "Trialing" ? "Extend trial" : "Record paid renewal"}
+          body={gym.status === "Trialing" ? "Add 7, 14 or 30 days without creating an invoice or revenue." : "Choose what the gym paid for, record the offline payment and renew for that package's duration."}
+          cta={gym.status === "Trialing" ? "Extend trial" : "Record renewal"}
           icon={ExtendIcon}
           onClick={() => setOpen(true)}
         />

@@ -1785,6 +1785,36 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_meta_cost_rates: {
+        Row: {
+          category: string
+          cost_minor: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          effective_from: string
+          id: string
+        }
+        Insert: {
+          category: string
+          cost_minor: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string
+          id?: string
+        }
+        Update: {
+          category?: string
+          cost_minor?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          effective_from?: string
+          id?: string
+        }
+        Relationships: []
+      }
       whatsapp_credit_transactions: {
         Row: {
           balance_after: number
@@ -2178,6 +2208,15 @@ export type Database = {
         Args: { p_id: string; p_status: string }
         Returns: undefined
       }
+      admin_set_whatsapp_meta_cost_rate: {
+        Args: {
+          p_category: string
+          p_cost_minor: number
+          p_currency?: string
+          p_effective_from?: string
+        }
+        Returns: string
+      }
       admin_update_whatsapp_credit_package: {
         Args: {
           p_credits: number
@@ -2202,6 +2241,10 @@ export type Database = {
           total_count: number
           used_total: number
         }[]
+      }
+      admin_whatsapp_profitability: {
+        Args: { p_currency?: string; p_from: string; p_to: string }
+        Returns: Json
       }
       admin_grant_platform_admin: {
         Args: { p_email: string }

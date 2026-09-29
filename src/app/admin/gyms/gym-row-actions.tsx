@@ -48,6 +48,7 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
     periodLabel: gym.period,
     renewsLabel: gym.renews,
     isCancelled: gym.status === "Cancelled",
+    isTrialing: gym.status === "Trialing",
     // admin_gyms_list()/admin_gym_directory() (this row's own source) don't
     // carry the queued-package fields admin_gym_detail() does — the sheet
     // just won't show the "already queued" notice from this list-row entry
@@ -93,7 +94,7 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
             className="flex items-center gap-2 px-3 py-2 text-left text-[12px] font-bold text-ink hover:bg-sand"
           >
             <PackagesIcon size={13} aria-hidden />
-            Manage subscription
+            {gym.status === "Trialing" ? "Extend trial / manage" : "Manage subscription"}
           </button>
           <Link
             href={`/admin/gyms/${gym.organizationId}/members`}

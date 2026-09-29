@@ -47,6 +47,7 @@ export function GymDetailActions({ gym, packages }: { gym: GymDetail; packages: 
     periodLabel,
     renewsLabel,
     isCancelled: gym.status === "Cancelled",
+    isTrialing: gym.status === "Trialing",
     pending: sub?.pending
       ? {
           packageLabel: sub.pending.packageName ?? "Package",
@@ -68,7 +69,7 @@ export function GymDetailActions({ gym, packages }: { gym: GymDetail; packages: 
           className="flex min-h-[38px] items-center gap-1.5 border-[1.5px] border-ink bg-paper px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
         >
           <ExtendIcon size={14} aria-hidden />
-          Extend access
+          {gym.status === "Trialing" ? "Extend trial" : "Extend access"}
         </button>
         <button
           type="button"

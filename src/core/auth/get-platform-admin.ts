@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
+import { loose } from "@/core/db/loose-client";
 
 export type PlatformAdminContext = {
   userId: string;
@@ -53,7 +54,21 @@ async function resolvePlatformAdminUncached(): Promise<PlatformAdminResult> {
 
   const email = (claimsData?.claims?.email as string | undefined) ?? null;
 
-  const { data, error } = await supabase.rpc("is_platform_admin");
+  let { data, error } = await supabase.rpc("is_platform_admin");
+
+  // A person invited as a platform admin becomes active the first time they
+  // sign in: claim_platform_admin_invitation() turns THEIR OWN pending,
+  // unexpired invitation into access (self-scoped in the database — it can
+  // only ever touch the caller's own row). Only attempted when the normal
+  // check said no, so an existing admin pays nothing for it. Errors (e.g. the
+  // function is not installed on this environment yet) are ignored: the
+  // fail-closed result below stands.
+  if (!error && data !== true) {
+    const claim = await loose(supabase).rpc("claim_platform_admin_invitation");
+    if (!claim.error && claim.data === "activated") {
+      ({ data, error } = await supabase.rpc("is_platform_admin"));
+    }
+  }
 
   if (error) {
     return { authorized: false, reason: error.message };

@@ -2029,6 +2029,141 @@ export type Database = {
         Args: { p_category?: string; p_content: string; p_organization_id: string }
         Returns: string
       }
+      // --- Gym Command Center (20260930170000/20260930170100); hand-patched like the other entries here.
+      admin_set_operation_lock: {
+        Args: { p_enabled: boolean; p_expires_at?: string; p_lock_type: string; p_organization_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_set_feature_flag: {
+        Args: { p_enabled: boolean; p_flag_key: string; p_organization_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_update_gym_note: { Args: { p_content: string; p_note_id: string }; Returns: undefined }
+      admin_delete_gym_note: { Args: { p_note_id: string }; Returns: undefined }
+      admin_set_alert_status: { Args: { p_action: string; p_alert_id: string; p_note?: string }; Returns: undefined }
+      admin_adjust_whatsapp_credits: { Args: { p_delta: number; p_organization_id: string; p_reason: string }; Returns: Json }
+      admin_retry_failed_whatsapp: { Args: { p_organization_id: string; p_reason: string }; Returns: Json }
+      admin_revoke_org_sessions: { Args: { p_organization_id: string; p_reason: string; p_scope: string }; Returns: Json }
+      admin_gym_reconciliation: { Args: { p_organization_id: string }; Returns: Json }
+      admin_gym_data_health: { Args: { p_organization_id: string }; Returns: Json }
+      admin_gym_jobs: { Args: { p_organization_id: string }; Returns: Json }
+      admin_gym_webhooks: { Args: { p_organization_id: string }; Returns: Json }
+      admin_gym_whatsapp_ops: { Args: { p_organization_id: string }; Returns: Json }
+      admin_gym_access: { Args: { p_organization_id: string }; Returns: Json }
+      admin_gym_ops_summary: { Args: { p_organization_id: string }; Returns: Json }
+      admin_refresh_gym_alerts: { Args: { p_organization_id: string }; Returns: undefined }
+      admin_export_gym_dataset: { Args: { p_dataset: string; p_organization_id: string; p_reason: string }; Returns: Json }
+      admin_log_activity_export: { Args: { p_filters: Json; p_organization_id: string; p_rows: number }; Returns: undefined }
+      admin_gym_credit_history: {
+        Args: { p_limit?: number; p_offset?: number; p_organization_id: string }
+        Returns: {
+          admin_reason: string | null
+          balance_after: number
+          created_at: string
+          created_by_email: string | null
+          delta: number
+          id: string
+          reason: string
+          total_count: number
+        }[]
+      }
+      admin_gym_locks: {
+        Args: { p_organization_id: string }
+        Returns: {
+          expires_at: string | null
+          is_active: boolean
+          is_enabled: boolean
+          lock_type: string
+          reason: string
+          updated_at: string
+          updated_by_email: string | null
+        }[]
+      }
+      admin_gym_feature_flags: {
+        Args: { p_organization_id: string }
+        Returns: {
+          default_enabled: boolean
+          description: string
+          flag_key: string
+          is_enabled: boolean
+          label: string
+          overridden: boolean
+          reason: string | null
+          updated_at: string | null
+          updated_by_email: string | null
+        }[]
+      }
+      admin_gym_notes_list: {
+        Args: { p_organization_id: string }
+        Returns: {
+          category: string | null
+          content: string
+          created_at: string
+          created_by_email: string | null
+          created_by_me: boolean
+          id: string
+          updated_at: string | null
+        }[]
+      }
+      admin_gym_alerts: {
+        Args: { p_include_resolved?: boolean; p_limit?: number; p_organization_id: string }
+        Returns: {
+          acknowledged_at: string | null
+          acknowledged_by_email: string | null
+          created_at: string
+          id: string
+          message: string
+          metadata: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by_email: string | null
+          severity: string
+          status: string
+          title: string
+          type: string
+        }[]
+      }
+      admin_gym_timeline: {
+        Args: {
+          p_actor_type?: string
+          p_category?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_organization_id: string
+          p_search?: string
+          p_sort_dir?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          action_key: string
+          actor_id: string | null
+          actor_label: string
+          actor_role: string
+          actor_type: string
+          amount_minor: number | null
+          category: string
+          changed_fields: string[] | null
+          currency: string | null
+          detail: Json | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string
+          ip_address: string | null
+          member_id: string | null
+          member_name: string | null
+          new_values: Json | null
+          occurred_at: string
+          old_values: Json | null
+          operation: string | null
+          origin: string
+          request_id: string | null
+          source: string
+          status: string
+          total_count: number
+        }[]
+      }
       admin_assignable_packages: {
         Args: never
         Returns: {
@@ -2536,6 +2671,10 @@ export type Database = {
       admin_gym_member_detail: {
         Args: { p_member_id: string; p_organization_id: string }
         Returns: Json
+      }
+      admin_gym_member_avatars: {
+        Args: { p_member_ids: string[]; p_organization_id: string }
+        Returns: { avatar_key: string; member_id: string }[]
       }
       admin_gym_members_summary: {
         Args: { p_branch_id?: string; p_organization_id: string }

@@ -15,11 +15,11 @@ import { ICON_SIZE } from "@/core/ui/icon-size";
  * from the `admin-env` cookie — see core/env/context.tsx) and writes a new
  * one through the `setAdminEnvironment` Server Action (core/env/actions.ts).
  *
- * Switching to DEV is a single click; switching to PROD (§5 "Safety for
- * PROD") requires an extra ConfirmDialog step where the admin has to type
- * "PROD" — the same `requireTypedConfirmation` gate used on this app's other
- * dangerous actions once the environment is already PROD, applied here to
- * the act of entering PROD in the first place.
+ * Switching to DEV is a single click; switching to PROD requires an extra
+ * ConfirmDialog step where the admin has to type "PRODUCTION" — and that word
+ * is re-checked by the Server Action (core/env/actions.ts), so it isn't only a
+ * UI gate. Other dangerous actions on PROD (this app's other dialogs) ask for
+ * the same word once the environment is already PROD.
  *
  * On success this does a **hard browser reload** (`window.location.assign`),
  * not a client-side `router.refresh()`/`redirect()`. That's deliberate, not
@@ -45,21 +45,23 @@ export function EnvironmentSwitcher() {
       setConfirmTarget(target);
       return;
     }
-    performSwitch(target);
+    performSwitch(target, "");
   }
 
-  function performSwitch(target: AdminEnvironment) {
+  function performSwitch(target: AdminEnvironment, confirmation: string) {
     setConfirmTarget(null);
     setSwitching(target);
     startTransition(async () => {
-      const { error } = await setAdminEnvironment(target);
+      // The typed word travels to the Server Action, which refuses to enter
+      // Production without it — the dialog is not the only gate.
+      const { error } = await setAdminEnvironment(target, confirmation);
       if (error) {
         toast.error(error);
         setSwitching(null);
         return;
       }
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- deliberate hard reload, not a soft navigation; see this file's docblock.
-      window.location.assign("/admin/settings");
+      window.location.assign("/admin/settings/environments");
     });
   }
 
@@ -133,11 +135,11 @@ export function EnvironmentSwitcher() {
         open={confirmTarget !== null}
         danger
         title="Switch to Production?"
-        description="This dashboard will start reading and writing the live PRODUCTION Supabase project — real gyms, members, subscriptions and payments. Make sure that's what you mean to do."
+        description="You are about to access live customer data. Changes made here can affect real gyms, members, subscriptions, payments and platform operations."
         confirmLabel="Switch to Production"
         pending={Boolean(switching)}
-        requireTypedConfirmation="PROD"
-        onConfirm={() => confirmTarget && performSwitch(confirmTarget)}
+        requireTypedConfirmation="PRODUCTION"
+        onConfirm={(typed) => confirmTarget && performSwitch(confirmTarget, typed)}
         onCancel={() => setConfirmTarget(null)}
       />
     </div>

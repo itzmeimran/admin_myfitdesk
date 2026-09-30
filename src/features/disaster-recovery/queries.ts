@@ -46,7 +46,7 @@ function computeScheduleHealth(ready: BackupRow[], now: number): ScheduleHealth 
   };
 }
 
-export async function getDisasterRecoveryData(): Promise<DisasterRecoveryData> {
+export async function getDisasterRecoveryData(organizationId: string | null = null): Promise<DisasterRecoveryData> {
   const environment = fullEnvironment(await getActiveAdminEnvironment());
   // database.types.ts is generated from the currently deployed schema. Keep
   // this additive feature buildable before migration 1017 is applied; after
@@ -62,7 +62,7 @@ export async function getDisasterRecoveryData(): Promise<DisasterRecoveryData> {
         "database.restore_requested", "database.restore_completed", "database.restore_failed",
         "system.maintenance_enabled", "system.maintenance_disabled", "system.alert_resolved", "record.restored",
       ]).order("created_at", { ascending: false }).limit(300),
-    supabase.from("system_alerts").select("*").eq("environment", environment).order("created_at", { ascending: false }).limit(200),
+    supabase.from("system_alerts").select("*").eq("environment", environment).is("organization_id", null).order("created_at", { ascending: false }).limit(200),
     supabase.rpc("admin_deleted_records"),
     supabase.from("disaster_recovery_config").select("*").eq("environment", environment).maybeSingle(),
   ]);
@@ -100,7 +100,7 @@ export async function getDisasterRecoveryData(): Promise<DisasterRecoveryData> {
     restores,
     audits: (auditsResult.data ?? []) as AuditRow[],
     alerts,
-    deletedRecords: (deletedResult.data ?? []) as DeletedRecord[],
+    deletedRecords: ((deletedResult.data ?? []) as DeletedRecord[]).filter((record) => !organizationId || record.organization_id === organizationId),
     health: {
       schedule,
       configured: Boolean(config),

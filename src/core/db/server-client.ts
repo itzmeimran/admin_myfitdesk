@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { getPublicSupabaseCredentials } from "@/core/config/public";
 import { getActiveAdminEnvironment } from "@/core/env/active-environment";
+import type { AdminEnvironment } from "@/core/config/environments";
 import type { Database } from "./database.types";
 
 /**
@@ -54,8 +55,21 @@ async function fetchTolerantOfClockSkew(input: RequestInfo | URL, init?: Request
  * see core/env/README.md.
  */
 export async function createClient() {
+  return createClientForEnvironment(await getActiveAdminEnvironment());
+}
+
+/**
+ * Same client, pinned to an explicit environment instead of the `admin-env`
+ * cookie. Used only where an action must talk to a specific project
+ * regardless of which one is selected: inviting an admin to both
+ * environments (each call uses the actor's OWN session for that project, so
+ * the database's own permission check still decides), and the invitation
+ * accept flow (which must verify a token against the project that issued it).
+ * A missing session for that environment simply yields an unauthenticated
+ * client — it never borrows the other environment's session.
+ */
+export async function createClientForEnvironment(environment: AdminEnvironment) {
   const cookieStore = await cookies();
-  const environment = await getActiveAdminEnvironment();
   const { url, publishableKey } = getPublicSupabaseCredentials(environment);
 
   return createServerClient<Database>(url, publishableKey, {

@@ -16,7 +16,16 @@ const FIELD =
   "w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink";
 const LABEL = "text-[9px] font-bold uppercase tracking-[0.12em] text-mute";
 
-export function InviteGymOwnerSheet({ packages }: { packages: AssignablePackage[] }) {
+/** `defaults` come from Settings -> Platform defaults (read server-side by the
+ * page); they only pre-fill the form, and the submit action re-applies them
+ * server-side when a field is left blank. */
+export function InviteGymOwnerSheet({
+  packages,
+  defaults,
+}: {
+  packages: AssignablePackage[];
+  defaults: { trialDays: number; country: string };
+}) {
   const [open, setOpen] = useState(false);
   const [billingMode, setBillingMode] = useState<"trial" | "paid" | "custom">("trial");
   const [state, formAction] = useActionState(inviteGymOwner, INITIAL_STATE);
@@ -126,7 +135,7 @@ export function InviteGymOwnerSheet({ packages }: { packages: AssignablePackage[
                 </label>
                 <label className="flex flex-col gap-1">
                   <span className="text-[10.5px] text-mute">Country</span>
-                  <input name="country" defaultValue="India" className={FIELD} />
+                  <input name="country" defaultValue={defaults.country} className={FIELD} />
                 </label>
                 <label className="flex flex-col gap-1">
                   <span className="text-[10.5px] text-mute">Postal code</span>
@@ -161,7 +170,7 @@ export function InviteGymOwnerSheet({ packages }: { packages: AssignablePackage[
               {billingMode === "trial" ? (
                 <label className="flex flex-col gap-1">
                   <span className="text-[10.5px] text-mute">Trial length (days)</span>
-                  <input name="trialDays" type="number" min="1" defaultValue="14" className={FIELD} />
+                  <input name="trialDays" type="number" min="1" defaultValue={String(defaults.trialDays)} className={FIELD} />
                 </label>
               ) : null}
 

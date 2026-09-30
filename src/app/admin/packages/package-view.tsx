@@ -230,7 +230,7 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
   const [confirmGoLive, setConfirmGoLive] = useState(false);
   const [confirmRevert, setConfirmRevert] = useState(false);
   const live = billingModel === "dynamic";
-  const prodConfirm = environment === "prod" ? "PROD" : undefined;
+  const prodConfirm = environment === "prod" ? "PRODUCTION" : undefined;
 
   function goLive() {
     setConfirmGoLive(false);
@@ -560,7 +560,7 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
         description="Hides this package from new gyms immediately. Existing subscribers and past invoices are unaffected — this can be reversed with Restore."
         confirmLabel="Archive package"
         pending={isBusy("status")}
-        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        requireTypedConfirmation={environment === "prod" ? "PRODUCTION" : undefined}
         onConfirm={() => {
           setConfirmArchive(false);
           run("status", () => setPlanStatus(pkg.id, "archived"), `${pkg.name} archived.`);
@@ -773,7 +773,7 @@ function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
         description="Gym owners can no longer buy this billing term. Existing subscribers on it are unaffected."
         confirmLabel="Retire term"
         pending={confirmCycle ? isBusy(confirmCycle.id) : false}
-        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        requireTypedConfirmation={environment === "prod" ? "PRODUCTION" : undefined}
         onConfirm={() => {
           if (!confirmCycle) return;
           const cycle = confirmCycle;

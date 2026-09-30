@@ -62,6 +62,18 @@ const PILL: Record<string, PillTone> = {
   Owner: { backgroundColor: "var(--hi)", color: "var(--on-hi)" },
   Staff: { backgroundColor: "var(--sand)", color: "var(--ink)" },
   Trainer: { backgroundColor: "var(--line)", color: "var(--ink2)" },
+  // Settings -> Integrations / System health vocabulary. Healthy/Connected reuse
+  // the neutral "all is well" tone (this palette has no green on purpose);
+  // "Attention" is the amber wash used for in-flight/at-risk elsewhere, and
+  // "Down" the solid accent used for Failed/Read-only.
+  Healthy: { backgroundColor: "var(--sand)", color: "var(--ink)" },
+  Connected: { backgroundColor: "var(--sand)", color: "var(--ink)" },
+  Configured: { backgroundColor: "var(--sand)", color: "var(--ink)" },
+  "Not configured": { backgroundColor: "var(--sand)", color: "var(--mute)" },
+  "Not connected": { backgroundColor: "var(--sand)", color: "var(--mute)" },
+  "No data": { backgroundColor: "var(--sand)", color: "var(--mute)" },
+  Attention: { backgroundColor: "rgba(191,59,21,0.10)", color: "var(--accent)" },
+  Down: { backgroundColor: "var(--accent)", color: "var(--paper)" },
 };
 
 /** Falls back to the neutral "Active" tone for any status string not in the

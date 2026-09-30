@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -40,6 +41,7 @@ export async function extendSubscription(
   days: number,
   payment?: ManualPaymentInput | null,
 ): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   if (!Number.isInteger(days) || days <= 0) {
     return { error: "Days must be a positive whole number." };
   }
@@ -74,6 +76,7 @@ export async function recordManualSubscriptionRenewal(
   packageId: string,
   payment: ManualPaymentInput,
 ): Promise<ActionResult & { scheduled?: boolean }> {
+  await assertPermission("subscriptions.manage");
   if (!Number.isInteger(payment.amountMinor) || payment.amountMinor <= 0) {
     return { error: "Payment amount must be a positive amount." };
   }
@@ -102,6 +105,7 @@ export async function recordManualSubscriptionRenewal(
  * left to protect. See that migration's own header for the full reasoning.
  */
 export async function changeSubscriptionPackage(organizationId: string, packageId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_change_subscription_package", {
     p_organization_id: organizationId,
@@ -117,6 +121,7 @@ export async function changeSubscriptionPackage(organizationId: string, packageI
  * (nothing scheduled) comes back as an error rather than silently
  * succeeding twice. */
 export async function clearPendingSubscriptionPackage(organizationId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_clear_pending_subscription_package", {
     p_organization_id: organizationId,
@@ -137,6 +142,7 @@ export async function clearPendingSubscriptionPackage(organizationId: string): P
  * nothing else needs telling; that page reads pending_package_id directly.
  */
 export async function schedulePackage(organizationId: string, packageId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_schedule_subscription_package", {
     p_organization_id: organizationId,
@@ -148,6 +154,7 @@ export async function schedulePackage(organizationId: string, packageId: string)
 }
 
 export async function clearScheduledPackage(organizationId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_clear_scheduled_package", { p_organization_id: organizationId });
   if (error) return { error: error.message };
@@ -166,6 +173,7 @@ export type ScheduledPackageInfo = {
  * the sheet opens rather than threaded through as a prop, so it can never
  * show a stale schedule after the sheet itself just changed it. */
 export async function getScheduledPackage(organizationId: string): Promise<ScheduledPackageInfo> {
+  await assertPermission("gyms.view");
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("admin_get_scheduled_package", { p_organization_id: organizationId });
   if (error) throw new Error(error.message);
@@ -182,6 +190,7 @@ export async function getScheduledPackage(organizationId: string): Promise<Sched
 }
 
 export async function cancelSubscription(organizationId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_cancel_subscription", { p_organization_id: organizationId });
   if (error) return { error: error.message };
@@ -190,6 +199,7 @@ export async function cancelSubscription(organizationId: string): Promise<Action
 }
 
 export async function restoreSubscription(organizationId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_restore_subscription", { p_organization_id: organizationId });
   if (error) return { error: error.message };
@@ -209,10 +219,14 @@ export async function restoreSubscription(organizationId: string): Promise<Actio
  * follow-up work in the tenant app's own repo.
  */
 export async function suspendGym(organizationId: string, reason: string): Promise<ActionResult> {
+  await assertPermission("gyms.manage");
+  // A suspension must always carry a reason (Gym Command Center's dangerous-
+  // action rule). The RPC itself still tolerates an empty one for old callers.
+  if (reason.trim().length < 3) return { error: "A reason is required (at least 3 characters)." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_suspend_organization", {
     p_organization_id: organizationId,
-    p_reason: reason || undefined,
+    p_reason: reason.trim(),
   });
   if (error) return { error: error.message };
   revalidateGyms();
@@ -221,6 +235,7 @@ export async function suspendGym(organizationId: string, reason: string): Promis
 }
 
 export async function reactivateGym(organizationId: string): Promise<ActionResult> {
+  await assertPermission("gyms.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_reactivate_organization", { p_organization_id: organizationId });
   if (error) return { error: error.message };
@@ -253,6 +268,7 @@ export type ProfileFormState = { error: string | null; success?: boolean };
  * tables aren't part of this RPC at all) — see that RPC's own comment.
  */
 export async function updateGymProfile(_prev: ProfileFormState, formData: FormData): Promise<ProfileFormState> {
+  await assertPermission("gyms.manage");
   const parsed = profileSchema.safeParse({
     organizationId: formData.get("organizationId"),
     name: formData.get("name"),
@@ -305,6 +321,7 @@ export type ExportGymsResult = { rows: string[][] } | { error: string };
  * everything matching your filters," not just the current page.
  */
 export async function exportGymsCsv(params: GymListParams): Promise<ExportGymsResult> {
+  await assertPermission("gyms.view");
   try {
     const supabase = await createClient();
     const { rows } = await listGymsPage(supabase, { ...params, limit: 5000, offset: 0 });

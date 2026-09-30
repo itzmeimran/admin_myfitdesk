@@ -248,7 +248,7 @@ export function PackagesView({
         description="Hides this tier from new purchases immediately. Existing subscribers and past invoices are unaffected — this can be reversed with Restore."
         confirmLabel="Archive package"
         pending={isPending}
-        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        requireTypedConfirmation={environment === "prod" ? "PRODUCTION" : undefined}
         onConfirm={() => confirmArchive && runStatusChange(confirmArchive, "archived")}
         onCancel={() => setConfirmArchive(null)}
       />

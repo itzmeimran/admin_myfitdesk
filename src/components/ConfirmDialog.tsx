@@ -45,7 +45,9 @@ export function ConfirmDialog({
   /** When set, the confirm button stays disabled until the admin types this
    * exact word (case-insensitive) into the field the dialog renders. */
   requireTypedConfirmation?: string;
-  onConfirm: () => void;
+  /** Receives the text typed into the confirmation field ("" when the dialog
+   * has none), so a Server Action can re-check it instead of trusting the UI. */
+  onConfirm: (typedConfirmation: string) => void;
   onCancel: () => void;
 }) {
   const inputId = useId();
@@ -126,7 +128,7 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={() => onConfirm(typedValue.trim())}
             disabled={pending || !typedConfirmationSatisfied}
             className={`press-scale flex min-h-[40px] flex-1 items-center justify-center text-[11.5px] font-bold uppercase tracking-[0.09em] disabled:cursor-not-allowed disabled:opacity-50 ${
               danger ? "bg-accent text-paper" : "bg-ink text-hi"

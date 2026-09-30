@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 /**
  * Gym Owner Onboarding — enables "Invite gym owner" (CLAUDE.md's Plan, P2
@@ -32,6 +33,7 @@ import { text } from "@/core/forms/form-values";
 import { emailEnv, isEmailConfigured } from "@/core/config/email";
 import { sendSystemEmail } from "@/core/email/system-email";
 import { gymOwnerInviteEmail } from "@/core/email/templates";
+import { getPlatformSettingsOrFallback } from "@/features/settings/platform-settings";
 
 import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES } from "@/core/storage/logo-limits";
 import { processLogoImage } from "@/core/storage/process-logo-image";
@@ -83,6 +85,7 @@ function positiveIntOrUndefined(raw: string): number | undefined {
 }
 
 export async function inviteGymOwner(_prev: InviteFormState, formData: FormData): Promise<InviteFormState> {
+  await assertPermission("gyms.manage");
   const parsed = inviteSchema.safeParse({
     gymName: text(formData, "gymName"),
     ownerFirstName: text(formData, "ownerFirstName"),
@@ -120,6 +123,9 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
   }
 
   const supabase = await createClient();
+  // Settings -> Platform defaults: what a new gym gets when the form leaves it
+  // blank. Read here on the server so the browser can't choose its own defaults.
+  const platform = await getPlatformSettingsOrFallback(supabase);
 
   const { data: created, error: createError } = await supabase.rpc("admin_create_gym_owner_invitation", {
     p_gym_name: data.gymName,
@@ -132,10 +138,10 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
     p_state: data.state || undefined,
     p_country: data.country || undefined,
     p_postal_code: data.postalCode || undefined,
-    p_default_timezone: data.defaultTimezone || undefined,
-    p_default_currency: data.defaultCurrency || undefined,
+    p_default_timezone: data.defaultTimezone || platform.timezone,
+    p_default_currency: data.defaultCurrency || platform.currency,
     p_billing_mode: data.billingMode,
-    p_trial_days: data.billingMode === "trial" ? (positiveIntOrUndefined(data.trialDays) ?? 14) : undefined,
+    p_trial_days: data.billingMode === "trial" ? (positiveIntOrUndefined(data.trialDays) ?? platform.trialDays) : undefined,
     p_package_id: data.billingMode === "paid" ? data.packageId : undefined,
     p_period_days:
       data.billingMode === "paid"
@@ -231,6 +237,7 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
     gymName: data.gymName,
     ownerFirstName: data.ownerFirstName,
     confirmationUrl,
+    branding: platform,
   });
   const sendResult = await sendSystemEmail({ to: result.email, subject, html, text: textBody });
 
@@ -257,6 +264,7 @@ type ActionResult = { error: string | null };
  * doesn't invalidate it, matching generateLink's own semantics) and "email
  * sending failure" from the task brief's error-handling list. */
 export async function resendGymOwnerInvitation(invitationId: string): Promise<ActionResult> {
+  await assertPermission("gyms.manage");
   const supabase = await createClient();
   const { data: resent, error } = await supabase.rpc("admin_resend_gym_owner_invitation", {
     p_invitation_id: invitationId,
@@ -289,6 +297,7 @@ export async function resendGymOwnerInvitation(invitationId: string): Promise<Ac
     gymName: row.organization_name,
     ownerFirstName: "",
     confirmationUrl,
+    branding: await getPlatformSettingsOrFallback(supabase),
   });
   const sendResult = await sendSystemEmail({ to: row.email, subject, html, text: textBody });
   if (!sendResult.ok) return { error: sendResult.error };
@@ -299,6 +308,7 @@ export async function resendGymOwnerInvitation(invitationId: string): Promise<Ac
 }
 
 export async function revokeGymOwnerInvitation(invitationId: string): Promise<ActionResult> {
+  await assertPermission("gyms.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_revoke_gym_owner_invitation", { p_invitation_id: invitationId });
   if (error) return { error: error.message };

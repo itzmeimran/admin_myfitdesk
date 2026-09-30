@@ -409,7 +409,7 @@ export function ManageSubscriptionSheet({
         confirmLabel="Cancel subscription"
         danger
         pending={isPending}
-        requireTypedConfirmation={environment === "prod" ? "PROD" : undefined}
+        requireTypedConfirmation={environment === "prod" ? "PRODUCTION" : undefined}
         onConfirm={() => {
           setConfirmCancel(false);
           run("lifecycle", () => cancelSubscription(gym.organizationId));

@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { MemberDetail, MemberMembership, MemberPayment, MemberRow, MembershipState } from "@/features/gyms/members";
+import type { MemberMembership, MemberPayment, MemberRow, MembershipState } from "@/features/gyms/members";
 import { formatCalendarDate, formatZonedDateTime } from "@/core/dates/format";
 import { formatMinorWhole } from "@/core/money/format";
 import { Sheet } from "@/components/Sheet";
 import { SkeletonBlock } from "@/components/Skeleton";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
-import { loadMemberDetail } from "./actions";
+import { loadMemberDetail, type MemberDetailWithAvatar } from "./actions";
+import { MemberAvatar } from "./member-avatar";
 
 const STATE_LABEL: Record<MembershipState, string> = {
   active: "Active",
@@ -20,9 +21,9 @@ const STATE_LABEL: Record<MembershipState, string> = {
   none: "No active plan",
 };
 
-export function MemberDrawer({ organizationId, member, trigger }: { organizationId: string; member: MemberRow; trigger: React.ReactNode }) {
+export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { organizationId: string; member: MemberRow; trigger: React.ReactNode; avatarUrl?: string | null }) {
   const [open, setOpen] = useState(false);
-  const [detail, setDetail] = useState<MemberDetail | null>(null);
+  const [detail, setDetail] = useState<MemberDetailWithAvatar | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
@@ -54,9 +55,12 @@ export function MemberDrawer({ organizationId, member, trigger }: { organization
 
   return (
     <>
-      <button type="button" onClick={show} className="block max-w-full truncate text-left font-bold hover:underline">
-        {trigger}
-      </button>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <MemberAvatar name={member.name} url={avatarUrl} size={32} />
+        <button type="button" onClick={show} className="block min-w-0 max-w-full truncate text-left font-bold hover:underline">
+          {trigger}
+        </button>
+      </div>
       <Sheet
         open={open}
         onClose={close}
@@ -81,16 +85,15 @@ export function MemberDrawer({ organizationId, member, trigger }: { organization
   );
 }
 
-function MemberDetailContent({ detail }: { detail: MemberDetail }) {
+function MemberDetailContent({ detail }: { detail: MemberDetailWithAvatar }) {
   const { member, timezone } = detail;
   const currentMembership = detail.memberships.find((item) => ["active", "expiring_soon", "frozen", "upcoming"].includes(item.state)) ?? detail.memberships[0] ?? null;
   const lastPayment = detail.payments[0] ?? null;
-  const initials = member.name.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("");
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-3">
-        <span aria-hidden className="flex h-11 w-11 flex-shrink-0 items-center justify-center bg-sand text-[12px] font-bold">{initials}</span>
+        <MemberAvatar name={member.name} url={detail.avatarUrl} size={56} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-[18px] leading-tight">{member.name}</p>
           <p className="text-[11px] capitalize text-mute">Member record · {member.status}</p>

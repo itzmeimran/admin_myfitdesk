@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
@@ -31,6 +32,7 @@ function refresh() {
 }
 
 export async function createManualBackup(): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const { environment, ipAddress, requestId, supabase } = await context();
   const { data, error } = await supabase.rpc("admin_queue_database_backup", {
     p_environment: environment,
@@ -51,6 +53,7 @@ export async function createManualBackup(): Promise<RecoveryActionResult> {
 }
 
 export async function requestRestore(backupId: string, confirmation: string): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const parsed = z.string().uuid().safeParse(backupId);
   if (!parsed.success) return { error: "Invalid backup id." };
   const { environment, ipAddress, requestId, supabase } = await context();
@@ -74,6 +77,7 @@ export async function requestRestore(backupId: string, confirmation: string): Pr
 }
 
 export async function setBackupProtected(backupId: string, value: boolean): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const parsed = z.string().uuid().safeParse(backupId);
   if (!parsed.success) return { error: "Invalid backup id." };
   const { supabase } = await context();
@@ -84,6 +88,7 @@ export async function setBackupProtected(backupId: string, value: boolean): Prom
 }
 
 export async function requestBackupDeletion(backupId: string, confirmation: string): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const parsed = z.string().uuid().safeParse(backupId);
   if (!parsed.success) return { error: "Invalid backup id." };
   const { supabase } = await context();
@@ -97,6 +102,7 @@ export async function requestBackupDeletion(backupId: string, confirmation: stri
 }
 
 export async function setMaintenanceMode(enabled: boolean, reason: string, confirmation: string): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const parsed = z.string().trim().max(500).safeParse(reason);
   if (!parsed.success) return { error: "Maintenance reason is too long." };
   const { environment, supabase } = await context();
@@ -112,6 +118,7 @@ export async function setMaintenanceMode(enabled: boolean, reason: string, confi
 }
 
 export async function restoreDeletedRecord(entityType: string, entityId: string): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const type = z.enum(["member", "member_subscription", "inventory_product", "organization", "staff_membership"]).safeParse(entityType);
   const id = z.string().uuid().safeParse(entityId);
   if (!type.success || !id.success) return { error: "Invalid deleted record." };
@@ -123,6 +130,7 @@ export async function restoreDeletedRecord(entityType: string, entityId: string)
 }
 
 export async function resolveAlert(alertId: string): Promise<RecoveryActionResult> {
+  await assertPermission("recovery.manage");
   const parsed = z.string().uuid().safeParse(alertId);
   if (!parsed.success) return { error: "Invalid alert id." };
   const { supabase } = await context();

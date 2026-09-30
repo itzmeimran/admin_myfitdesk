@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -24,6 +25,7 @@ function revalidateCredits() {
 }
 
 export async function createWhatsAppCreditPackage(input: WhatsAppCreditPackageInput): Promise<ActionResult> {
+  await assertPermission("whatsapp.manage");
   const parsed = packageSchema.omit({ id: true }).safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the package details." };
 
@@ -45,6 +47,7 @@ export async function createWhatsAppCreditPackage(input: WhatsAppCreditPackageIn
 }
 
 export async function updateWhatsAppCreditPackage(input: WhatsAppCreditPackageInput): Promise<ActionResult> {
+  await assertPermission("whatsapp.manage");
   const parsed = packageSchema.required({ id: true }).safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the package details." };
 
@@ -66,6 +69,7 @@ export async function setWhatsAppCreditPackageStatus(
   id: string,
   status: "active" | "archived",
 ): Promise<ActionResult> {
+  await assertPermission("whatsapp.manage");
   if (!z.string().uuid().safeParse(id).success) return { error: "Invalid package." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_whatsapp_credit_package_status", {
@@ -82,6 +86,7 @@ export async function grantWhatsAppCredits(
   credits: number,
   note: string,
 ): Promise<ActionResult & { balance?: number }> {
+  await assertPermission("whatsapp.manage");
   const parsed = z
     .object({
       organizationId: z.string().uuid(),
@@ -108,6 +113,7 @@ export async function setWhatsAppMetaCostRate(
   currency = "INR",
   effectiveFrom?: string,
 ): Promise<ActionResult> {
+  await assertPermission("whatsapp.manage");
   const parsed = z
     .object({
       category: z.enum(["utility", "marketing", "authentication"]),

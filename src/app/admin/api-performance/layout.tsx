@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getActiveAdminEnvironment } from "@/core/env/active-environment";
+import { requirePermission } from "@/core/auth/access";
 import { ApiToolbar } from "./api-toolbar";
 
 /**
@@ -9,6 +10,7 @@ import { ApiToolbar } from "./api-toolbar";
  * cannot read platform telemetry even by calling the RPCs directly.
  */
 export default async function ApiPerformanceLayout({ children }: { children: React.ReactNode }) {
+  await requirePermission("api_performance.view");
   const adminEnv = await getActiveAdminEnvironment();
   return (
     <div className="flex flex-col gap-4">

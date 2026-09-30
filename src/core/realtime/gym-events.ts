@@ -23,38 +23,42 @@ export type GymSection =
   | "billing"
   | "activity"
   | "whatsapp"
+  | "operations"
   | "settings";
 
+// "operations" = the Operations tab (WhatsApp ops, jobs, webhooks, recon,
+// data health, alerts, access). The Overview's Command Center reads the same
+// signals, so every table that feeds one feeds the other.
 export const TABLE_SECTIONS: Record<string, readonly GymSection[]> = {
   // Identity / directory
-  organizations: ["header", "overview", "settings"],
+  organizations: ["header", "overview", "settings", "operations"],
   gyms: ["header", "overview", "settings"],
   // Subscription → header (plan/status/expiry), Overview, Subscription & Billing
-  organization_subscriptions: ["header", "overview", "billing"],
+  organization_subscriptions: ["header", "overview", "billing", "operations"],
   // Members → header (count), Overview KPIs, Members tab
-  members: ["header", "overview", "members"],
-  member_subscriptions: ["overview", "members"],
+  members: ["header", "overview", "members", "operations"],
+  member_subscriptions: ["overview", "members", "operations"],
   // Tenant-side member payments feed Overview revenue + member rows
-  payments: ["overview", "members"],
+  payments: ["overview", "members", "operations"],
   // Branches & team → header (tab counts), Overview, Branches & Team tab
   branches: ["header", "overview", "team"],
-  staff_memberships: ["header", "overview", "team"],
+  staff_memberships: ["header", "overview", "team", "operations"],
   staff_invitations: ["header", "team"],
   // Platform billing (the gym paying MyFitDesk)
-  platform_payments: ["overview", "billing"],
+  platform_payments: ["overview", "billing", "operations"],
   // WhatsApp
-  whatsapp_messages: ["overview", "whatsapp"],
-  whatsapp_credit_balances: ["overview", "whatsapp"],
-  whatsapp_credit_transactions: ["overview", "whatsapp"],
-  whatsapp_credit_purchases: ["overview", "whatsapp"],
-  whatsapp_integrations: ["overview", "settings"],
+  whatsapp_messages: ["overview", "whatsapp", "operations"],
+  whatsapp_credit_balances: ["overview", "whatsapp", "operations"],
+  whatsapp_credit_transactions: ["overview", "whatsapp", "operations"],
+  whatsapp_credit_purchases: ["overview", "whatsapp", "operations"],
+  whatsapp_integrations: ["overview", "settings", "operations"],
   // Integrations / settings surfaced on Overview
   payment_gateway_integrations: ["overview", "settings"],
   notification_preferences: ["overview", "settings"],
-  owner_whatsapp_automation_settings: ["overview", "settings"],
+  owner_whatsapp_automation_settings: ["overview", "settings", "operations"],
   // Admin-side records
   admin_gym_notes: ["overview"],
-  admin_audit_log: ["overview", "activity"],
+  admin_audit_log: ["overview", "activity", "operations"],
 };
 
 /** Which tab the admin is currently looking at, from the pathname. */
@@ -72,6 +76,8 @@ export function sectionFromPathname(pathname: string, organizationId: string): G
       return "activity";
     case "whatsapp":
       return "whatsapp";
+    case "operations":
+      return "operations";
     case "settings":
       return "settings";
     default:

@@ -9,7 +9,11 @@ import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { PILL_CLASS, pillTone } from "@/core/ui/status-style";
 import { AlertIcon } from "@/core/ui/icons";
 import { UsageBar } from "@/components/UsageBar";
-import { AdminNotesForm } from "./admin-notes-form";
+import { NotesPanel } from "./notes-panel";
+import { CommandCenter } from "./command-center";
+import { SectionError } from "./ops-ui";
+import { getNotes, getOpsSummary } from "@/features/gyms/ops/queries";
+import type { NoteRow, OpsSummary } from "@/features/gyms/ops/types";
 import { AUDIT_ACTION_LABEL } from "@/features/gyms/audit";
 
 type Alert = { tone: "critical" | "warning"; text: string };
@@ -17,16 +21,36 @@ type Alert = { tone: "critical" | "warning"; text: string };
 export default async function GymOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [gym, overviewResult] = await Promise.all([
+  const [gym, overviewResult, summaryResult, notesResult] = await Promise.all([
     getGymDetail(supabase, id),
     getGymOverview(supabase, id)
       .then((data) => ({ data, error: null as string | null }))
       .catch((error: unknown) => ({ data: null, error: error instanceof Error ? error.message : "Overview unavailable" })),
+    getOpsSummary(supabase, id)
+      .then((data) => ({ data, error: null as string | null }))
+      .catch((error: unknown) => ({
+        data: null as OpsSummary | null,
+        error: error instanceof Error ? error.message : "Command center unavailable",
+      })),
+    getNotes(supabase, id)
+      .then((data) => ({ data, error: null as string | null }))
+      .catch((error: unknown) => ({
+        data: null as NoteRow[] | null,
+        error: error instanceof Error ? error.message : "Notes unavailable",
+      })),
   ]);
   if (!gym) notFound();
 
+  const commandCenter = summaryResult.data ? (
+    <CommandCenter gym={gym} summary={summaryResult.data} overview={overviewResult.data} />
+  ) : (
+    <SectionError title="Command center" message={summaryResult.error ?? "Unavailable."} />
+  );
+
   if (!overviewResult.data) {
     return (
+      <div className="flex flex-col gap-5">
+      {commandCenter}
       <section className="flex flex-col gap-3 border-[1.5px] border-accent bg-paper p-5">
         <div className="flex items-center gap-2 text-accent">
           <AlertIcon size={16} aria-hidden />
@@ -39,13 +63,34 @@ export default async function GymOverviewPage({ params }: { params: Promise<{ id
           Retry overview
         </Link>
       </section>
+      </div>
     );
   }
 
-  return <OverviewContent gym={gym} overview={overviewResult.data} />;
+  return (
+    <OverviewContent
+      gym={gym}
+      overview={overviewResult.data}
+      commandCenter={commandCenter}
+      notes={notesResult.data}
+      notesError={notesResult.error}
+    />
+  );
 }
 
-function OverviewContent({ gym, overview }: { gym: GymDetail; overview: GymOverview }) {
+function OverviewContent({
+  gym,
+  overview,
+  commandCenter,
+  notes,
+  notesError,
+}: {
+  gym: GymDetail;
+  overview: GymOverview;
+  commandCenter: React.ReactNode;
+  notes: NoteRow[] | null;
+  notesError: string | null;
+}) {
   const now = new Date();
   const sub = gym.subscription;
   const expiry = sub?.currentPeriodEnd ? new Date(sub.currentPeriodEnd) : null;
@@ -58,6 +103,7 @@ function OverviewContent({ gym, overview }: { gym: GymDetail; overview: GymOverv
 
   return (
     <div className="flex flex-col gap-5">
+      {commandCenter}
       <Section title="Needs attention" id="attention">
         {alerts.length ? (
           <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
@@ -196,9 +242,12 @@ function OverviewContent({ gym, overview }: { gym: GymDetail; overview: GymOverv
           <div className="grid grid-cols-1 gap-0 border-[1.5px] border-line bg-paper sm:grid-cols-2"><Info label="Owner" value={gym.owner?.name ?? "No owner assigned"} /><Info label="Phone" value={gym.owner?.phone ?? gym.contactPhone ?? "—"} /><Info label="Email" value={gym.owner?.email ?? gym.contactEmail ?? "—"} /><Info label="City" value={gym.city ?? "—"} /></div>
         </Section>
 
-        <Section title="Admin notes" description="Visible only to MyFitDesk platform admins.">
-          <AdminNotesForm organizationId={gym.id} />
-          {overview.notes.length ? <div className="divide-y divide-line border-[1.5px] border-line bg-paper">{overview.notes.map((note) => <article key={note.id} className="flex flex-col gap-1 px-3.5 py-3"><div className="flex flex-wrap items-center gap-2 text-[10.5px] text-mute3"><span>{formatDateTime(note.createdAt, overview.timezone)}</span>{note.category ? <span className="bg-sand px-1.5 py-0.5 font-bold uppercase tracking-[0.08em] text-ink2">{note.category}</span> : null}</div><p className="text-[12.5px] leading-relaxed text-ink">{note.content}</p><span className="text-[10.5px] text-mute">— {note.createdByEmail ?? "Platform admin"}</span></article>)}</div> : <EmptyCopy>No internal notes yet.</EmptyCopy>}
+        <Section title="Admin notes" description="Private — never visible to the gym owner, staff or trainers.">
+          {notes ? (
+            <NotesPanel organizationId={gym.id} notes={notes} timeZone={overview.timezone} />
+          ) : (
+            <SectionError title="Admin notes" message={notesError ?? "Unavailable."} />
+          )}
         </Section>
       </div>
     </div>

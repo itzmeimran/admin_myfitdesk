@@ -135,7 +135,7 @@ export default async function GymDetailLayout({
               <span className="sm:col-span-2 xl:col-span-4"><strong className="text-ink2">Joined:</strong> {enrolledSince}</span>
             </div>
           </div>
-          <GymDetailActions gym={gym} packages={packages} />
+          <GymDetailActions gym={gym} packages={packages} invitation={ownerInvitation} />
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import {
   listAssignablePackages,
   listPackagesForFilter,
 } from "@/features/gyms/queries";
+import { getPlatformSettingsOrFallback } from "@/features/settings/platform-settings";
 import { SearchBox } from "@/components/SearchBox";
 import { FilterSelect } from "@/components/FilterSelect";
 import { SortLink } from "@/components/SortLink";
@@ -103,7 +104,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
   const { page, pageSize, offset } = parsePagination(sp);
 
   const supabase = await createClient();
-  const [summary, { rows, total }, assignablePackages, filterPackages] = await Promise.all([
+  const [summary, { rows, total }, assignablePackages, filterPackages, platformDefaults] = await Promise.all([
     getGymsStatusSummary(supabase),
     listGymsPage(supabase, {
       search,
@@ -118,6 +119,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
     }),
     listAssignablePackages(supabase),
     listPackagesForFilter(supabase),
+    getPlatformSettingsOrFallback(supabase),
   ]);
 
   const hasFilters = !!search || filter !== "All" || !!packageId || !!billingPeriod || !!minBranches;
@@ -153,7 +155,10 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
             sortDir,
           }}
         />
-        <InviteGymOwnerSheet packages={assignablePackages} />
+        <InviteGymOwnerSheet
+          packages={assignablePackages}
+          defaults={{ trialDays: platformDefaults.trialDays, country: platformDefaults.country }}
+        />
       </div>
 
       {/* Status summary — doubles as the status filter, so there is no

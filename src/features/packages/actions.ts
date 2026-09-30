@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -53,6 +54,7 @@ function parseCap(raw: string): number | null | undefined {
 }
 
 export async function createPackage(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+  await assertPermission("packages.manage");
   const parsed = createSchema.safeParse({
     code: text(formData, "code"),
     name: text(formData, "name"),
@@ -108,6 +110,7 @@ export async function createPackage(_prev: PackageFormState, formData: FormData)
 }
 
 export async function updatePackage(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+  await assertPermission("packages.manage");
   const parsed = updateSchema.safeParse({
     id: text(formData, "id"),
     name: text(formData, "name"),
@@ -157,6 +160,7 @@ export async function setPackageStatus(
   id: string,
   status: "active" | "archived",
 ): Promise<{ error: string | null }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
 
   const { error } = await supabase.rpc("admin_set_package_status", { p_id: id, p_status: status });

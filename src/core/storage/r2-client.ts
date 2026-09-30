@@ -4,11 +4,11 @@ import { r2Env } from "@/core/config/r2";
 
 /**
  * Ported (gym-logo subset) from FitDeskApp's src/core/storage/r2-client.ts.
- * Admin only ever writes gym logos, so only the "legacy" and "public"
- * targets exist here — the "private" bucket (member avatars, ID cards,
- * receipts) is never touched by this app.
+ * Admin only ever WRITES gym logos ("legacy"/"public" targets). The "private"
+ * bucket (member avatars) is used strictly for read-only presigned GETs — see
+ * member-avatar.ts; this app never uploads to or deletes from it.
  */
-export type R2Target = "legacy" | "public";
+export type R2Target = "legacy" | "public" | "private";
 export type R2RolloutMode = "legacy" | "mirror" | "prefer-target" | "target";
 
 const ROLLOUT_MODES: readonly R2RolloutMode[] = ["legacy", "mirror", "prefer-target", "target"];
@@ -28,6 +28,14 @@ function readTargetConfig(target: R2Target): Partial<R2TargetConfig> {
       accessKeyId: r2Env.R2_ACCESS_KEY_ID,
       secretAccessKey: r2Env.R2_SECRET_ACCESS_KEY,
       bucket: r2Env.R2_BUCKET_NAME,
+    };
+  }
+  if (target === "private") {
+    return {
+      accountId: r2Env.R2_ACCOUNT_ID,
+      accessKeyId: r2Env.R2_PRIVATE_ACCESS_KEY_ID,
+      secretAccessKey: r2Env.R2_PRIVATE_SECRET_ACCESS_KEY,
+      bucket: r2Env.R2_PRIVATE_BUCKET_NAME,
     };
   }
   return {

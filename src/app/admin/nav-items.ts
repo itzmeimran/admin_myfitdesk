@@ -9,6 +9,7 @@ import {
   ApiPerformanceIcon,
   type IconType,
 } from "@/core/ui/icons";
+import type { Permission } from "@/core/auth/permissions";
 
 // Plain data, deliberately NOT in a "use client" file — same reasoning as
 // FitDeskApp/src/app/dashboard/nav-items.ts: admin-chrome.tsx (a Client
@@ -24,6 +25,9 @@ export type NavItem = {
   href: string;
   label: string;
   icon: IconType;
+  /** What a platform admin needs to see this destination. The nav is only a
+   * convenience — each section's own layout re-checks this on the server. */
+  permission?: Permission;
 };
 
 // The design mock had a static `badge: "18"` on Gyms only — that's now a
@@ -44,13 +48,13 @@ export type NavItem = {
 // /admin/packages.
 export const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: OverviewIcon },
-  { href: "/admin/gyms", label: "Gyms", icon: GymsIcon },
-  { href: "/admin/packages", label: "Packages", icon: PackagesIcon },
-  { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon },
-  { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon },
-  { href: "/admin/api-performance", label: "API Performance", icon: ApiPerformanceIcon },
-  { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon },
-  { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/admin/gyms", label: "Gyms", icon: GymsIcon, permission: "gyms.view" },
+  { href: "/admin/packages", label: "Packages", icon: PackagesIcon, permission: "packages.view" },
+  { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon, permission: "revenue.view" },
+  { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon, permission: "whatsapp.view" },
+  { href: "/admin/api-performance", label: "API Performance", icon: ApiPerformanceIcon, permission: "api_performance.view" },
+  { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon, permission: "recovery.view" },
+  { href: "/admin/settings", label: "Settings", icon: SettingsIcon, permission: "settings.view" },
 ];
 
 /** The five high-frequency destinations that fit a phone navigation bar.
@@ -66,3 +70,9 @@ const MOBILE_NAV_HREFS = new Set([
 ]);
 
 export const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => MOBILE_NAV_HREFS.has(item.href));
+
+/** The destinations this admin's role may see. `permissions` arrives from the
+ * server layout (resolved by the database), never from the browser. */
+export function visibleNavItems(items: NavItem[], permissions: readonly string[]): NavItem[] {
+  return items.filter((item) => !item.permission || permissions.includes(item.permission));
+}

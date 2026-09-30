@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 /**
  * Replace or remove a gym's logo from the admin app. Outside src/features/**
@@ -30,6 +31,7 @@ function revalidate() {
 }
 
 export async function updateGymLogo(organizationId: string, formData: FormData): Promise<LogoResult> {
+  await assertPermission("gyms.manage");
   if (!z.string().uuid().safeParse(organizationId).success) return { error: "Invalid gym." };
 
   const file = formData.get("file");
@@ -70,6 +72,7 @@ export async function updateGymLogo(organizationId: string, formData: FormData):
 }
 
 export async function removeGymLogo(organizationId: string): Promise<LogoResult> {
+  await assertPermission("gyms.manage");
   if (!z.string().uuid().safeParse(organizationId).success) return { error: "Invalid gym." };
 
   const supabase = await createClient();

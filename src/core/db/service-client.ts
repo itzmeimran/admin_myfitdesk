@@ -2,6 +2,7 @@ import "server-only";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { getServiceSupabaseCredentials } from "@/core/config/server";
 import { getActiveAdminEnvironment } from "@/core/env/active-environment";
+import type { AdminEnvironment } from "@/core/config/environments";
 import type { Database } from "./database.types";
 
 /**
@@ -26,7 +27,16 @@ import type { Database } from "./database.types";
  * service client use" setting to fall out of sync with the toggle.
  */
 export async function createServiceClient() {
-  const environment = await getActiveAdminEnvironment();
+  return createServiceClientForEnvironment(await getActiveAdminEnvironment());
+}
+
+/**
+ * Pinned to an explicit environment. Only for actions that have ALREADY
+ * proven (through the actor's own RLS session on that same project) that the
+ * caller is allowed to do what they are about to do with elevated rights —
+ * e.g. creating the auth account for an invited platform admin.
+ */
+export async function createServiceClientForEnvironment(environment: AdminEnvironment) {
   const { url, secretKey } = getServiceSupabaseCredentials(environment);
 
   return createSupabaseClient<Database>(url, secretKey, {

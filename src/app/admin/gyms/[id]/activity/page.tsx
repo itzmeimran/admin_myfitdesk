@@ -2,28 +2,40 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
-import { getGymAuditLog, listAdminOptions, AUDIT_ACTION_LABEL } from "@/features/gyms/audit";
+import { getTimeline } from "@/features/gyms/ops/queries";
+import { CATEGORY_LABEL } from "@/features/gyms/ops/timeline-format";
+import { zonedDayRange, zonedToday } from "@/core/dates/zoned-range";
 import { SearchBox } from "@/components/SearchBox";
 import { FilterSelect } from "@/components/FilterSelect";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
-import { CalendarIcon, InboxIcon } from "@/core/ui/icons";
+import { SectionError } from "../ops-ui";
+import { ExportActivityButton, TimelineFeed } from "./timeline-feed";
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
-function first(v: string | string[] | undefined) {
-  return Array.isArray(v) ? v[0] : v;
-}
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+const CATEGORY_ORDER = ["members", "payments", "memberships", "subscription", "whatsapp", "billing", "jobs", "webhooks", "security", "admin", "system", "gym", "expenses", "inventory", "leads", "other"];
+const ACTORS = [
+  { value: "platform_admin", label: "Platform admin" },
+  { value: "owner", label: "Gym owner" },
+  { value: "staff", label: "Staff" },
+  { value: "trainer", label: "Trainer" },
+  { value: "system", label: "System" },
+];
+const STATUSES = [
+  { value: "success", label: "Success" },
+  { value: "warning", label: "Warning" },
+  { value: "failed", label: "Failed" },
+];
 
 /**
- * Activity tab — matches the design's "Admin actions on this gym" / "Gym's
- * own record changes" feed toggle (`?feed=gym`). The admin feed is real
- * (every row is an existing `admin_audit_log` write — subscription
- * changes, suspend/reactivate, profile edits), now rendered as the design's
- * feed cards instead of a table. The gym's own field-level change feed has
- * no admin-readable source: this schema's tenant `audit_log` tables are
- * "owner-read-only, no admin coverage today" (CLAUDE.md's own schema
- * audit), so that tab is an honest empty state, not fabricated diffs.
+ * Activity tab — one operational timeline for this gym: platform-admin
+ * actions, the gym's own changes (owner / staff / trainer), payments,
+ * WhatsApp and webhook failures, failed jobs and raised alerts. Filtering,
+ * sorting and pagination all happen in the database (25 per page); the newest
+ * event is first unless the admin flips it.
  */
 export default async function GymActivityPage({
   params,
@@ -36,128 +48,122 @@ export default async function GymActivityPage({
   const sp = await searchParams;
   const pathname = `/admin/gyms/${id}/activity`;
 
-  const feed = first(sp.feed) === "gym" ? "gym" : "admin";
   const search = first(sp.q) ?? "";
-  const action = first(sp.action);
-  const actorId = first(sp.actorId);
+  const category = first(sp.category);
+  const actorType = first(sp.actor);
+  const status = first(sp.status);
   const dateFrom = first(sp.from);
   const dateTo = first(sp.to);
   const sortDir: "asc" | "desc" = first(sp.dir) === "asc" ? "asc" : "desc";
   const { page, pageSize, offset } = parsePagination(sp);
 
   const supabase = await createClient();
-  const [gym, auditResult, admins] = await Promise.all([
-    getGymDetail(supabase, id),
-    feed === "admin"
-      ? getGymAuditLog(supabase, id, {
-          search,
-          action,
-          actorId,
-          dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
-          dateTo: dateTo ? new Date(`${dateTo}T23:59:59`).toISOString() : undefined,
-          sortDir,
-          limit: pageSize,
-          offset,
-        })
-      : Promise.resolve({ rows: [], total: 0 }),
-    feed === "admin" ? listAdminOptions(supabase) : Promise.resolve([]),
-  ]);
+  const gym = await getGymDetail(supabase, id);
   if (!gym) notFound();
-  const { rows, total } = auditResult;
+  const tz = gym.defaultTimezone || "Asia/Kolkata";
 
-  const hasFilters = !!search || !!action || !!actorId || !!dateFrom || !!dateTo;
-  const feedParams = (f: "admin" | "gym") => {
-    const params = new URLSearchParams();
-    if (f === "gym") params.set("feed", "gym");
-    return `${pathname}${params.toString() ? `?${params}` : ""}`;
+  const timeline = await getTimeline(
+    supabase,
+    id,
+    {
+      search,
+      category,
+      actorType,
+      status,
+      from: dateFrom ? zonedDayRange(dateFrom, tz)?.start : undefined,
+      to: dateTo ? zonedDayRange(dateTo, tz)?.end : undefined,
+      sortDir,
+    },
+    pageSize,
+    offset,
+  )
+    .then((data) => ({ data, error: null as string | null }))
+    .catch((error: unknown) => ({ data: null, error: error instanceof Error ? error.message : "Unexpected error." }));
+
+  const hasFilters = !!search || !!category || !!actorType || !!status || !!dateFrom || !!dateTo;
+
+  const presetHref = (days: number) => {
+    const p = new URLSearchParams();
+    p.set("from", zonedToday(tz, -days));
+    p.set("to", zonedToday(tz));
+    return `${pathname}?${p.toString()}`;
   };
+  const preset = {
+    today: dateFrom === zonedToday(tz) && dateTo === zonedToday(tz),
+    week: dateFrom === zonedToday(tz, -6) && dateTo === zonedToday(tz),
+    month: dateFrom === zonedToday(tz, -29) && dateTo === zonedToday(tz),
+  };
+  const custom = (dateFrom || dateTo) && !preset.today && !preset.week && !preset.month;
+
+  const sortHref = (() => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) {
+      const value = first(v);
+      if (value && k !== "dir" && k !== "page") p.set(k, value);
+    }
+    if (sortDir === "desc") p.set("dir", "asc");
+    return `${pathname}${p.toString() ? `?${p}` : ""}`;
+  })();
+
+  const chip = (active: boolean) =>
+    `flex min-h-[34px] items-center border-[1.5px] px-3 text-[11px] font-bold ${active ? "border-ink bg-ink text-hi" : "border-line bg-paper text-mute hover:border-ink hover:text-ink"}`;
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex" role="group" aria-label="Activity feed">
-          <Link
-            href={feedParams("admin")}
-            aria-pressed={feed === "admin"}
-            className={`flex min-h-[36px] items-center border-[1.5px] border-r-0 border-ink px-3 text-[11.5px] font-bold ${
-              feed === "admin" ? "bg-ink text-hi" : "bg-paper text-mute"
-            }`}
-          >
-            Admin actions on this gym
-          </Link>
-          <Link
-            href={feedParams("gym")}
-            aria-pressed={feed === "gym"}
-            className={`flex min-h-[36px] items-center border-[1.5px] border-ink px-3 text-[11.5px] font-bold ${
-              feed === "gym" ? "bg-ink text-hi" : "bg-paper text-mute"
-            }`}
-          >
-            Gym&apos;s own record changes
-          </Link>
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Date range">
+          <Link href={presetHref(0)} className={chip(preset.today)}>Today</Link>
+          <Link href={presetHref(6)} className={chip(preset.week)}>Last 7 days</Link>
+          <Link href={presetHref(29)} className={chip(preset.month)}>Last 30 days</Link>
+          <span className={chip(Boolean(custom))}>Custom</span>
         </div>
-        <span className="ml-auto text-[11.5px] text-mute3">
-          {feed === "admin" ? `${total.toLocaleString("en-IN")} actions · newest first` : "Field-level diffs"}
+        <DateRangeFilter />
+        <span className="ml-auto flex items-center gap-3 text-[11.5px] text-mute3">
+          {timeline.data ? `${timeline.data.total.toLocaleString("en-IN")} events` : null}
+          <Link href={sortHref} className="font-bold text-mute underline underline-offset-2 hover:text-ink">
+            {sortDir === "desc" ? "Newest first" : "Oldest first"}
+          </Link>
+          <ExportActivityButton
+            organizationId={id}
+            filters={{ search, category, actorType, status, from: dateFrom, to: dateTo, sortDir }}
+          />
         </span>
       </div>
 
-      {feed === "gym" ? (
-        <div className="flex flex-col items-center gap-2 border-[1.5px] border-line bg-paper px-4 py-14 text-center">
-          <InboxIcon size={24} className="text-mute3" aria-hidden />
-          <p className="max-w-md text-[12.5px] leading-relaxed text-mute">
-            Not available yet — this gym&apos;s own record-change history (members, plans, branches) has no admin
-            read in this schema. Its tenant-plane audit tables are owner-read-only today.
-          </p>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <SearchBox param="q" placeholder="Search action, person or member" />
+        <FilterSelect
+          param="category"
+          placeholder="All categories"
+          options={CATEGORY_ORDER.map((value) => ({ value, label: CATEGORY_LABEL[value] ?? value }))}
+        />
+        <FilterSelect param="actor" placeholder="Any actor" options={ACTORS} />
+        <FilterSelect param="status" placeholder="Any status" options={STATUSES} />
+        {hasFilters ? (
+          <Link href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
+            Reset filters
+          </Link>
+        ) : null}
+      </div>
+
+      {timeline.error || !timeline.data ? (
+        <SectionError title="Activity" message={timeline.error ?? "Unavailable."} />
+      ) : timeline.data.rows.length === 0 ? (
+        <div className="border-[1.5px] border-line bg-paper">
+          <EmptyState
+            message={
+              hasFilters
+                ? "No activity matches your filters."
+                : "Nothing has been recorded for this gym yet. Actions by the owner, staff, trainers and platform admins appear here as they happen."
+            }
+            resetHref={hasFilters ? pathname : undefined}
+          />
         </div>
       ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <SearchBox param="q" placeholder="Search action" />
-            <FilterSelect
-              param="action"
-              placeholder="All action types"
-              options={Object.entries(AUDIT_ACTION_LABEL).map(([value, label]) => ({ value, label }))}
-            />
-            <FilterSelect
-              param="actorId"
-              placeholder="Any admin"
-              options={admins.map((a) => ({ value: a.id, label: a.email }))}
-            />
-            <DateRangeFilter />
-            {hasFilters ? (
-              <Link href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
-                Reset filters
-              </Link>
-            ) : null}
-          </div>
-
-          {rows.length === 0 ? (
-            <div className="border-[1.5px] border-line bg-paper">
-              <EmptyState message="No activity matches your filters." resetHref={hasFilters ? pathname : undefined} />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {rows.map((r) => (
-                <div key={r.id} className="flex flex-wrap items-start gap-3 border-[1.5px] border-line bg-paper p-3.5">
-                  <span
-                    aria-hidden="true"
-                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center border-[1.5px] border-ink text-ink"
-                  >
-                    <CalendarIcon size={15} aria-hidden />
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-[13px] font-bold">{r.actionLabel}</span>
-                    {r.detail ? (
-                      <span className="font-mono text-[11px] text-mute3">{JSON.stringify(r.detail)}</span>
-                    ) : null}
-                    <span className="text-[11.5px] text-mute3">{r.adminEmail}</span>
-                  </div>
-                  <span className="ml-auto whitespace-nowrap font-mono text-[11px] text-mute">{r.at}</span>
-                </div>
-              ))}
-              <Pagination pathname={pathname} searchParams={sp} page={page} pageSize={pageSize} total={total} itemLabel="events" />
-            </div>
-          )}
-        </>
+        <div className="flex flex-col gap-3">
+          <TimelineFeed events={timeline.data.rows} organizationId={id} timeZone={tz} />
+          <Pagination pathname={pathname} searchParams={sp} page={page} pageSize={pageSize} total={timeline.data.total} itemLabel="events" />
+        </div>
       )}
     </div>
   );

@@ -6,7 +6,7 @@ import { signOut } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { SignOutIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
-import { NAV_ITEMS } from "./nav-items";
+import { NAV_ITEMS, visibleNavItems } from "./nav-items";
 import { EnvironmentPill } from "./environment-pill";
 
 /**
@@ -30,7 +30,7 @@ import { EnvironmentPill } from "./environment-pill";
  * list describes finer per-section reflow (e.g. tile/card wrap counts),
  * not a different chrome cutoff.
  */
-export function AdminSidebar({ email, gymsCount }: { email: string; gymsCount: number }) {
+export function AdminSidebar({ email, gymsCount, permissions }: { email: string; gymsCount: number; permissions: string[] }) {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
@@ -58,7 +58,7 @@ export function AdminSidebar({ email, gymsCount }: { email: string; gymsCount: n
         </div>
 
         <nav className="flex flex-col gap-0.5" aria-label="Platform sections">
-          {NAV_ITEMS.map((item) => {
+          {visibleNavItems(NAV_ITEMS, permissions).map((item) => {
             const active = isActive(item.href);
             const badge = badgeFor(item.href);
             return (

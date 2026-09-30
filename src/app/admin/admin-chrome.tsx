@@ -7,7 +7,7 @@ import { signOut } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { MenuIcon, CancelIcon, SignOutIcon, SearchIcon, NudgeIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
-import { MOBILE_NAV_ITEMS, NAV_ITEMS } from "./nav-items";
+import { MOBILE_NAV_ITEMS, NAV_ITEMS, visibleNavItems } from "./nav-items";
 import { EnvironmentPill } from "./environment-pill";
 
 /**
@@ -30,10 +30,12 @@ export function AdminChrome({
   email,
   gymsCount,
   alertsCount,
+  permissions,
 }: {
   email: string;
   gymsCount: number;
   alertsCount: number;
+  permissions: string[];
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -103,8 +105,12 @@ export function AdminChrome({
         {initials}
       </span>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t-[1.5px] border-ink bg-paper md:hidden" aria-label="Primary mobile navigation">
-        {MOBILE_NAV_ITEMS.map((item) => {
+      <nav
+        className="fixed inset-x-0 bottom-0 z-20 grid border-t-[1.5px] border-ink bg-paper md:hidden"
+        style={{ gridTemplateColumns: `repeat(${Math.max(visibleNavItems(MOBILE_NAV_ITEMS, permissions).length, 1)}, minmax(0, 1fr))` }}
+        aria-label="Primary mobile navigation"
+      >
+        {visibleNavItems(MOBILE_NAV_ITEMS, permissions).map((item) => {
           const badge = badgeFor(item.href);
           return (
             <Link
@@ -157,7 +163,7 @@ export function AdminChrome({
               </div>
 
               <div className="flex flex-col gap-0.5">
-                {NAV_ITEMS.map((item) => {
+                {visibleNavItems(NAV_ITEMS, permissions).map((item) => {
                   const active = isActive(item.href);
                   const badge = badgeFor(item.href);
                   return (

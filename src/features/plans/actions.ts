@@ -1,4 +1,5 @@
 "use server";
+import { assertPermission } from "@/core/auth/access";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -93,6 +94,7 @@ const setupSchema = z.object({
  * re-submitting finishes the job instead of erroring on the duplicate plan.
  */
 export async function setUpPackage(_prev: SetupFormState, formData: FormData): Promise<SetupFormState> {
+  await assertPermission("packages.manage");
   const parsed = setupSchema.safeParse({
     name: text(formData, "name"),
     description: text(formData, "description"),
@@ -188,6 +190,7 @@ export async function savePackageDetails(
   _prev: PackageFormState,
   formData: FormData,
 ): Promise<PackageFormState> {
+  await assertPermission("packages.manage");
   const parsed = detailsSchema.safeParse({
     planId: text(formData, "planId"),
     name: text(formData, "name"),
@@ -249,6 +252,7 @@ const pricingSchema = z.object({
  * `plan_effective_price()`; nothing here is trusted at checkout.
  */
 export async function savePricing(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+  await assertPermission("packages.manage");
   const parsed = pricingSchema.safeParse({
     planId: text(formData, "planId"),
     monthlyPrice: text(formData, "monthlyPrice"),
@@ -378,6 +382,7 @@ async function syncDiscount(
 /** Show or hide one term on the gym owner's subscription screen. Hiding a
  * term never touches a gym already paying on it — they keep renewing. */
 export async function setTermOffered(cycleId: string, offered: boolean): Promise<{ error: string | null }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_plan_billing_cycle_purchasable", {
     p_id: cycleId,
@@ -393,6 +398,7 @@ export async function setTermOffered(cycleId: string, offered: boolean): Promise
  * left over from the older, more general Plans screen. Archiving hides it
  * from new purchases; nothing is deleted. */
 export async function archiveTerm(cycleId: string): Promise<{ error: string | null }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_plan_billing_cycle_status", { p_id: cycleId, p_status: "archived" });
   if (error) return { error: error.message };
@@ -412,6 +418,7 @@ const featureSchema = z.object({
  * enforced anywhere. What actually differs between gyms is the capacity
  * limits on the details form. */
 export async function addFeature(_prev: PackageFormState, formData: FormData): Promise<PackageFormState> {
+  await assertPermission("packages.manage");
   const parsed = featureSchema.safeParse({
     planId: text(formData, "planId"),
     name: text(formData, "name"),
@@ -432,6 +439,7 @@ export async function addFeature(_prev: PackageFormState, formData: FormData): P
 }
 
 export async function removeFeature(id: string): Promise<{ error: string | null }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_delete_plan_feature", { p_id: id });
   if (error) return { error: error.message };
@@ -449,6 +457,7 @@ export async function removeFeature(id: string): Promise<{ error: string | null 
  * Distinct from a single term's own offered/hidden toggle (setTermOffered),
  * which is finer-grained and stays available independently. */
 export async function setPlanStatus(id: string, status: "active" | "archived"): Promise<{ error: string | null }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_plan_status", { p_id: id, p_status: status });
   if (error) return { error: error.message };
@@ -467,6 +476,7 @@ export async function setPlanStatus(id: string, status: "active" | "archived"): 
  * current row up by package_id regardless of the mode.
  */
 export async function setBillingModel(model: "legacy" | "dynamic"): Promise<{ error: string | null }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_billing_model", { p_model: model });
   if (error) return { error: error.message };
@@ -493,6 +503,7 @@ export async function setBillingModel(model: "legacy" | "dynamic"): Promise<{ er
  * still be restored individually from /admin/packages/legacy.
  */
 export async function goLiveAndArchiveLegacy(): Promise<{ error: string | null; archivedCount: number }> {
+  await assertPermission("packages.manage");
   const supabase = await createClient();
 
   const { error: modelError } = await supabase.rpc("admin_set_billing_model", { p_model: "dynamic" });

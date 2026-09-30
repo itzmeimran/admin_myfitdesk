@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
-import { describeLastPayment, describeMembership, getGymMembers, getGymMemberSummary, humanize } from "@/features/gyms/members";
+import { describeLastPayment, describeMembership, getGymMembers, getGymMemberSummary, getMemberAvatarKeys, humanize } from "@/features/gyms/members";
 import { listBranchOptions } from "@/features/gyms/branches";
 import { SearchBox } from "@/components/SearchBox";
 import { CustomFilterDropdown } from "@/components/CustomFilterDropdown";
 import { SortLink } from "@/components/SortLink";
 import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
+import { resolveMemberAvatarUrls } from "@/core/storage/member-avatar";
 import { formatZonedDate, formatZonedTime } from "@/core/dates/format";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { MemberContact } from "./member-contact";
@@ -64,6 +65,8 @@ export default async function GymMembersPage({
 
   const summary = summaryResult.data;
   const { rows, total } = membersResult.data;
+  // One RPC + local presigning for the whole page — never a request per member.
+  const avatarUrls = await resolveMemberAvatarUrls(supabase, id, await getMemberAvatarKeys(supabase, id, rows.map((row) => row.id)));
   const timezone = summary?.timezone ?? gym.defaultTimezone;
   const hasFilters = Boolean(search || memberStatus || branchId || state);
   const clearHref = roster === "deleted" ? `${pathname}?roster=deleted` : pathname;
@@ -142,7 +145,7 @@ export default async function GymMembersPage({
                   return (
                     <tr key={member.id} className="mfd-table-row align-top">
                       <td className="max-w-[175px] border-b border-line px-4 py-2.5">
-                        <MemberDrawer organizationId={id} member={member} trigger={member.name} />
+                        <MemberDrawer organizationId={id} member={member} trigger={member.name} avatarUrl={avatarUrls[member.id]} />
                         <span className="mt-0.5 block text-[10.5px] capitalize text-mute3">{member.deletedAt ? "Deleted" : member.memberStatus}</span>
                       </td>
                       <td className="max-w-[220px] border-b border-line px-3 py-2.5 text-mute"><MemberContact phone={member.phone} email={member.email} /></td>

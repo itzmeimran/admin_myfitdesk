@@ -87,15 +87,38 @@ async function main() {
   // so re-running this after a revoke re-activates the same row (clearing
   // revoked_at) instead of failing on the unique(user_id) constraint or
   // silently leaving the old row revoked.
-  const { error: grantErr } = await supabase
-    .from("platform_admins")
-    .upsert(
-      { user_id: user.id, email: EMAIL, revoked_at: null },
-      { onConflict: "user_id" },
-    );
+  //
+  // This script is the BOOTSTRAP path (the first admin of an environment, or
+  // recovery when nobody can sign in), so it grants the Platform Owner role
+  // and an active status. Everyone after that is invited from Settings ->
+  // Admins & permissions, which enforces roles and the last-owner rule. If the
+  // Settings migration (20260930180000_platform_settings.sql) hasn't been
+  // applied to this environment yet, the role/status columns don't exist, so
+  // fall back to the original shape.
+  const now = new Date().toISOString();
+  let { error: grantErr } = await supabase.from("platform_admins").upsert(
+    {
+      user_id: user.id,
+      email: EMAIL,
+      revoked_at: null,
+      revoked_by: null,
+      suspended_at: null,
+      suspended_by: null,
+      role: "platform_owner",
+      status: "active",
+      activated_at: now,
+    },
+    { onConflict: "user_id" },
+  );
+  if (grantErr && /column|schema cache/i.test(grantErr.message)) {
+    console.log("Roles aren't installed on this environment yet — granting with the original shape.");
+    ({ error: grantErr } = await supabase
+      .from("platform_admins")
+      .upsert({ user_id: user.id, email: EMAIL, revoked_at: null }, { onConflict: "user_id" }));
+  }
   if (grantErr) throw grantErr;
 
-  console.log("Granted platform admin access to:", EMAIL);
+  console.log("Granted platform admin (Platform Owner) access to:", EMAIL);
 }
 
 main().catch((err) => {

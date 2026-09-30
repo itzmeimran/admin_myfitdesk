@@ -1,21 +1,37 @@
 import { createClient } from "@/core/db/server-client";
-import { listPlatformAdmins } from "@/features/settings/queries";
-import { SettingsView } from "./settings-view";
+import { getAdminAccess, hasPermission, requirePermission } from "@/core/auth/access";
+import { getPlatformSettings } from "@/features/settings/platform-settings";
+import { SettingsCard, SectionError, Provenance } from "./_components/ui";
+import { GeneralForm } from "./general-form";
 
 /**
- * Of the design's 4 candidate Settings features (grace-period default,
- * invoice prefix, webhook endpoints, admin accounts — see the original
- * placeholder this replaced), the product owner chose to build only the
- * admin roster (CLAUDE.md's Plan, P2 #8). The other three remain
- * undecided/unbuilt — this page has no section for them yet, rather than a
- * disabled placeholder for something that was never designed.
- *
- * The Legacy/Dynamic billing-model switch briefly lived here as well; it
- * now sits on /admin/packages, beside the package it governs.
+ * Settings -> General: the platform's own identity and support contact. The
+ * name and support contact are printed in the footer of every invitation email
+ * this dashboard sends; nothing here is decorative.
  */
-export default async function SettingsPage() {
+export default async function GeneralSettingsPage() {
+  await requirePermission("settings.view");
+  const access = await getAdminAccess();
   const supabase = await createClient();
-  const admins = await listPlatformAdmins(supabase);
+  const result = await getPlatformSettings(supabase);
 
-  return <SettingsView admins={admins} />;
+  return (
+    <SettingsCard
+      title="General"
+      description="How the platform presents itself. The platform name and support contact appear in the footer of invitation emails sent from this dashboard."
+    >
+      {result.ok ? (
+        <>
+          <GeneralForm
+            key={result.data.general?.at ?? "defaults"}
+            values={result.data.values}
+            canEdit={hasPermission(access, "settings.manage")}
+          />
+          <Provenance at={result.data.general?.at ?? null} by={result.data.general?.by ?? null} />
+        </>
+      ) : (
+        <SectionError message={result.error} notInstalled={result.notInstalled} />
+      )}
+    </SettingsCard>
+  );
 }

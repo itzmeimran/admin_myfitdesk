@@ -105,7 +105,9 @@ export function SuspendSheet({
   const [prodConfirmText, setProdConfirmText] = useState("");
 
   const requiresTypedConfirm = environment === "prod";
-  const canSubmit = !requiresTypedConfirm || prodConfirmText.trim().toUpperCase() === "PROD";
+  // A reason is mandatory for a suspension (Gym Command Center rule); the
+  // server action refuses an empty one as well.
+  const canSubmit = reason.trim().length >= 3 && (!requiresTypedConfirm || prodConfirmText.trim().toUpperCase() === "PRODUCTION");
 
   function confirm() {
     startTransition(async () => {
@@ -129,7 +131,7 @@ export function SuspendSheet({
           itself change the gym&apos;s subscription state.
         </p>
         <label className="flex flex-col gap-1">
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Reason (optional)</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Reason (required)</span>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
@@ -141,14 +143,14 @@ export function SuspendSheet({
         {requiresTypedConfirm ? (
           <label className="flex flex-col gap-1.5">
             <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-accent">
-              This is PRODUCTION. Type &quot;PROD&quot; to confirm
+              This is PRODUCTION. Type &quot;PRODUCTION&quot; to confirm
             </span>
             <input
               type="text"
               autoComplete="off"
               value={prodConfirmText}
               onChange={(e) => setProdConfirmText(e.target.value)}
-              placeholder="PROD"
+              placeholder="PRODUCTION"
               className="w-full border-[1.5px] border-accent bg-paper px-2.5 py-2 text-[13px] font-bold text-ink outline-none"
             />
           </label>

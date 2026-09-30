@@ -200,6 +200,30 @@ export async function getGymMemberSummary(
   };
 }
 
+/** member id → stored avatar key, for the given members of one gym. One RPC
+ * call for a whole page of rows (or a single member); failures degrade to "no
+ * photo" rather than breaking the roster. */
+export async function getMemberAvatarKeys(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  memberIds: string[],
+): Promise<Map<string, string>> {
+  const keys = new Map<string, string>();
+  if (memberIds.length === 0) return keys;
+  const { data, error } = await supabase.rpc("admin_gym_member_avatars", {
+    p_organization_id: organizationId,
+    p_member_ids: memberIds,
+  });
+  if (error) {
+    console.error("Platform admin member avatar read failed", error);
+    return keys;
+  }
+  for (const row of (data ?? []) as Array<{ member_id: string; avatar_key: string }>) {
+    keys.set(row.member_id, row.avatar_key);
+  }
+  return keys;
+}
+
 /** Kept for the Overview snapshot call site, now backed by one aggregate RPC
  * rather than three paginated list reads. */
 export async function getMemberExpirySnapshot(

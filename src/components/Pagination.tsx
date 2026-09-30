@@ -67,7 +67,7 @@ export function Pagination({
       <span>
         {total === 0 ? `No ${itemLabel}` : `Showing ${from}–${to} of ${total} ${itemLabel}`}
       </span>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <PageSizeSelect pageSize={pageSize} />
         <span className="font-bold text-ink">
           Page {page} of {totalPages}

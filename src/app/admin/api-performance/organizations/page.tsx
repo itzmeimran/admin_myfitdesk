@@ -56,7 +56,10 @@ export default async function ApiOrganizationsPage({ searchParams }: { searchPar
                     {r.organizationId ? (
                       <Link href={`/admin/gyms/${r.organizationId}`} className="font-bold hover:text-accent">{r.organizationName ?? "Gym"}</Link>
                     ) : (
-                      <span className="text-mute" title="Cron jobs, gateway webhooks and other requests with no signed-in gym">Unattributed</span>
+                      <span className="flex flex-col" title="Cron jobs, gateway webhooks and other requests with no signed-in gym">
+                        <span className="font-bold">System &amp; webhooks</span>
+                        <span className="text-[11px] text-mute">Scheduled jobs and provider callbacks, not a gym</span>
+                      </span>
                     )}
                   </td>
                   <td className="border-b border-line px-3 py-2.5 text-right tabular-nums">{formatCount(r.n)}</td>
@@ -73,7 +76,9 @@ export default async function ApiOrganizationsPage({ searchParams }: { searchPar
         <Pagination pathname={pathname} searchParams={sp} page={page} pageSize={pageSize} total={total} itemLabel="organizations" />
       </div>
       <p className="text-[11px] text-mute">
-        A gym is attributed when the request came from one of its signed-in users, or its own webhook URL. High volume is not a fault by itself: compare against the gym&apos;s size.
+        A gym appears here when a request came from one of its signed-in users or its own webhook URL. Cron jobs and shared provider webhooks
+        (such as the WhatsApp callback) belong to no single gym, so they are grouped as &ldquo;System &amp; webhooks&rdquo;. Only API route handlers are
+        measured: page loads and in-app actions are not, so a gym can be busy without appearing here. High volume is not a fault by itself.
       </p>
     </div>
   );

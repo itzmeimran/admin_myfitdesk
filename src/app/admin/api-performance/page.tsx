@@ -1,11 +1,11 @@
 import { createClient } from "@/core/db/server-client";
 import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 import { getApiAlerts, getApiOverview } from "@/features/api-performance/queries";
-import { formatCount, formatMs, formatRate, formatRpm } from "@/features/api-performance/format";
-import { parseApiParams, type RawSearchParams } from "@/features/api-performance/params";
+import { assessHealth, formatCount, formatMs, formatRate, formatRpm } from "@/features/api-performance/format";
+import { RANGES, parseApiParams, type RawSearchParams } from "@/features/api-performance/params";
 import { EmptyState } from "@/components/EmptyState";
 import { LatencyChart, VolumeChart } from "./charts";
-import { AlertsPanel, Kpi, MixBar, RouteList, Section } from "./ui";
+import { AlertsPanel, HealthBanner, Kpi, KpiGroup, MixBar, RouteList, Section } from "./ui";
 
 export default async function ApiPerformanceOverviewPage({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   const sp = await searchParams;
@@ -13,9 +13,12 @@ export default async function ApiPerformanceOverviewPage({ searchParams }: { sea
   const supabase = await createClient();
   const [ov, alerts] = await Promise.all([getApiOverview(supabase, { range, env }), getApiAlerts(supabase, env)]);
   const k = ov.kpis;
+  const rangeLabel = (RANGES.find((r) => r.value === range)?.label ?? range).toLowerCase();
 
   return (
     <div className="flex flex-col gap-4">
+      {k.total > 0 ? <HealthBanner health={assessHealth(k, ov.thresholds, rangeLabel)} /> : null}
+
       <Section title="Needs a look" hint="Last 15 minutes. Informational only: nothing here changes data or blocks a request.">
         <AlertsPanel data={alerts} searchParams={sp} />
       </Section>
@@ -26,19 +29,31 @@ export default async function ApiPerformanceOverviewPage({ searchParams }: { sea
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap gap-2.5">
-            <Kpi label="Total requests" value={formatCount(k.total)} hint={`Last ${range}`} emphasis />
+          <KpiGroup title="Traffic" question="How much is the platform being used?">
+            <Kpi label="Total requests" value={formatCount(k.total)} hint={`Last ${rangeLabel}`} emphasis />
             <Kpi label="Requests / min" value={formatRpm(k.rpm)} hint="Average over the window" />
-            <Kpi label="Average" value={formatMs(k.avg_ms)} />
-            <Kpi label="P50" value={formatMs(k.p50_ms)} hint="Half of requests are faster" />
-            <Kpi label="P95" value={formatMs(k.p95_ms)} hint="19 in 20 are faster" accent={(k.p95_ms ?? 0) >= ov.thresholds.p95_alert_ms} />
-            <Kpi label="P99" value={k.total >= 100 ? formatMs(k.p99_ms) : "—"} hint={k.total >= 100 ? "Slowest 1% start here" : "Needs 100+ requests to be reliable"} />
-            <Kpi label="Maximum" value={formatMs(k.max_ms)} />
-            <Kpi label="Successful" value={formatCount(k.successful)} hint="1xx–3xx" />
-            <Kpi label="Failed" value={formatCount(k.failed)} hint={`5xx · plus ${formatCount(k.client_errors)} client errors (4xx)`} accent={k.failed > 0} />
-            <Kpi label="Error rate" value={formatRate(k.error_rate_pct)} hint="5xx ÷ all requests" accent={(k.error_rate_pct ?? 0) >= 5} />
-            <Kpi label="Slow requests" value={formatCount(k.slow)} hint={`≥ ${formatMs(ov.thresholds.acceptable_ms)} · ${formatCount(k.very_slow)} over ${formatMs(ov.thresholds.slow_ms)}`} accent={k.very_slow > 0} />
-          </div>
+          </KpiGroup>
+
+          <KpiGroup title="Speed" question="How fast do requests finish?">
+            <Kpi label="Typical (P50)" value={formatMs(k.p50_ms)} hint="Half of requests are faster than this" />
+            <Kpi label="Slow end (P95)" value={formatMs(k.p95_ms)} hint="19 in 20 are faster · the number to watch" accent={(k.p95_ms ?? 0) >= ov.thresholds.p95_alert_ms} />
+            <Kpi label="Worst 1% (P99)" value={k.total >= 100 ? formatMs(k.p99_ms) : "—"} hint={k.total >= 100 ? "Only 1 in 100 is slower" : "Needs 100+ requests to be reliable"} />
+            <Kpi label="Average" value={formatMs(k.avg_ms)} hint="Can hide slow requests" />
+            <Kpi label="Slowest" value={formatMs(k.max_ms)} hint="Single slowest request" />
+            <Kpi label="Slow requests" value={formatCount(k.slow)} hint={`${formatCount(k.very_slow)} over ${formatMs(ov.thresholds.slow_ms)} · slow = ≥ ${formatMs(ov.thresholds.acceptable_ms)}`} accent={k.very_slow > 0} />
+          </KpiGroup>
+
+          <KpiGroup title="Reliability" question="How often did a request fail?">
+            <Kpi label="Succeeded" value={formatCount(k.successful)} hint="Responses 100–399" />
+            <Kpi label="Server errors (5xx)" value={formatCount(k.failed)} hint="Our platform failed. Investigate" accent={k.failed > 0} />
+            <Kpi label="Client errors (4xx)" value={formatCount(k.client_errors)} hint="Bad input or signed out. Usually not a fault" />
+            <Kpi
+              label="Failure rate"
+              value={formatRate(k.error_rate_pct)}
+              hint={`${formatCount(k.failed)} of ${formatCount(k.total)} requests were 5xx. 4xx not counted`}
+              accent={(k.error_rate_pct ?? 0) >= 5}
+            />
+          </KpiGroup>
 
           <Section
             title="Response time classification"

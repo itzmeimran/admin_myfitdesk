@@ -7,6 +7,8 @@ import {
   formatCount,
   formatMs,
   statusTone,
+  type Health,
+  type HealthLevel,
   type Thresholds,
 } from "@/features/api-performance/format";
 import type { ApiAlerts } from "@/features/api-performance/queries";
@@ -26,10 +28,46 @@ export function Kpi({
   accent?: boolean;
 }) {
   return (
-    <div className={`mfd-kpi-tile flex min-h-[92px] min-w-[150px] flex-1 flex-col gap-1.5 border-[1.5px] p-3.5 ${emphasis ? "border-ink bg-ink" : "border-line bg-paper"}`}>
+    <div className={`mfd-kpi-tile flex min-h-[92px] min-w-0 flex-col sm:min-w-[150px] sm:flex-1 gap-1.5 border-[1.5px] p-3.5 ${emphasis ? "border-ink bg-ink" : "border-line bg-paper"}`}>
       <span className={`text-[10.5px] font-bold uppercase tracking-[0.12em] ${emphasis ? "text-hi" : "text-mute"}`}>{label}</span>
       <span className={`font-display text-[24px] tracking-[-0.02em] ${emphasis ? "text-paper" : accent ? "text-accent" : "text-ink"}`}>{value}</span>
       {hint ? <span className={`text-[11px] ${emphasis ? "text-mute3" : "text-mute"}`}>{hint}</span> : null}
+    </div>
+  );
+}
+
+const HEALTH_STYLE: Record<HealthLevel, { bar: string; dot: string; pulse: boolean }> = {
+  healthy: { bar: "border-l-live", dot: "bg-live", pulse: true },
+  attention: { bar: "border-l-hi", dot: "bg-hi", pulse: false },
+  unhealthy: { bar: "border-l-accent", dot: "bg-accent", pulse: false },
+};
+
+/** The at-a-glance answer: one word and one plain sentence for the window. */
+export function HealthBanner({ health }: { health: Health }) {
+  const s = HEALTH_STYLE[health.level];
+  return (
+    <div role="status" className={`flex items-start gap-3.5 border-[1.5px] border-l-[6px] border-ink bg-paper p-4 ${s.bar}`}>
+      <span aria-hidden="true" className="relative mt-2 flex h-2.5 w-2.5 flex-shrink-0">
+        {s.pulse ? <span className="mfd-pulse-ring absolute inset-0 rounded-full bg-live" /> : null}
+        <span className={`relative h-2.5 w-2.5 rounded-full ${s.dot}`} />
+      </span>
+      <div className="flex min-w-0 flex-col gap-1">
+        <span className="font-display text-[20px] tracking-[-0.02em]">{health.headline}</span>
+        <p className="text-[12.5px] text-mute">{health.summary}</p>
+      </div>
+    </div>
+  );
+}
+
+/** A labelled row of KPI tiles, so 12 numbers read as three questions. */
+export function KpiGroup({ title, question, children }: { title: string; question: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-baseline gap-x-2.5">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.13em]">{title}</h2>
+        <span className="text-[11.5px] text-mute">{question}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap">{children}</div>
     </div>
   );
 }

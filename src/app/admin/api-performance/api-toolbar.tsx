@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Dropdown } from "@/components/Dropdown";
 import { requestRefresh } from "@/core/realtime/refresh-scheduler";
 import { ENVIRONMENTS, RANGES } from "@/features/api-performance/params";
 
@@ -107,40 +108,46 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
         })}
       </nav>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div role="group" aria-label="Time range" className="flex border-[1.5px] border-ink">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div role="group" aria-label="Time range" className="flex max-w-full overflow-x-auto border-[1.5px] border-ink">
           {RANGES.map((r) => (
             <Link
               key={r.value}
               href={`${pathname}?${carry({ range: r.value }).toString()}`}
               aria-current={currentRange === r.value ? "true" : undefined}
-              className={`px-3 py-2 text-[11.5px] font-bold ${currentRange === r.value ? "bg-ink text-paper" : "text-ink hover:bg-sand"}`}
+              className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2.5 text-[11.5px] font-bold transition-colors sm:px-3 sm:py-2 ${
+                currentRange === r.value ? "bg-ink text-paper" : "text-ink hover:bg-sand"
+              }`}
             >
               {r.label}
             </Link>
           ))}
         </div>
 
-        <select
-          aria-label="Environment"
-          value={currentEnv}
-          onChange={(e) => router.push(`${pathname}?${carry({ env: e.target.value }).toString()}`)}
-          className="min-h-[36px] cursor-pointer border-[1.5px] border-line bg-paper px-2.5 text-[12px] font-bold text-ink outline-none transition-colors hover:border-ink focus:border-ink"
-        >
-          {ENVIRONMENTS.map((e) => (
-            <option key={e.value} value={e.value}>
-              {e.label}
-            </option>
-          ))}
-        </select>
+        <div className="w-[140px]">
+          <Dropdown
+            ariaLabel="Environment"
+            value={currentEnv}
+            options={ENVIRONMENTS.map((e) => ({ value: e.value, label: e.label }))}
+            onChange={(next) => router.push(`${pathname}?${carry({ env: next }).toString()}`)}
+          />
+        </div>
 
-        <label className="ml-auto flex cursor-pointer items-center gap-2 text-[11.5px] font-bold text-mute">
-          <input type="checkbox" checked={live} onChange={(e) => toggleLive(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--accent)]" />
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden="true" className={`h-1.5 w-1.5 ${live ? "bg-ink mfd-live-dot" : "bg-mute3"}`} />
-            {live ? "Live · refreshes every 30 s" : "Live updates paused"}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={live}
+          onClick={() => toggleLive(!live)}
+          title={live ? "Click to pause automatic refresh" : "Click to resume automatic refresh"}
+          className="flex min-h-[38px] items-center gap-2.5 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold text-mute transition-colors hover:border-ink sm:ml-auto"
+        >
+          <span aria-hidden="true" className="relative flex h-2 w-2 flex-shrink-0">
+            {live ? <span className="mfd-pulse-ring absolute inset-0 rounded-full bg-live" /> : null}
+            <span className={`relative h-2 w-2 rounded-full ${live ? "bg-live" : "bg-mute3"}`} />
           </span>
-        </label>
+          <span className={live ? "text-ink" : ""}>{live ? "Live" : "Paused"}</span>
+          <span className="font-normal">{live ? "· updates every 30 s" : "· click to resume"}</span>
+        </button>
       </div>
     </div>
   );

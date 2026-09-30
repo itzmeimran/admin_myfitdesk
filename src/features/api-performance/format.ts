@@ -61,6 +61,51 @@ export function statusTone(status: number): { backgroundColor: string; color: st
   return LATENCY_TONE.fast;
 }
 
+export type HealthLevel = "healthy" | "attention" | "unhealthy";
+export type Health = { level: HealthLevel; headline: string; summary: string; reasons: string[] };
+
+type HealthInput = {
+  total: number;
+  failed: number;
+  error_rate_pct: number | null;
+  p95_ms: number | null;
+  very_slow: number;
+};
+
+/**
+ * One verdict for the whole window, so the page answers "is anything wrong?"
+ * before any number is read. Two signals only, both already on screen: how
+ * often the platform failed (5xx) and how slow the slowest 1-in-20 requests
+ * were (P95) — averages hide both. Thresholds are the admin-configured ones.
+ */
+export function assessHealth(k: HealthInput, t: Thresholds, rangeLabel: string): Health {
+  const rate = k.error_rate_pct ?? 0;
+  const p95 = k.p95_ms ?? 0;
+  const unhealthyReasons: string[] = [];
+  const attentionReasons: string[] = [];
+
+  if (rate >= 5) unhealthyReasons.push(`${formatRate(rate)} of requests failed on our side (${formatCount(k.failed)} of ${formatCount(k.total)})`);
+  else if (k.failed > 0 && rate >= 1) attentionReasons.push(`${formatCount(k.failed)} request${k.failed === 1 ? "" : "s"} failed on our side (${formatRate(rate)})`);
+
+  if (p95 >= t.slow_ms) unhealthyReasons.push(`the slowest 1 in 20 requests took ${formatMs(p95)} or more`);
+  else if (p95 >= t.p95_alert_ms) attentionReasons.push(`the slowest 1 in 20 requests took ${formatMs(p95)} or more`);
+
+  if (k.very_slow > 0 && p95 < t.p95_alert_ms) attentionReasons.push(`${formatCount(k.very_slow)} request${k.very_slow === 1 ? " was" : "s were"} very slow (over ${formatMs(t.slow_ms)})`);
+
+  if (unhealthyReasons.length > 0) {
+    return { level: "unhealthy", headline: "Needs action", summary: `In the last ${rangeLabel}: ${[...unhealthyReasons, ...attentionReasons].join("; ")}.`, reasons: [...unhealthyReasons, ...attentionReasons] };
+  }
+  if (attentionReasons.length > 0) {
+    return { level: "attention", headline: "Worth a look", summary: `In the last ${rangeLabel}: ${attentionReasons.join("; ")}.`, reasons: attentionReasons };
+  }
+  return {
+    level: "healthy",
+    headline: "Healthy",
+    summary: `${formatCount(k.total)} request${k.total === 1 ? "" : "s"} in the last ${rangeLabel}, none failed on our side, and 19 in 20 finished within ${formatMs(k.p95_ms)}.`,
+    reasons: [],
+  };
+}
+
 /** A bucket is a "spike" when it is well above the typical (median) non-empty
  * bucket. Median, not mean, so one huge bucket cannot hide itself. */
 export function spikeThreshold(counts: number[]): number | null {

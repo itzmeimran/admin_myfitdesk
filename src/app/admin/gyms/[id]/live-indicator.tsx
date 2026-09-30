@@ -4,7 +4,7 @@ import { useGymRealtimeStatus } from "./gym-realtime-provider";
 
 const COPY = {
   connecting: { label: "Connecting", dot: "bg-mute3", title: "Connecting to live updates" },
-  live: { label: "Live", dot: "bg-ink", title: "This gym updates automatically" },
+  live: { label: "Live", dot: "bg-live", title: "This gym updates automatically" },
   reconnecting: {
     label: "Reconnecting",
     dot: "bg-hi",
@@ -24,7 +24,10 @@ export function LiveIndicator() {
       title={title}
       className="flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-mute"
     >
-      <span aria-hidden="true" className={`h-1.5 w-1.5 ${dot} ${status === "live" ? "mfd-live-dot" : ""}`} />
+      <span aria-hidden="true" className="relative flex h-2 w-2 flex-shrink-0">
+        {status === "live" ? <span className="mfd-pulse-ring absolute inset-0 rounded-full bg-live" /> : null}
+        <span className={`relative h-2 w-2 rounded-full ${dot}`} />
+      </span>
       {label}
     </span>
   );

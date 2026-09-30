@@ -17,9 +17,13 @@
   --faint: #a9a69b;
   --on-hi: #6b3b10;
   --on-accent: #f7d6c6;
+  /* Extension: "connected / live" signal. The Clay & Rust palette has no
+     green; this is used only for the pulsing live dot. */
+  --live: #2f9e44;
 }
 
 @theme inline {
+  --color-live: var(--live);
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-sand: var(--sand);
@@ -128,9 +132,22 @@ html[data-admin-env="prod"] body::before {
     opacity: 0.35;
   }
 }
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
 @media (prefers-reduced-motion: no-preference) {
   .mfd-live-dot {
     animation: live-dot 2.4s ease-in-out infinite;
+  }
+  .mfd-pulse-ring {
+    animation: pulse-ring 1.8s ease-out infinite;
   }
   .toast-in {
     animation: toast-in 0.22s ease-out;

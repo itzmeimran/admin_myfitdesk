@@ -28,7 +28,11 @@ export type NavItem = {
 // The design mock had a static `badge: "18"` on Gyms only — that's now a
 // live count(organizations) instead (AdminChromeCounts.gymsCount, threaded
 // in from admin/layout.tsx), so it's computed at render time in
-// admin-sidebar.tsx/admin-chrome.tsx rather than stored here.
+// admin-sidebar.tsx/admin-chrome.tsx rather than stored here. It is a plain
+// neutral TOTAL, deliberately not an accent "unread" badge: it never
+// disappears when the page is opened, and it stays current through
+// admin-live-refresh.tsx. An attention badge (accent) is reserved for things
+// that need action — today only the header bell.
 // There is ONE catalogue entry, "Packages", because there is one thing to
 // manage: the package gym owners buy, on its three billing terms. The older
 // Starter/Growth/Pro tier catalogue lives at /admin/packages/legacy and the

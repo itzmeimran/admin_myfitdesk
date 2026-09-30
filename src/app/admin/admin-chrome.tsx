@@ -120,7 +120,10 @@ export function AdminChrome({
                 {item.label === "Platform revenue" ? "Revenue" : item.label}
               </span>
               {badge ? (
-                <span className="absolute right-2 top-1 flex h-[14px] min-w-[14px] items-center justify-center bg-accent px-[3px] text-[8px] font-bold text-paper">
+                <span
+                  aria-label={`${badge} total`}
+                  className="absolute right-2 top-1 text-[9.5px] font-bold tabular-nums text-mute2"
+                >
                   {badge}
                 </span>
               ) : null}
@@ -171,7 +174,10 @@ export function AdminChrome({
                       <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
                       <span className="flex-1">{item.label}</span>
                       {badge ? (
-                        <span className="flex h-[17px] min-w-[17px] flex-shrink-0 items-center justify-center bg-accent px-1 text-[9px] font-bold text-paper">
+                        <span
+                          aria-label={`${badge} total`}
+                          className="flex-shrink-0 text-[11px] font-bold tabular-nums text-mute3"
+                        >
                           {badge}
                         </span>
                       ) : null}

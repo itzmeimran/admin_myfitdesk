@@ -11,6 +11,8 @@ import { daysBetween } from "@/core/dates/format";
 import { GymDetailActions } from "./gym-detail-actions";
 import { GymDetailTabs } from "./gym-detail-tabs";
 import { OwnerInvitationCard } from "./owner-invitation-card";
+import { GymRealtimeProvider } from "./gym-realtime-provider";
+import { LiveIndicator } from "./live-indicator";
 
 /**
  * Platform Admin → Gyms → [Gym Name]. Shared shell for every
@@ -61,11 +63,15 @@ export default async function GymDetailLayout({
     : null;
 
   return (
+    <GymRealtimeProvider key={gym.id} organizationId={gym.id}>
     <div className="flex flex-col gap-3.5">
-      <Link href="/admin/gyms" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
-        <BackIcon size={13} aria-hidden />
-        All gyms
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/admin/gyms" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
+          <BackIcon size={13} aria-hidden />
+          All gyms
+        </Link>
+        <LiveIndicator />
+      </div>
 
       {gym.deletionRequestedAt ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 border-[1.5px] border-accent bg-accent/8 p-3.5">
@@ -143,5 +149,6 @@ export default async function GymDetailLayout({
 
       {children}
     </div>
+    </GymRealtimeProvider>
   );
 }

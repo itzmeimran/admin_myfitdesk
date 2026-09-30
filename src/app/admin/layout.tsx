@@ -5,6 +5,7 @@ import { createClient } from "@/core/db/server-client";
 import { ToastProvider } from "@/components/Toast";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminChrome } from "./admin-chrome";
+import { AdminLiveRefresh } from "./admin-live-refresh";
 
 /**
  * Every /admin/* route sits behind this gate. resolvePlatformAdmin() is
@@ -59,6 +60,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
+      <AdminLiveRefresh />
       <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
         <AdminSidebar email={email} gymsCount={gymsCount} />
 

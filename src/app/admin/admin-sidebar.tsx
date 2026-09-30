@@ -75,7 +75,10 @@ export function AdminSidebar({ email, gymsCount }: { email: string; gymsCount: n
                 <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
                 <span className="flex-1 truncate">{item.label}</span>
                 {badge ? (
-                  <span className="flex h-[18px] min-w-[18px] flex-shrink-0 items-center justify-center bg-accent px-1 text-[9.5px] font-bold text-paper">
+                  <span
+                    aria-label={`${badge} total`}
+                    className="flex-shrink-0 text-[11px] font-bold tabular-nums text-mute3"
+                  >
                     {badge}
                   </span>
                 ) : null}

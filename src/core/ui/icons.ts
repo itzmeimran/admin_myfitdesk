@@ -96,5 +96,6 @@ export {
   LuArrowLeft as BackIcon,
   LuMonitor as MonitorIcon,
   LuDatabase as DatabaseIcon,
+  LuActivity as ApiPerformanceIcon,
   LuInbox as InboxIcon,
 } from "react-icons/lu";

@@ -2250,6 +2250,127 @@ export type Database = {
         Args: { p_email: string }
         Returns: undefined
       }
+      admin_api_alerts: {
+        Args: { p_env?: string }
+        Returns: Json
+      }
+      admin_api_endpoints: {
+        Args: {
+          p_dir?: string
+          p_env?: string
+          p_limit?: number
+          p_method?: string
+          p_offset?: number
+          p_org?: string
+          p_range?: string
+          p_search?: string
+          p_sort?: string
+          p_status?: number
+        }
+        Returns: {
+          avg_ms: number | null
+          error_rate: number | null
+          errors: number
+          max_ms: number | null
+          method: string
+          n: number
+          p50_ms: number | null
+          p95_ms: number | null
+          route: string
+          slow_n: number
+          total_count: number
+        }[]
+      }
+      admin_api_errors: {
+        Args: {
+          p_env?: string
+          p_limit?: number
+          p_min_status?: number
+          p_offset?: number
+          p_org?: string
+          p_range?: string
+          p_search?: string
+        }
+        Returns: {
+          error_type: string
+          last_at: string
+          method: string
+          occurrences: number
+          org_count: number
+          organization_id: string | null
+          organization_name: string | null
+          route: string
+          sample_message: string | null
+          status: number
+          total_count: number
+        }[]
+      }
+      admin_api_organizations: {
+        Args: {
+          p_dir?: string
+          p_env?: string
+          p_limit?: number
+          p_offset?: number
+          p_range?: string
+          p_search?: string
+          p_sort?: string
+        }
+        Returns: {
+          avg_ms: number | null
+          error_rate: number | null
+          errors: number
+          max_ms: number | null
+          n: number
+          organization_id: string | null
+          organization_name: string | null
+          p95_ms: number | null
+          total_count: number
+        }[]
+      }
+      admin_api_overview: {
+        Args: {
+          p_env?: string
+          p_method?: string
+          p_org?: string
+          p_range?: string
+          p_route?: string
+        }
+        Returns: Json
+      }
+      admin_api_request_detail: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      admin_api_requests: {
+        Args: {
+          p_env?: string
+          p_limit?: number
+          p_method?: string
+          p_min_ms?: number
+          p_min_status?: number
+          p_offset?: number
+          p_org?: string
+          p_range?: string
+          p_request?: string
+          p_route?: string
+          p_route_exact?: boolean
+          p_sort?: string
+          p_status?: number
+        }
+        Returns: {
+          duration_ms: number
+          environment: string
+          error_type: string | null
+          method: string
+          occurred_at: string
+          organization_id: string | null
+          organization_name: string | null
+          request_id: string
+          route: string
+          status: number
+          total_count: number
+        }[]
+      }
       admin_gym_audit_log: {
         Args: {
           p_action?: string

@@ -6,6 +6,7 @@ import {
   WhatsAppIcon,
   SettingsIcon,
   DatabaseIcon,
+  ApiPerformanceIcon,
   type IconType,
 } from "@/core/ui/icons";
 
@@ -47,6 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/admin/packages", label: "Packages", icon: PackagesIcon },
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon },
   { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon },
+  { href: "/admin/api-performance", label: "API Performance", icon: ApiPerformanceIcon },
   { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
 ];

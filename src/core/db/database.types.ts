@@ -2412,6 +2412,55 @@ export type Database = {
           total_count: number
         }[]
       }
+      admin_gym_member_detail: {
+        Args: { p_member_id: string; p_organization_id: string }
+        Returns: Json
+      }
+      admin_gym_members_summary: {
+        Args: { p_branch_id?: string; p_organization_id: string }
+        Returns: Json
+      }
+      admin_gym_members_support: {
+        Args: {
+          p_branch_id?: string
+          p_deleted?: boolean
+          p_limit?: number
+          p_member_status?: string
+          p_offset?: number
+          p_organization_id: string
+          p_search?: string
+          p_sort_col?: string
+          p_sort_dir?: string
+          p_state?: string
+        }
+        Returns: {
+          branch_id: string
+          branch_name: string
+          created_at: string
+          deleted_at: string | null
+          email: string | null
+          first_name: string
+          id: string
+          invalid_phone: boolean
+          joined_on: string
+          last_name: string | null
+          last_payment_amount_minor: number | null
+          last_payment_at: string | null
+          last_payment_currency: string | null
+          last_payment_method: string | null
+          last_payment_status: string | null
+          member_status: string
+          membership_state: string
+          payment_pending: boolean
+          phone_e164: string | null
+          plan_name: string | null
+          subscription_end_date: string | null
+          subscription_id: string | null
+          subscription_start_date: string | null
+          total_count: number
+          updated_at: string
+        }[]
+      }
       admin_gym_staff: {
         Args: {
           p_branch_id?: string

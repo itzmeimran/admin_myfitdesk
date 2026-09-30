@@ -18,3 +18,63 @@ export function formatShortDate(date: Date, now: Date = new Date()): string {
 export function daysBetween(from: Date, to: Date): number {
   return Math.floor((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
 }
+
+/** Format an instant in the gym's configured IANA timezone. `timestamptz`
+ * values arrive as UTC instants; passing the timezone explicitly prevents a
+ * Vercel/server locale (or the platform admin's device locale) from silently
+ * changing what the gym considers the event time. */
+export function formatZonedDateTime(value: string | Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone,
+  }).format(typeof value === "string" ? new Date(value) : value);
+}
+
+export function formatZonedDate(value: string | Date, timeZone: string, includeYear = true): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(includeYear ? { year: "numeric" as const } : {}),
+    timeZone,
+  }).format(typeof value === "string" ? new Date(value) : value);
+}
+
+export function formatZonedTime(value: string | Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone,
+  }).format(typeof value === "string" ? new Date(value) : value);
+}
+
+/** Database DATE values are calendar dates, not UTC instants. Formatting at
+ * UTC keeps 2026-09-29 as 29 Sep in every deployment timezone. */
+export function formatCalendarDate(isoDate: string, includeYear = true): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(includeYear ? { year: "numeric" as const } : {}),
+    timeZone: "UTC",
+  }).format(new Date(`${isoDate}T00:00:00.000Z`));
+}
+
+export function calendarDayDifference(fromIsoDate: string, toIsoDate: string): number {
+  const [fy, fm, fd] = fromIsoDate.split("-").map(Number);
+  const [ty, tm, td] = toIsoDate.split("-").map(Number);
+  return Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86_400_000);
+}
+
+export function todayIsoInTimeZone(timeZone: string, now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone,
+  }).format(now);
+}

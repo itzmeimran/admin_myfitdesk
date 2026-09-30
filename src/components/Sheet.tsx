@@ -22,6 +22,7 @@ export function Sheet({
   title,
   children,
   maxHeightClassName = "max-h-[88%]",
+  maxWidthClassName = "md:max-w-lg",
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,6 +30,7 @@ export function Sheet({
   title: string;
   children: React.ReactNode;
   maxHeightClassName?: string;
+  maxWidthClassName?: string;
 }) {
   if (!open) return null;
 
@@ -41,7 +43,7 @@ export function Sheet({
         className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
       />
       <div
-        className={`sheet-slide-up relative flex flex-col gap-3.5 overflow-y-auto border-t-[1.5px] border-ink bg-paper p-4 md:mx-auto md:w-full md:max-w-lg md:border-x-[1.5px] ${maxHeightClassName}`}
+        className={`sheet-slide-up relative flex flex-col gap-3.5 overflow-y-auto border-t-[1.5px] border-ink bg-paper p-4 md:mx-auto md:w-[calc(100%-2rem)] md:border-x-[1.5px] ${maxWidthClassName} ${maxHeightClassName}`}
       >
         <div className="flex items-start justify-between gap-3 border-b-[1.5px] border-ink bg-ink -mx-4 -mt-4 px-4 py-3.5 text-paper md:-mx-0 md:-mt-0 md:border-0 md:bg-transparent md:p-0 md:text-ink">
           <span className="flex flex-col gap-1">

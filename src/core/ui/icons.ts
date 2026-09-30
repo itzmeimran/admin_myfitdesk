@@ -98,4 +98,8 @@ export {
   LuDatabase as DatabaseIcon,
   LuActivity as ApiPerformanceIcon,
   LuInbox as InboxIcon,
+  LuEllipsis as MoreIcon,
+  LuInfo as DetailsIcon,
+  LuShieldCheck as ProtectIcon,
+  LuShieldOff as UnprotectIcon,
 } from "react-icons/lu";

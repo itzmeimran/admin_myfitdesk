@@ -7,9 +7,28 @@ import {
   checksumsMatch,
   environmentMatches,
   scheduledBackupTypes,
+  scheduledBackupTypesFor,
   shouldDeleteForRetention,
+  shouldSkipScheduledRun,
   safetyBackupAllowsRestore,
 } from "./lib/disaster-recovery-policy.mjs";
+
+test("a late run still promotes a missing daily, but never duplicates one", () => {
+  const late = new Date("2026-09-29T01:44:00Z"); // the run that should have been 00:07
+  assert.deepEqual(scheduledBackupTypesFor(late, { dailyToday: false }), ["hourly", "daily"]);
+  assert.deepEqual(scheduledBackupTypesFor(late, { dailyToday: true }), ["hourly"]);
+  assert.deepEqual(scheduledBackupTypesFor(new Date("2026-09-01T03:00:00Z"), { dailyToday: true, monthlyToday: false }), ["hourly", "monthly"]);
+  assert.deepEqual(scheduledBackupTypesFor(new Date("2026-09-01T03:00:00Z"), { dailyToday: true, monthlyToday: true }), ["hourly"]);
+  assert.deepEqual(scheduledBackupTypesFor(new Date("2026-09-15T03:00:00Z"), { dailyToday: true }), ["hourly"]);
+});
+
+test("a second trigger inside the hour is skipped; promotion runs never are", () => {
+  const now = new Date("2026-09-30T10:20:00Z");
+  assert.equal(shouldSkipScheduledRun(["hourly"], "2026-09-30T10:07:00Z", now), true);
+  assert.equal(shouldSkipScheduledRun(["hourly"], "2026-09-30T09:07:00Z", now), false);
+  assert.equal(shouldSkipScheduledRun(["hourly"], null, now), false);
+  assert.equal(shouldSkipScheduledRun(["hourly", "daily"], "2026-09-30T10:07:00Z", now), false);
+});
 
 const NOW = new Date("2026-09-27T10:00:00.000Z");
 

@@ -68,7 +68,20 @@ export type DeletedRecord = {
   metadata: Record<string, unknown>;
 };
 
+/** How the *scheduled hourly* cadence is actually doing, derived from real
+ * backup rows (never from what the cron is supposed to do). */
+export type ScheduleHealth = {
+  status: "on_track" | "delayed" | "overdue" | "none";
+  lastScheduledAt: string | null;
+  minutesSinceLast: number | null;
+  /** Scheduled hourly backups that completed in the last 24 h (24 expected). */
+  runsLast24h: number;
+  /** Longest stretch with no scheduled backup in the last 24 h, in minutes. */
+  longestGapMinutes: number;
+};
+
 export type RecoveryHealth = {
+  schedule: ScheduleHealth;
   configured: boolean;
   databaseIdentifier: string | null;
   maintenanceMode: boolean;

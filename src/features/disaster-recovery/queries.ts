@@ -9,10 +9,41 @@ import type {
   DeletedRecord,
   DisasterRecoveryData,
   RestoreRow,
+  ScheduleHealth,
 } from "./types";
 
 function fullEnvironment(value: "dev" | "prod"): "development" | "production" {
   return value === "prod" ? "production" : "development";
+}
+
+const HOUR_MS = 3600000;
+
+/** `ready` is newest-first. An hourly schedule is "on track" within 90 min of
+ * the last run (one run may legitimately be a little late), "delayed" up to
+ * 3 h, and "overdue" beyond that. */
+function computeScheduleHealth(ready: BackupRow[], now: number): ScheduleHealth {
+  const times = ready
+    .filter((backup) => backup.backup_type === "hourly" && backup.trigger_type === "scheduled")
+    .map((backup) => new Date(backup.created_at).valueOf())
+    .filter((time) => !Number.isNaN(time));
+  if (!times.length) {
+    return { status: "none", lastScheduledAt: null, minutesSinceLast: null, runsLast24h: 0, longestGapMinutes: 0 };
+  }
+  const windowStart = now - 24 * HOUR_MS;
+  const inWindow = times.filter((time) => time >= windowStart).sort((a, b) => a - b);
+  const last = Math.max(...times);
+  let longest = 0;
+  for (let i = 1; i < inWindow.length; i += 1) longest = Math.max(longest, inWindow[i] - inWindow[i - 1]);
+  // Time since the newest run counts too: a stalled schedule is a gap in progress.
+  longest = Math.max(longest, now - (inWindow.at(-1) ?? last));
+  const sinceLast = now - last;
+  return {
+    status: sinceLast <= 1.5 * HOUR_MS ? "on_track" : sinceLast <= 3 * HOUR_MS ? "delayed" : "overdue",
+    lastScheduledAt: new Date(last).toISOString(),
+    minutesSinceLast: Math.round(sinceLast / 60000),
+    runsLast24h: inWindow.length,
+    longestGapMinutes: Math.round(longest / 60000),
+  };
 }
 
 export async function getDisasterRecoveryData(): Promise<DisasterRecoveryData> {
@@ -52,6 +83,7 @@ export async function getDisasterRecoveryData(): Promise<DisasterRecoveryData> {
   const lastAt = last?.completed_at ?? last?.created_at ?? null;
   const lastHourly = ready.find((backup) => backup.backup_type === "hourly" && backup.trigger_type === "scheduled");
   const lastHourlyAt = lastHourly?.completed_at ?? lastHourly?.created_at ?? null;
+  const schedule = computeScheduleHealth(ready, Date.now());
   const recent = ready.filter((backup) => Date.now() - new Date(backup.created_at).valueOf() <= 7 * 86400000);
   const estimatedThirtyDayBytes = recent.length
     ? Math.round((recent.reduce((sum, backup) => sum + (backup.file_size_bytes ?? 0), 0) / 7) * 30)
@@ -70,6 +102,7 @@ export async function getDisasterRecoveryData(): Promise<DisasterRecoveryData> {
     alerts,
     deletedRecords: (deletedResult.data ?? []) as DeletedRecord[],
     health: {
+      schedule,
       configured: Boolean(config),
       databaseIdentifier: config?.database_identifier ?? null,
       maintenanceMode: config?.maintenance_mode ?? false,

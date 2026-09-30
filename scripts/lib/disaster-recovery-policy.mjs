@@ -24,6 +24,34 @@ export function scheduledBackupTypes(now) {
   return types;
 }
 
+/**
+ * Catch-up promotion. GitHub's cron can start a run late, so tying daily and
+ * monthly to "the run that happens to land in UTC hour 0" silently drops the
+ * tier on any delayed day. Instead: a daily is due on the first scheduled run
+ * of each UTC date that has none yet, and a monthly on the first run of day 1.
+ * `existing` says which of those already exist (creating or ready) today.
+ */
+export function scheduledBackupTypesFor(now, existing = {}) {
+  const types = ["hourly"];
+  if (!existing.dailyToday) types.push("daily");
+  if (now.getUTCDate() === 1 && !existing.monthlyToday) types.push("monthly");
+  return types;
+}
+
+/**
+ * More than one thing can trigger the scheduled path (GitHub's own cron plus an
+ * external hourly trigger). Skip a plain hourly run when a scheduled hourly
+ * backup already exists inside the window so the hour is not backed up twice.
+ * Runs that also promote a daily/monthly tier are never skipped.
+ */
+export function shouldSkipScheduledRun(types, lastScheduledHourlyAt, now, windowMs = 50 * 60 * 1000) {
+  if (types.length !== 1 || types[0] !== "hourly" || !lastScheduledHourlyAt) return false;
+  const last = new Date(lastScheduledHourlyAt).valueOf();
+  if (Number.isNaN(last)) return false;
+  const age = now.valueOf() - last;
+  return age >= 0 && age < windowMs;
+}
+
 export function backupFilename(environment, type, now) {
   assertEnvironment(environment);
   assertBackupType(type);

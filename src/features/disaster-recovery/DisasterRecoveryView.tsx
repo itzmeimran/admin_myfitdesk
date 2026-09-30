@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Dialog } from "@/components/Dialog";
+import { Dropdown, type DropdownOption } from "@/components/Dropdown";
 import { useToast } from "@/components/Toast";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
-import { AddIcon, AlertIcon, DatabaseIcon, DeleteIcon, RestoreIcon } from "@/core/ui/icons";
+import {
+  AddIcon, AlertIcon, DatabaseIcon, DeleteIcon, DetailsIcon, ProtectIcon, RestoreIcon, UnprotectIcon,
+} from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 import {
   createManualBackup,
@@ -18,7 +22,7 @@ import {
   setMaintenanceMode,
   type RecoveryActionResult,
 } from "./actions";
-import type { BackupRow, DisasterRecoveryData } from "./types";
+import type { BackupRow, DisasterRecoveryData, ScheduleHealth } from "./types";
 
 const TABS = ["Backups", "Restore History", "Audit Logs", "Deleted Records", "System Health"] as const;
 type Tab = (typeof TABS)[number];
@@ -56,6 +60,43 @@ function formatBytes(value: number | null | undefined) {
 
 function label(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+const TYPE_OPTIONS: DropdownOption[] = [
+  { value: "all", label: "All types" },
+  ...["hourly", "daily", "monthly", "manual", "pre_restore", "pre_migration"].map((value) => ({ value, label: label(value) })),
+];
+const STATUS_OPTIONS: DropdownOption[] = [
+  { value: "all", label: "All statuses" },
+  ...["queued", "creating", "ready", "failed", "restoring", "delete_requested", "corrupted"].map((value) => ({ value, label: label(value) })),
+];
+
+function formatGap(minutes: number) {
+  if (minutes < 90) return `${minutes} min`;
+  return `${(minutes / 60).toFixed(1)} h`;
+}
+
+/** Says out loud when the hourly cadence is not actually being met. Driven by
+ * real backup rows, so it stays truthful even if the scheduler silently stops. */
+function ScheduleBanner({ schedule }: { schedule: ScheduleHealth }) {
+  if (schedule.status === "on_track") return null;
+  const overdue = schedule.status !== "delayed";
+  const message = schedule.status === "none"
+    ? "No scheduled hourly backup has completed in this environment yet."
+    : `Last scheduled backup was ${formatGap(schedule.minutesSinceLast ?? 0)} ago. Only ${schedule.runsLast24h} of 24 expected hourly backups completed in the last 24 hours (longest gap ${formatGap(schedule.longestGapMinutes)}).`;
+  return (
+    <div role="status" className={`flex items-start gap-3 border-l-[3px] px-4 py-3 ${overdue ? "border-accent bg-accent/8" : "border-hi bg-sand"}`}>
+      <AlertIcon size={16} className={overdue ? "mt-0.5 text-accent" : "mt-0.5 text-ink"} aria-hidden />
+      <div className="min-w-0">
+        <strong className={`block text-[12.5px] ${overdue ? "text-accent" : "text-ink"}`}>
+          {schedule.status === "delayed" ? "Hourly backups are running late" : "Hourly backups are not running on schedule"}
+        </strong>
+        <span className="text-[11.5px] leading-relaxed text-mute">
+          {message} Recovery points can be several hours old until this is fixed. See docs/DISASTER_RECOVERY.md → “Reliable hourly trigger”.
+        </span>
+      </div>
+    </div>
+  );
 }
 
 function Status({ value }: { value: string }) {
@@ -135,6 +176,8 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         </div>
       </div>
 
+      {data.health.configured ? <ScheduleBanner schedule={data.health.schedule} /> : null}
+
       <div className="overflow-x-auto border-b-[1.5px] border-ink">
         <div className="flex min-w-max gap-1">
           {TABS.map((item) => (
@@ -150,18 +193,16 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
       {tab === "Backups" ? (
         <section className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
-            <select aria-label="Backup environment" value={data.environment} disabled className="min-h-[36px] border-[1.5px] border-line bg-sand px-2.5 text-[12px]">
-              <option value={data.environment}>{label(data.environment)}</option>
-            </select>
-            <select aria-label="Backup type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="min-h-[36px] border-[1.5px] border-line bg-paper px-2.5 text-[12px]">
-              <option value="all">All types</option>
-              {["hourly", "daily", "monthly", "manual", "pre_restore", "pre_migration"].map((value) => <option key={value} value={value}>{label(value)}</option>)}
-            </select>
-            <select aria-label="Backup status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="min-h-[36px] border-[1.5px] border-line bg-paper px-2.5 text-[12px]">
-              <option value="all">All statuses</option>
-              {["queued", "creating", "ready", "failed", "restoring", "delete_requested", "corrupted"].map((value) => <option key={value} value={value}>{label(value)}</option>)}
-            </select>
-            <input aria-label="Backup date" type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="min-h-[36px] border-[1.5px] border-line bg-paper px-2.5 text-[12px]" />
+            <div className="w-full min-w-[150px] sm:w-auto">
+              <Dropdown ariaLabel="Backup environment" value={data.environment} disabled options={[{ value: data.environment, label: label(data.environment) }]} onChange={() => undefined} />
+            </div>
+            <div className="w-full min-w-[150px] sm:w-auto">
+              <Dropdown ariaLabel="Backup type" value={typeFilter} options={TYPE_OPTIONS} onChange={setTypeFilter} />
+            </div>
+            <div className="w-full min-w-[150px] sm:w-auto">
+              <Dropdown ariaLabel="Backup status" value={statusFilter} options={STATUS_OPTIONS} onChange={setStatusFilter} />
+            </div>
+            <input aria-label="Backup date" type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="min-h-[38px] cursor-pointer border-[1.5px] border-line bg-paper px-3 text-[12px] font-bold text-mute transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-none" />
           </div>
 
           <div className="border-[1.5px] border-ink bg-paper">
@@ -178,7 +219,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
                     <td className="border-b border-line px-3 py-2.5"><Status value={backup.verification_status} /></td>
                     <td className="border-b border-line px-3 py-2.5">{backup.triggered_by ? "Administrator" : "System"}</td>
                     <td className="whitespace-nowrap border-b border-line px-3 py-2.5">{backup.duration_ms ? `${Math.round(backup.duration_ms / 1000)} sec` : "—"}</td>
-                    <td className="border-b border-line px-3 py-2.5"><BackupActions backup={backup} busy={isPending} onDetails={setSelected} onConfirm={setConfirmation} onProtect={(value) => run(() => setBackupProtected(backup.id, value), false)} /></td>
+                    <td className="border-b border-line px-3 py-2.5 text-right"><BackupActions backup={backup} busy={isPending} onDetails={setSelected} onConfirm={setConfirmation} onProtect={(value) => run(() => setBackupProtected(backup.id, value), false)} /></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -186,9 +227,12 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
             <div className="flex flex-col md:hidden">
               {filteredBackups.map((backup) => (
                 <article key={backup.id} className="flex flex-col gap-2.5 border-b border-line p-3.5 transition-colors duration-150 last:border-b-0 hover:bg-sand/70">
-                  <div className="flex items-start justify-between gap-2"><span><strong className="block text-[13px]">{formatDate(backup.created_at)}</strong><span className="text-[11px] text-mute">{label(backup.environment)} · {label(backup.backup_type)}</span></span><Status value={backup.protected ? "protected" : backup.status} /></div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 flex-1"><strong className="block text-[13px]">{formatDate(backup.created_at)}</strong><span className="text-[11px] text-mute">{label(backup.environment)} · {label(backup.backup_type)}</span></span>
+                    <Status value={backup.protected ? "protected" : backup.status} />
+                    <BackupActions backup={backup} busy={isPending} onDetails={setSelected} onConfirm={setConfirmation} onProtect={(value) => run(() => setBackupProtected(backup.id, value), false)} />
+                  </div>
                   <div className="grid grid-cols-2 gap-2 text-[11.5px]"><span>Size <strong className="block text-ink">{formatBytes(backup.file_size_bytes)}</strong></span><span>Verification <strong className="block text-ink">{label(backup.verification_status)}</strong></span></div>
-                  <BackupActions backup={backup} busy={isPending} onDetails={setSelected} onConfirm={setConfirmation} onProtect={(value) => run(() => setBackupProtected(backup.id, value), false)} />
                 </article>
               ))}
             </div>
@@ -251,7 +295,9 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Last successful backup", formatDate(data.health.lastSuccessfulBackup)],
-              ["Next expected backup", formatDate(data.health.nextExpectedBackup)],
+              ["Next expected backup", data.health.schedule.status === "delayed" || data.health.schedule.status === "overdue" ? `Overdue (was ${formatDate(data.health.nextExpectedBackup)})` : formatDate(data.health.nextExpectedBackup)],
+              ["Hourly runs, last 24 h", `${data.health.schedule.runsLast24h} / 24`],
+              ["Longest gap, last 24 h", data.health.schedule.runsLast24h ? formatGap(data.health.schedule.longestGapMinutes) : "—"],
               ["Backup failures", String(data.health.backupFailures)],
               ["Open critical alerts", String(data.health.openCriticalAlerts)],
               ["Oldest retained", formatDate(data.health.oldestRetainedBackup)],
@@ -319,12 +365,30 @@ function BackupActions({ backup, busy, onDetails, onConfirm, onProtect }: {
   onProtect: (value: boolean) => void;
 }) {
   const actionable = backup.status === "ready";
-  return <div className="flex flex-wrap gap-1.5">
-    <button type="button" onClick={() => onDetails(backup)} className="min-h-[30px] border border-line px-2 text-[10.5px] font-bold">Details</button>
-    <button type="button" disabled={busy || !actionable || backup.verification_status !== "verified"} onClick={() => onConfirm({ kind: "restore", backup })} className="min-h-[30px] border border-line px-2 text-[10.5px] font-bold disabled:opacity-40">Restore</button>
-    <button type="button" disabled={busy || !actionable} onClick={() => onProtect(!backup.protected)} className="min-h-[30px] border border-line px-2 text-[10.5px] font-bold disabled:opacity-40">{backup.protected ? "Unprotect" : "Protect"}</button>
-    <button type="button" aria-label="Delete backup" disabled={busy || backup.protected || !["ready", "failed", "corrupted"].includes(backup.status)} onClick={() => onConfirm({ kind: "delete", backup })} className="flex min-h-[30px] items-center border border-line px-2 text-accent disabled:opacity-30"><DeleteIcon size={12} aria-hidden /></button>
-  </div>;
+  const deletable = ["ready", "failed", "corrupted"].includes(backup.status);
+  const items: ActionMenuItem[] = [
+    { key: "details", label: "View details", icon: DetailsIcon, onSelect: () => onDetails(backup) },
+    {
+      key: "restore", label: "Restore this backup", icon: RestoreIcon,
+      disabled: busy || !actionable || backup.verification_status !== "verified",
+      hint: !actionable ? "Backup is not ready" : backup.verification_status !== "verified" ? "Not verified yet" : undefined,
+      onSelect: () => onConfirm({ kind: "restore", backup }),
+    },
+    {
+      key: "protect", label: backup.protected ? "Remove protection" : "Protect from deletion",
+      icon: backup.protected ? UnprotectIcon : ProtectIcon,
+      disabled: busy || !actionable,
+      hint: "Backup is not ready",
+      onSelect: () => onProtect(!backup.protected),
+    },
+    {
+      key: "delete", label: "Delete backup", icon: DeleteIcon, danger: true, separated: true,
+      disabled: busy || backup.protected || !deletable,
+      hint: backup.protected ? "Remove protection first" : "Not deletable in this state",
+      onSelect: () => onConfirm({ kind: "delete", backup }),
+    },
+  ];
+  return <ActionMenu items={items} ariaLabel={`Actions for backup ${formatDate(backup.created_at)}`} />;
 }
 
 function Empty({ message }: { message: string }) {

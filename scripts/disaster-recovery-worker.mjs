@@ -24,8 +24,9 @@ import {
   backupFilename,
   backupStorageKey,
   environmentMatches,
-  scheduledBackupTypes,
+  scheduledBackupTypesFor,
   shouldDeleteForRetention,
+  shouldSkipScheduledRun,
 } from "./lib/disaster-recovery-policy.mjs";
 
 const CONTROL_PLANE_TABLES = [
@@ -266,7 +267,21 @@ async function createBackup(type, triggerType, requestedId, sharedDumpPath) {
 }
 
 async function createScheduledBackups() {
-  const types = scheduledBackupTypes(new Date());
+  const now = new Date();
+  const [state] = await sqlJson(`
+    select
+      max(created_at) filter (where backup_type = 'hourly') as last_hourly_at,
+      coalesce(bool_or(backup_type = 'daily' and (created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date), false) as daily_today,
+      coalesce(bool_or(backup_type = 'monthly' and (created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date), false) as monthly_today
+    from public.database_backups
+    where environment = '${environment}' and database_identifier = ${b64(databaseIdentifier)}
+      and trigger_type = 'scheduled' and status in ('creating', 'ready')
+  `);
+  const types = scheduledBackupTypesFor(now, { dailyToday: state?.daily_today, monthlyToday: state?.monthly_today });
+  if (shouldSkipScheduledRun(types, state?.last_hourly_at, now)) {
+    console.log("A scheduled hourly backup already exists within the last 50 minutes; skipping this trigger.");
+    return [];
+  }
   const workDir = await mkdtemp(join(tmpdir(), "myfitdesk-scheduled-"));
   const dumpPath = join(workDir, "database.dump");
   const ids = [];

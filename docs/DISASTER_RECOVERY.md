@@ -10,7 +10,7 @@ Backups contain application-managed `public` and `app` schemas. They exclude Sup
 
 ## Schedule and retention
 
-The workflow runs at minute 7 every hour, in UTC:
+The workflow is scheduled at minutes 7 and 37 of every hour, in UTC (two chances per hour because GitHub's cron is best-effort; the worker skips a run when a scheduled hourly backup already exists within 50 minutes):
 
 - hourly: every run, retained for 48 hours;
 - daily: promoted at 00:07 UTC, retained for 30 days;
@@ -20,6 +20,19 @@ The workflow runs at minute 7 every hour, in UTC:
 - any backup with `protected = true`: never removed automatically.
 
 The scheduled worker creates one local dump and uploads it to each tier due in that run. Development and production always use different key prefixes (`development/...` and `production/...`) and separate GitHub Environment database secrets. The worker refuses to run unless both the configured environment and `BACKUP_DATABASE_IDENTIFIER` match the target database's `disaster_recovery_config` row.
+
+## Reliable hourly trigger
+
+GitHub's `schedule:` cron is **best-effort**: runs start late or are dropped, most often on quiet repositories. Audit of the live PROD project (2026-09-30) found scheduled hourly backups landing every 4–8 hours at irregular minutes, and no daily backup at all for 2026-09-29 — the day's 00:07 run started at 01:44 and daily promotion was tied to UTC hour 0. No backup had failed; the runs simply were not started.
+
+Fixes in this repository:
+
+- **Catch-up promotion.** The worker now promotes a daily on the first scheduled run of any UTC date that has none, and a monthly on the first run of day 1, instead of only when a run lands in hour 0.
+- **De-duplication.** A plain hourly run is skipped if a scheduled hourly backup already exists inside the last 50 minutes, so two triggers in one hour give one backup.
+- **`GET /api/cron/backup`.** Dispatches the scheduled backup workflow for both environments. Requires `Authorization: Bearer $CRON_SECRET`; refuses everything (503) when `CRON_SECRET` is unset. It also needs the existing `BACKUP_GITHUB_*` variables.
+- **The UI reports reality.** A banner and System Health tiles show the last scheduled run, hourly runs in the last 24 h, and the longest gap, computed from real backup rows.
+
+**One thing must be done outside the code:** something has to call `/api/cron/backup` every hour. Set `CRON_SECRET` in Vercel, then use any of: Vercel Cron (`0 * * * *` — sub-daily schedules need a plan that allows them; a Hobby deployment with an hourly cron in `vercel.json` fails to deploy), cron-job.org, or Supabase pg_cron + pg_net. Keep the GitHub schedule as a fallback. Until this is wired up, hourly cadence is still at GitHub's discretion.
 
 ## Private R2 bucket
 

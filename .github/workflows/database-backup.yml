@@ -2,10 +2,12 @@ name: Database backup
 
 on:
   schedule:
-    # GitHub cron is UTC. This runs at minute 7 each hour to avoid the
-    # high-contention top-of-hour window. Daily/monthly promotion happens at
-    # 00:07 UTC inside the worker.
-    - cron: "7 * * * *"
+    # GitHub cron is UTC and best-effort: this repo's scheduled runs were being
+    # started late or dropped (~1 run per 4-8 h). Minutes 7 and 37 give every
+    # hour two chances; the worker skips a run when a scheduled hourly backup
+    # already exists within 50 minutes, so a healthy hour still yields one
+    # backup. Daily/monthly are promoted on the first run of each UTC day/month.
+    - cron: "7,37 * * * *"
   workflow_dispatch:
     inputs:
       environment:
@@ -29,7 +31,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: database-backup-${{ github.event_name == 'schedule' && 'scheduled' || inputs.environment }}
+  # Cron runs and the external hourly trigger (backup_type=scheduled) share one
+  # group so they queue instead of racing; the worker then de-duplicates them.
+  group: database-backup-${{ (github.event_name == 'schedule' || inputs.backup_type == 'scheduled') && 'scheduled' || inputs.environment }}
   cancel-in-progress: false
 
 jobs:

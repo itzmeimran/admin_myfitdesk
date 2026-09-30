@@ -329,6 +329,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
                 <span className={`${PILL_CLASS} flex-shrink-0`} style={pillTone(g.status)}>
                   {g.status}
                 </span>
+                <GymRowActions gym={g} packages={assignablePackages} />
               </div>
               <div className="flex items-center gap-2.5">
                 <span className="text-[12px] font-bold" style={{ color: usageTone(g.pct) }}>
@@ -345,7 +346,6 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
                 <br />
                 <span style={{ color: renewTone(g.renews) }}>Renews {g.renews}</span> · Paid {g.ltv}
               </p>
-              <GymRowActions gym={g} packages={assignablePackages} />
             </div>
           ))
         )}

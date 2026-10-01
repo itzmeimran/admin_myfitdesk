@@ -4,11 +4,8 @@ import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
 import { listAssignablePackages } from "@/features/gyms/queries";
 import { getGymOwnerInvitation } from "@/features/gyms/onboarding";
-import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { BackIcon, AlertIcon } from "@/core/ui/icons";
-import { capitalizeBillingPeriod } from "@/core/text/billing-period";
-import { daysBetween } from "@/core/dates/format";
-import { GymDetailActions } from "./gym-detail-actions";
+import { GymHeader } from "./gym-header";
 import { GymDetailTabs } from "./gym-detail-tabs";
 import { OwnerInvitationCard } from "./owner-invitation-card";
 import { GymRealtimeProvider } from "./gym-realtime-provider";
@@ -43,24 +40,6 @@ export default async function GymDetailLayout({
   ]);
 
   if (!gym) notFound();
-
-  const initials = gym.name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
-  const enrolledSince = new Date(gym.createdAt).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-  const billingLabel = capitalizeBillingPeriod(gym.subscription?.billingPeriod);
-  const expiry = gym.subscription?.currentPeriodEnd ? new Date(gym.subscription.currentPeriodEnd) : null;
-  const remaining = expiry ? daysBetween(new Date(), expiry) : null;
-  const expiryLabel = expiry
-    ? expiry.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: gym.defaultTimezone })
-    : null;
 
   return (
     <GymRealtimeProvider key={gym.id} organizationId={gym.id}>
@@ -98,53 +77,15 @@ export default async function GymDetailLayout({
         <OwnerInvitationCard invitation={ownerInvitation} />
       ) : null}
 
-      <div className="z-10 flex flex-col gap-3.5 bg-paper md:sticky md:top-0">
-      <div className="flex flex-col gap-3 border-[1.5px] border-ink bg-paper p-4 md:p-5">
-        <div className="flex flex-wrap items-start gap-3.5">
-          <span
-            aria-hidden={gym.logoUrl ? undefined : "true"}
-            className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden bg-ink font-display text-[16px] tracking-[-0.02em] text-hi md:h-14 md:w-14 md:text-[19px]"
-          >
-            {gym.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={gym.logoUrl} alt={`${gym.name} logo`} className="h-full w-full bg-paper object-contain" />
-            ) : (
-              initials || "—"
-            )}
-          </span>
-          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="font-display text-[22px] tracking-[-0.02em] md:text-[25px]">{gym.name}</h1>
-              <span className={PILL_CLASS} style={pillTone(gym.status)}>
-                {gym.status}
-              </span>
-            </div>
-            <p className="text-[12.5px] text-mute">
-              <span className="font-bold text-ink">
-                {gym.subscription?.packageName ?? (gym.status === "Trialing" ? "Trial (no package)" : "No package")}
-              </span>{" "}
-              · {billingLabel}
-              {expiryLabel ? ` · Expires ${expiryLabel}` : ""}
-              {remaining !== null ? ` · ${remaining < 0 ? `${Math.abs(remaining)} days overdue` : `${remaining} days remaining`}` : ""}
-            </p>
-            <div className="grid grid-cols-1 gap-x-5 gap-y-1 text-[11.5px] text-mute sm:grid-cols-2 xl:grid-cols-4">
-              <span><strong className="text-ink2">Owner:</strong> {gym.owner?.name ?? "Not assigned"}</span>
-              <span><strong className="text-ink2">Phone:</strong> {gym.owner?.phone ?? gym.contactPhone ?? "—"}</span>
-              <span className="min-w-0 truncate"><strong className="text-ink2">Email:</strong> {gym.owner?.email ?? gym.contactEmail ?? "—"}</span>
-              <span><strong className="text-ink2">Gym ID:</strong> <span className="font-mono text-[10.5px]">{gym.gymCode}</span></span>
-              <span className="sm:col-span-2 xl:col-span-4"><strong className="text-ink2">Joined:</strong> {enrolledSince}</span>
-            </div>
-          </div>
-          <GymDetailActions gym={gym} packages={packages} invitation={ownerInvitation} />
-        </div>
-      </div>
+      <GymHeader gym={gym} packages={packages} invitation={ownerInvitation} />
 
-      <GymDetailTabs
-        organizationId={gym.id}
-        memberCount={gym.usage.memberCount}
-        branchCount={gym.usage.branchCount}
-        staffCount={gym.usage.staffCount}
-      />
+      <div className="z-10 bg-paper md:sticky md:top-0">
+        <GymDetailTabs
+          organizationId={gym.id}
+          memberCount={gym.usage.memberCount}
+          branchCount={gym.usage.branchCount}
+          staffCount={gym.usage.staffCount}
+        />
       </div>
 
       {children}

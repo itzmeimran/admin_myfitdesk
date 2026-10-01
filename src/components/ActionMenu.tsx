@@ -17,6 +17,8 @@ export type ActionMenuItem = {
   danger?: boolean;
   /** Draw a divider above this item. */
   separated?: boolean;
+  /** Small uppercase group label drawn above this item (and below any divider). */
+  heading?: string;
 };
 
 const MENU_WIDTH = 208;
@@ -42,11 +44,16 @@ export function ActionMenu({
   ariaLabel = "Actions",
   disabled = false,
   align = "right",
+  size = "sm",
+  menuWidth = MENU_WIDTH,
 }: {
   items: ActionMenuItem[];
   ariaLabel?: string;
   disabled?: boolean;
   align?: "left" | "right";
+  /** `md` is a 40px, solid-bordered trigger that sits beside full-size buttons. */
+  size?: "sm" | "md";
+  menuWidth?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -56,6 +63,7 @@ export function ActionMenu({
   const uid = useId();
   const itemId = (i: number) => `${uid}-item-${i}`;
 
+  const headingCount = items.filter((i) => i.heading).length;
   const firstEnabled = useCallback(() => Math.max(0, items.findIndex((i) => !i.disabled)), [items]);
 
   const measure = useCallback(() => {
@@ -64,18 +72,18 @@ export function ActionMenu({
     const rect = trigger.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const wanted = items.length * 38 + 12;
+    const wanted = items.length * 38 + headingCount * 26 + 12;
     const below = vh - rect.bottom - GAP - VIEWPORT_MARGIN;
     const above = rect.top - GAP - VIEWPORT_MARGIN;
     const openUp = below < wanted && above > below;
-    const rawLeft = align === "right" ? rect.right - MENU_WIDTH : rect.left;
-    const left = Math.min(Math.max(VIEWPORT_MARGIN, rawLeft), vw - MENU_WIDTH - VIEWPORT_MARGIN);
+    const rawLeft = align === "right" ? rect.right - menuWidth : rect.left;
+    const left = Math.min(Math.max(VIEWPORT_MARGIN, rawLeft), vw - menuWidth - VIEWPORT_MARGIN);
     setPlacement(
       openUp
         ? { left, bottom: vh - rect.top + GAP, maxHeight: above }
         : { left, top: rect.bottom + GAP, maxHeight: below },
     );
-  }, [align, items.length]);
+  }, [align, items.length, headingCount, menuWidth]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -189,9 +197,15 @@ export function ActionMenu({
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
-        className={`inline-flex h-8 w-8 items-center justify-center border-[1.5px] text-ink transition-colors hover:border-ink hover:bg-sand focus-visible:border-ink focus-visible:outline-none disabled:opacity-40 ${
-          open ? "border-ink bg-sand" : "border-line"
-        }`}
+        className={
+          size === "md"
+            ? `press-scale inline-flex h-10 w-10 flex-shrink-0 items-center justify-center border-[1.5px] border-ink transition-colors hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper focus-visible:outline-none disabled:opacity-40 ${
+                open ? "bg-ink text-paper" : "bg-paper text-ink"
+              }`
+            : `inline-flex h-8 w-8 items-center justify-center border-[1.5px] text-ink transition-colors hover:border-ink hover:bg-sand focus-visible:border-ink focus-visible:outline-none disabled:opacity-40 ${
+                open ? "border-ink bg-sand" : "border-line"
+              }`
+        }
       >
         <MoreIcon size={16} aria-hidden />
       </button>
@@ -211,7 +225,7 @@ export function ActionMenu({
                 left: placement.left,
                 top: placement.top,
                 bottom: placement.bottom,
-                width: MENU_WIDTH,
+                width: menuWidth,
                 maxHeight: placement.maxHeight,
               }}
               className="fade-in z-[60] overflow-y-auto border-[1.5px] border-ink bg-paper py-1 shadow-[4px_4px_0_var(--ink)] focus:outline-none"
@@ -222,6 +236,14 @@ export function ActionMenu({
                 return (
                   <div key={item.key}>
                     {item.separated ? <div className="my-1 border-t border-line" /> : null}
+                    {item.heading ? (
+                      <div
+                        role="presentation"
+                        className="px-3 pb-1 pt-2 text-[9.5px] font-bold uppercase tracking-[0.14em] text-mute2"
+                      >
+                        {item.heading}
+                      </div>
+                    ) : null}
                     <div
                       id={itemId(index)}
                       role="menuitem"

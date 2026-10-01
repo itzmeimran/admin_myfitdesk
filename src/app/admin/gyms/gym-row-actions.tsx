@@ -42,7 +42,7 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
     // admin_gyms_list()/admin_gym_directory() (this row's own source) don't
     // carry the queued-package fields admin_gym_detail() does — the sheet
     // just won't show the "already queued" notice from this list-row entry
-    // point; opening it from the Gym Detail page (gym-detail-actions.tsx)
+    // point; opening it from the Gym Detail page (gym-subscription-panel.tsx)
     // shows the real one.
     pending: null,
   };

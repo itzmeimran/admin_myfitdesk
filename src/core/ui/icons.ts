@@ -99,6 +99,7 @@ export {
   LuActivity as ApiPerformanceIcon,
   LuInbox as InboxIcon,
   LuEllipsis as MoreIcon,
+  LuCopy as CopyIcon,
   LuInfo as DetailsIcon,
   LuShieldCheck as ProtectIcon,
   LuShieldOff as UnprotectIcon,

@@ -9,6 +9,8 @@ import { SkeletonBlock } from "@/components/Skeleton";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { loadMemberDetail, type MemberDetailWithAvatar } from "./actions";
 import { MemberAvatar } from "./member-avatar";
+import { ActorLine } from "./actor-line";
+import type { MemberActor } from "@/features/gyms/member-actors";
 
 const STATE_LABEL: Record<MembershipState, string> = {
   active: "Active",
@@ -155,10 +157,14 @@ function MemberDetailContent({ detail }: { detail: MemberDetailWithAvatar }) {
           <strong>{formatZonedDateTime(member.createdAt, timezone)}</strong>
           <span className="text-mute">Joined date: {formatCalendarDate(member.joinedOn)}</span>
         </OverviewCell>
+        <OverviewCell label="Added by">
+          <ActorLine actor={detail.addedBy} none={detail.addedBy ? "Not recorded" : "Not available"} large explainInferred />
+          <span className="text-mute3">{formatZonedDateTime(member.createdAt, timezone)}</span>
+        </OverviewCell>
       </section>
 
       <HistorySection title="Membership history" empty="No membership history available.">
-        {detail.memberships.map((membership) => <MembershipHistoryRow key={membership.id} membership={membership} timezone={timezone} />)}
+        {detail.memberships.map((membership) => <MembershipHistoryRow key={membership.id} membership={membership} timezone={timezone} actor={detail.membershipActors[membership.id]} />)}
       </HistorySection>
 
       <HistorySection title="Payment history" empty="No payment history available.">
@@ -230,17 +236,17 @@ function HistorySection({ title, empty, children }: { title: string; empty: stri
   return <section className="flex flex-col gap-2 border-t-[1.5px] border-ink pt-4"><h3 className="mfd-micro-label">{title}</h3>{hasChildren ? <div className="divide-y divide-line border-[1.5px] border-line bg-paper">{children}</div> : <EmptyCopy>{empty}</EmptyCopy>}</section>;
 }
 
-function MembershipHistoryRow({ membership, timezone }: { membership: MemberMembership; timezone: string }) {
+function MembershipHistoryRow({ membership, timezone, actor }: { membership: MemberMembership; timezone: string; actor: MemberActor | undefined }) {
   return (
     <article className="flex flex-col gap-1 px-3 py-3 text-[11.5px] sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <span><strong className="block text-[12.5px]">{membership.planName}</strong><span className="text-mute">{formatCalendarDate(membership.startDate)} → {formatCalendarDate(membership.endDate)}</span><span className="block text-[10.5px] text-mute3">Created {formatZonedDateTime(membership.createdAt, timezone)}</span></span>
+      <span><strong className="block text-[12.5px]">{membership.planName}</strong><span className="text-mute">{formatCalendarDate(membership.startDate)} → {formatCalendarDate(membership.endDate)}</span><span className="block text-[10.5px] text-mute3">Created {formatZonedDateTime(membership.createdAt, timezone)}</span><ActorLine prefix="Assigned by" actor={actor} none={actor ? "Not recorded" : "Not available"} className="mt-0.5" /></span>
       <span className={PILL_CLASS} style={pillTone(STATE_LABEL[membership.state])}>{STATE_LABEL[membership.state]}</span>
     </article>
   );
 }
 
 function PaymentHistoryRow({ payment, timezone }: { payment: MemberPayment; timezone: string }) {
-  const actor = payment.recordedByName ? `Recorded by ${payment.recordedByName}` : "Recorder not available";
+  const recorder: MemberActor = { name: payment.recordedByName, role: null, known: Boolean(payment.recordedBy), source: null };
   const terminal = payment.status === "refunded" && payment.refundedAt
     ? `Refunded${payment.refundedByName ? ` by ${payment.refundedByName}` : ""} · ${formatZonedDateTime(payment.refundedAt, timezone)}`
     : payment.status === "cancelled" && payment.rejectedAt
@@ -248,7 +254,7 @@ function PaymentHistoryRow({ payment, timezone }: { payment: MemberPayment; time
       : null;
   return (
     <article className="grid grid-cols-1 gap-2 px-3 py-3 text-[11.5px] sm:grid-cols-[1fr_auto]">
-      <span><time className="block text-[10.5px] text-mute3">{formatZonedDateTime(payment.paidAt, timezone)}</time><strong className="block text-[13px]">{formatMinorWhole(payment.amountMinor, payment.currency)} · {humanize(payment.method)}</strong><span className="text-mute">{payment.planName ?? "No linked plan"} · {actor}</span>{terminal ? <span className="mt-1 block font-bold text-accent">{terminal}</span> : null}</span>
+      <span><time className="block text-[10.5px] text-mute3">{formatZonedDateTime(payment.paidAt, timezone)}</time><strong className="block text-[13px]">{formatMinorWhole(payment.amountMinor, payment.currency)} · {humanize(payment.method)}</strong><span className="text-mute">{payment.planName ?? "No linked plan"}</span><ActorLine prefix="Recorded by" actor={recorder} none="Online / system payment" className="mt-0.5" />{terminal ? <span className="mt-1 block font-bold text-accent">{terminal}</span> : null}</span>
       <span className="text-left sm:text-right"><span className={PILL_CLASS} style={pillTone(humanize(payment.status))}>{humanize(payment.status)}</span><span className="mt-1 block text-[10.5px] text-mute">{payment.invoiceNumber ? `Receipt ${payment.invoiceNumber}` : "No receipt number"}</span>{payment.receiptStatus ? <span className="block text-[10.5px] text-mute">WhatsApp: {humanize(payment.receiptStatus)}</span> : null}</span>
     </article>
   );

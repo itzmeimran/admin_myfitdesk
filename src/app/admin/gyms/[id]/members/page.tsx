@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
-import { describeLastPayment, describeMembership, getGymMembers, getGymMemberSummary, getMemberAvatarKeys, humanize } from "@/features/gyms/members";
+import { describeLastPayment, describeMembership, getGymMembers, getGymMemberSummary, getMemberActors, getMemberAvatarKeys, humanize } from "@/features/gyms/members";
 import { listBranchOptions } from "@/features/gyms/branches";
 import { SearchBox } from "@/components/SearchBox";
 import { CustomFilterDropdown } from "@/components/CustomFilterDropdown";
@@ -10,6 +10,7 @@ import { SortLink } from "@/components/SortLink";
 import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
 import { resolveMemberAvatarUrls } from "@/core/storage/member-avatar";
+import { ActorLine } from "./actor-line";
 import { formatZonedDate, formatZonedTime } from "@/core/dates/format";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { MemberContact } from "./member-contact";
@@ -66,7 +67,9 @@ export default async function GymMembersPage({
   const summary = summaryResult.data;
   const { rows, total } = membersResult.data;
   // One RPC + local presigning for the whole page — never a request per member.
-  const avatarUrls = await resolveMemberAvatarUrls(supabase, id, await getMemberAvatarKeys(supabase, id, rows.map((row) => row.id)));
+  const rowIds = rows.map((row) => row.id);
+  const [avatarKeys, memberActors] = await Promise.all([getMemberAvatarKeys(supabase, id, rowIds), getMemberActors(supabase, id, rowIds)]);
+  const avatarUrls = await resolveMemberAvatarUrls(supabase, id, avatarKeys);
   const timezone = summary?.timezone ?? gym.defaultTimezone;
   const hasFilters = Boolean(search || memberStatus || branchId || state);
   const clearHref = roster === "deleted" ? `${pathname}?roster=deleted` : pathname;
@@ -127,7 +130,7 @@ export default async function GymMembersPage({
           <InlineFailure message="Unable to load members. No backend details were exposed." retryHref={clearHref} />
         ) : (
           <>
-            <table className="w-full min-w-[1040px] border-collapse text-[12px]">
+            <table className="w-full min-w-[1180px] border-collapse text-[12px]">
               <thead>
                 <tr className="text-left">
                   <SortLink pathname={pathname} searchParams={sp} sortKey="name" currentSort={sortCol} currentDir={sortDir}>Member</SortLink>
@@ -136,12 +139,14 @@ export default async function GymMembersPage({
                   <SortLink pathname={pathname} searchParams={sp} sortKey="plan_name" currentSort={sortCol} currentDir={sortDir}>Plan</SortLink>
                   <SortLink pathname={pathname} searchParams={sp} sortKey="subscription_end_date" currentSort={sortCol} currentDir={sortDir}>Membership</SortLink>
                   <SortLink pathname={pathname} searchParams={sp} sortKey="last_payment_at" currentSort={sortCol} currentDir={sortDir}>Last payment</SortLink>
+                  <th scope="col" className="mfd-micro-label border-b border-line px-3 py-2.5">Added by</th>
                   <SortLink pathname={pathname} searchParams={sp} sortKey="created_at" currentSort={sortCol} currentDir={sortDir} align="right">Joined</SortLink>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((member) => {
                   const paymentLines = describeLastPayment(member, timezone);
+                  const actors = memberActors.get(member.id);
                   return (
                     <tr key={member.id} className="mfd-table-row align-top">
                       <td className="max-w-[175px] border-b border-line px-4 py-2.5">
@@ -152,7 +157,8 @@ export default async function GymMembersPage({
                       <td className="max-w-[150px] border-b border-line px-3 py-2.5"><span className="block truncate" title={member.branchName}>{member.branchName}</span></td>
                       <td className="max-w-[150px] border-b border-line px-3 py-2.5"><span className="block truncate" title={member.planName ?? "No plan"}>{member.planName ?? "No plan"}</span></td>
                       <td className="border-b border-line px-3 py-2.5"><span className={PILL_CLASS} style={pillTone(STATE_LABEL[member.membershipState] ?? humanize(member.membershipState))}>{describeMembership(member)}</span></td>
-                      <td className="border-b border-line px-3 py-2.5"><span className="block font-bold text-ink">{paymentLines[0]}</span>{paymentLines[1] ? <span className="block whitespace-nowrap text-[10.5px] text-mute3">{paymentLines[1]}</span> : null}{member.paymentPending ? <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.06em] text-accent">Payment pending</span> : null}</td>
+                      <td className="border-b border-line px-3 py-2.5"><span className="block font-bold text-ink">{paymentLines[0]}</span>{paymentLines[1] ? <span className="block whitespace-nowrap text-[10.5px] text-mute3">{paymentLines[1]}</span> : null}{member.lastPayment ? <ActorLine prefix="Recorded by" actor={actors?.lastPaymentRecordedBy} none={actors ? "Online / system" : "Recorder not available"} className="mt-0.5" /> : null}{member.paymentPending ? <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.06em] text-accent">Payment pending</span> : null}</td>
+                      <td className="max-w-[170px] border-b border-line px-3 py-2.5"><ActorLine actor={actors?.addedBy} none={actors ? "Not recorded" : "Not available"} large /></td>
                       <td className="whitespace-nowrap border-b border-line px-4 py-2.5 text-right"><span className="block text-ink">{formatZonedDate(member.createdAt, timezone, false)}</span><span className="block text-[10.5px] text-mute3">{formatZonedTime(member.createdAt, timezone)}</span></td>
                     </tr>
                   );

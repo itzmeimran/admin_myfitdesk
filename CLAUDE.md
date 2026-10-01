@@ -48,6 +48,32 @@ Reference app (read-only source of truth for conventions/schema, do not edit): `
   - **I independently re-ran `tsc --noEmit` / `eslint` / `npm run build` myself after the agent's own report** (all clean) rather than trusting its self-report alone, and spot-read every new/changed file — the `admin_package_mix()` phantom-MRR bug earlier in this file is exactly the kind of thing a "trust the agent" pass would have missed.
   - **Also discovered mid-session and resolved:** a prior background agent had run `git init`/commit/push to a real GitHub remote (`github.com/itzmeimran/admin_myfitdesk`) without being asked — caught by checking `git status`/`git remote -v`, verified no secrets were ever committed (`.env.local` never appears in any commit), flagged to and confirmed-owned by the user. Take-away for future sessions: check `git log`/`git remote -v` right after any agent that might plausibly run `git` commands, don't wait until it surfaces on its own.
 
+## Milestone: Gym Detail header redesign (2026-10-01)
+
+Approved from a static mockup (Option B, "subscription panel"). Presentation only — no migration, no new RPC, no change to what any action does.
+
+- `[id]/gym-header.tsx` (new, server): identity + 4 facts (Owner/Phone/Email/Gym ID, copy buttons on the last three) on the left, `gym-subscription-panel.tsx` (new, client; replaces `gym-detail-actions.tsx`) on the right. Stacks below `lg`; facts are a 2x2 grid below `xl`, one divided row from `xl`.
+- `[id]/subscription-view.ts` builds the panel from `gym.subscription` on the server (days left/overdue, a meter of period elapsed from `currentPeriodStart`→`currentPeriodEnd`, tick per day only when the period is ≤31 days). Accent tone only for a trial with ≤7 days left, Grace, or Read-only. Suspended/Cancelled replace the meter with a state word; Suspended's primary button becomes **Reactivate gym**. Suspended note says "Billing is unaffected" and deliberately does NOT claim staff are locked out (D-4c: enforcement stops at this app).
+- One filled button (Manage subscription), a View-as-owner icon button, one `⋯` menu. Hover: filled button flips ink→highlight yellow, icon buttons invert paper→ink; both use `press-scale` and the global color transitions.
+- `ActionMenu` gained `size="md"`, `menuWidth`, and per-item `heading` (group labels); existing callers unchanged. `CopyIcon` added to `core/ui/icons.ts`.
+- Menu dropped the three "Extend / Activate / Cancel subscription" entries (all opened the same sheet as the Manage button) and the two permanently-disabled placeholders (Trigger OTP, Archive gym). Everything else kept.
+- Click-to-enlarge pictures: new shared `components/ImageLightbox.tsx` (portalled modal, Escape/backdrop/close button, focus returns to the picture, Escape swallowed so a Sheet underneath stays open). Used on the gym logo in the header and on `MemberAvatar` (members list + member drawer). Initials fallbacks are not clickable. The gym-logo preview on the Settings tab is not wired to it.
+- Only the tab strip is sticky now (`md:sticky`), not the whole header card, since the card is taller.
+- Verified: `tsc`, `eslint` clean; rendered on a temporary mock-data page (deleted) at the pane's narrow width and a 1400px emulation — all five states (trial, trial ending, active with queued package, grace, suspended) and the open menu. **Not verified**: real signed-in data, the actual `:hover` colour change in a screenshot (the CSS rules and transitions were confirmed present, but the pane's synthetic mouse doesn't trigger `:hover`), `next build`.
+
+---
+
+## Milestone: Members tab — who added / who recorded (2026-10-01) — migration NOT yet applied
+
+User gap: the Members tab didn't show who added a member or who recorded a payment.
+
+- **Audit of the data:** `payments.recorded_by` exists (all 44 live payments have it; the drawer's payment history already showed it, faintly, but the list didn't). `members` has **no** `created_by`. `audit_log` INSERT rows carry `actor_id`, but the members trigger only started 2026-09-30 (4 of 38 live members have a row). The other 34 are attributed through the actor of their **first membership** (created in the same request by the add-member flow) and flagged `first_membership` — shown with a dotted underline + tooltip, and "From their first membership" in the drawer. Not a guess made silently.
+- `supabase/migrations/20261001090000_admin_member_actors.sql` (read-only, no schema change): `admin_gym_member_actors(org, member_ids[])` (added-by + last-payment recorder per member, max 200) and `admin_gym_member_subscription_actors(org, member)` (who assigned each membership). Admin-gated SECURITY DEFINER, same grants as the other `admin_gym_member_*` reads. **Executed against PROD in a rolled-back transaction** as the real platform admin: 27/27 members attributed (3 direct, 24 via first membership), 27/27 recorders resolved, a non-admin is refused, zero residue. **Not applied** — needs the user's go-ahead (PROD `clbphruocsqsmklmrloq`; DEV: paste into the SQL Editor). Until then the app degrades: both reads treat `PGRST202` as "no attribution" and the UI shows "Not available".
+- App: `features/gyms/member-actors.ts` (labels, shared by server + client), `getMemberActors` / `getMemberSubscriptionActors` in `features/gyms/members.ts`, `members/actor-line.tsx`. List: new **Added by** column and a "Recorded by" line under Last payment. Drawer: **Added by** cell, "Assigned by" on each membership, and a clearer "Recorded by" on each payment (payment rows have no role, so none is shown there). A payment with no recorder reads "Online / system payment"; an id that no longer maps to staff reads "Former staff member".
+- `tsc` / `eslint` clean; attribution lines rendered on a temporary page (deleted). **Not verified**: the real Members page and drawer with live data (needs the migration applied and a signed-in session).
+
+---
+
 ## Milestone: Platform Settings area (2026-09-30) — applied to PROD, DEV pending
 
 `/admin/settings` is now nine route-based tabs (General · Platform defaults · Admins & permissions · Security · Environments · Integrations · Notifications · Data & privacy · System). Each tab is its own Server Component, guarded server-side by its own permission; the tab strip only lists what the viewer's role allows.

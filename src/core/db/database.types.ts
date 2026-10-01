@@ -2672,6 +2672,28 @@ export type Database = {
         Args: { p_member_id: string; p_organization_id: string }
         Returns: Json
       }
+      admin_gym_member_actors: {
+        Args: { p_member_ids: string[]; p_organization_id: string }
+        Returns: {
+          added_by_known: boolean
+          added_by_name: string | null
+          added_by_role: string | null
+          added_by_source: string | null
+          member_id: string
+          payment_has_recorder: boolean
+          payment_recorded_by_name: string | null
+          payment_recorded_by_role: string | null
+        }[]
+      }
+      admin_gym_member_subscription_actors: {
+        Args: { p_member_id: string; p_organization_id: string }
+        Returns: {
+          assigned_by_known: boolean
+          assigned_by_name: string | null
+          assigned_by_role: string | null
+          subscription_id: string
+        }[]
+      }
       admin_gym_member_avatars: {
         Args: { p_member_ids: string[]; p_organization_id: string }
         Returns: { avatar_key: string; member_id: string }[]

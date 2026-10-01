@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
 import { formatCalendarDate, formatZonedDateTime } from "@/core/dates/format";
 import { formatMinorWhole } from "@/core/money/format";
+import type { ActorSource, MemberActor, MemberActors } from "./member-actors";
 
 export type MembershipState =
   | "none"
@@ -224,6 +225,70 @@ export async function getMemberAvatarKeys(
   return keys;
 }
 
+/** member id → who added them and who recorded their last payment. One RPC
+ * for a whole page. Best-effort: if the function isn't deployed on this
+ * environment yet, or the read fails, the roster simply shows no attribution. */
+export async function getMemberActors(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  memberIds: string[],
+): Promise<Map<string, MemberActors>> {
+  const actors = new Map<string, MemberActors>();
+  if (memberIds.length === 0) return actors;
+  const { data, error } = await supabase.rpc("admin_gym_member_actors", {
+    p_organization_id: organizationId,
+    p_member_ids: memberIds,
+  });
+  if (error) {
+    // PGRST202 = function not found: the migration isn't applied here yet.
+    if (error.code !== "PGRST202") console.error("Platform admin member actors read failed", error);
+    return actors;
+  }
+  for (const row of data ?? []) {
+    actors.set(row.member_id, {
+      addedBy: {
+        name: row.added_by_name,
+        role: row.added_by_role,
+        known: row.added_by_known,
+        source: (row.added_by_source as ActorSource | null) ?? null,
+      },
+      lastPaymentRecordedBy: {
+        name: row.payment_recorded_by_name,
+        role: row.payment_recorded_by_role,
+        known: row.payment_has_recorder,
+        source: null,
+      },
+    });
+  }
+  return actors;
+}
+
+/** subscription id → who assigned that membership, for one member. */
+export async function getMemberSubscriptionActors(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  memberId: string,
+): Promise<Map<string, MemberActor>> {
+  const actors = new Map<string, MemberActor>();
+  const { data, error } = await supabase.rpc("admin_gym_member_subscription_actors", {
+    p_organization_id: organizationId,
+    p_member_id: memberId,
+  });
+  if (error) {
+    if (error.code !== "PGRST202") console.error("Platform admin membership actors read failed", error);
+    return actors;
+  }
+  for (const row of data ?? []) {
+    actors.set(row.subscription_id, {
+      name: row.assigned_by_name,
+      role: row.assigned_by_role,
+      known: row.assigned_by_known,
+      source: "record",
+    });
+  }
+  return actors;
+}
+
 /** Kept for the Overview snapshot call site, now backed by one aggregate RPC
  * rather than three paginated list reads. */
 export async function getMemberExpirySnapshot(
@@ -266,6 +331,8 @@ export type MemberPayment = {
   createdAt: string;
   invoiceNumber: string | null;
   planName: string | null;
+  /** auth user id of the recorder; null for a gateway/online payment. */
+  recordedBy: string | null;
   recordedByName: string | null;
   confirmedByName: string | null;
   confirmedAt: string | null;
@@ -384,6 +451,7 @@ type DetailJson = {
     created_at: string;
     invoice_number: string | null;
     plan_name: string | null;
+    recorded_by: string | null;
     recorded_by_name: string | null;
     confirmed_by_name: string | null;
     confirmed_at: string | null;
@@ -474,6 +542,7 @@ export async function getGymMemberDetail(
     createdAt: row.created_at,
     invoiceNumber: row.invoice_number,
     planName: row.plan_name,
+    recordedBy: row.recorded_by ?? null,
     recordedByName: row.recorded_by_name,
     confirmedByName: row.confirmed_by_name,
     confirmedAt: row.confirmed_at,

@@ -15,6 +15,7 @@ import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { PAYMENT_METHODS } from "@/features/gyms/payment-method";
 import { BillingActions } from "./billing-actions";
 import Link from "next/link";
+import { AutoPaySummary } from "./autopay-summary";
 
 const SORT_ALLOWLIST = new Set(["created_at", "amount_minor", "status", "paid_at"]);
 
@@ -77,6 +78,7 @@ export default async function GymBillingPage({
 
   return (
     <div className="flex flex-col gap-4">
+      <AutoPaySummary organizationId={id} />
       <section className="flex flex-col gap-4 border-2 border-ink bg-paper p-4 md:flex-row">
         <div className="flex flex-1 flex-col gap-2.5">
           <h2 className="mfd-micro-label">Current subscription</h2>

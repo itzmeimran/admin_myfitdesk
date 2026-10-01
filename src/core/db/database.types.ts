@@ -613,6 +613,18 @@ export type Database = {
       }
       organization_subscriptions: {
         Row: {
+          recurring_status: string | null
+          recurring_environment: string | null
+          next_billing_at: string | null
+          last_successful_payment_at: string | null
+          renewal_price_minor: number | null
+          renewal_currency: string | null
+          renewal_price_effective_at: string | null
+          renewal_price_status: string | null
+          renewal_price_error: string | null
+          last_failed_payment_at: string | null
+          recurring_payment_method: string | null
+          cancel_at_period_end: boolean
           auto_renew: boolean
           cancelled_at: string | null
           created_at: string

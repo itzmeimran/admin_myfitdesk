@@ -139,6 +139,9 @@ export function PackageView({
       </div>
 
       <LiveBanner billingModel={billingModel} hasPackages={packages.length > 0} />
+      <p className="border-[1.5px] border-line bg-sand p-3 text-[12px] leading-relaxed text-mute">
+        Price changes apply to existing AutoPay customers at their next renewal. Their paid period stays unchanged; they must authorize the updated price after their previous mandate is stopped. Review pending changes in each gym&apos;s Billing tab.
+      </p>
 
       <PackagePicker packages={packages} selectedId={selectedId} />
 

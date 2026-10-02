@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { ButtonLink } from "@/components/ButtonLink";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { OverviewPeriod } from "@/features/overview/queries";
@@ -124,28 +126,25 @@ export function OverviewView({
             const Icon = PERIOD_ICON[p];
             const on = period === p;
             return (
-              <button
+              <Button icon={Icon}
                 key={p}
                 type="button"
                 aria-pressed={on}
                 onClick={() => router.push(`/admin?period=${PERIOD_TO_QUERY[p]}`)}
-                className={`-ml-[1.5px] flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[11.5px] font-bold first:ml-0 ${
-                  on ? "bg-ink text-hi" : "bg-paper text-ink"
-                }`}
+                variant="secondary" selected={on} size="sm" className="-ml-[1.5px] first:ml-0"
               >
-                <Icon size={14} aria-hidden />
                 {p}
-              </button>
+              </Button>
             );
           })}
         </div>
-        <Link
+        <ButtonLink
           href="/admin/packages"
-          className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
+          variant="primary" size="sm"
         >
           <PackagesIcon size={ICON_SIZE.button} aria-hidden />
           Manage package
-        </Link>
+        </ButtonLink>
       </div>
 
       {/* Needs attention today */}
@@ -349,15 +348,14 @@ export function OverviewView({
                           </span>
                         </td>
                         <td className="border-b border-line px-4 py-2.5 text-right">
-                          <button
+                          <Button icon={ActionIcon}
                             type="button"
                             disabled
                             title="Not implemented yet"
-                            className="inline-flex min-h-[32px] items-center gap-1.5 border-[1.5px] border-ink bg-transparent px-2.5 text-[11px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-70"
+                            variant="secondary" size="sm"
                           >
-                            <ActionIcon size={14} aria-hidden />
                             {r.action}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -386,15 +384,14 @@ export function OverviewView({
                       <span className="text-[12.5px] text-mute">
                         <span className="font-bold text-ink">{r.amount}</span> · {r.due}
                       </span>
-                      <button
+                      <Button icon={ActionIcon}
                         type="button"
                         disabled
                         title="Not implemented yet"
-                        className="ml-auto inline-flex min-h-[38px] items-center gap-1.5 border-[1.5px] border-ink bg-transparent px-3 text-[11.5px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-70"
+                        variant="secondary" size="sm" className="ml-auto"
                       >
-                        <ActionIcon size={15} aria-hidden />
                         {r.action}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 );
@@ -433,13 +430,13 @@ export function OverviewView({
                 <span className="text-[11.5px] text-mute">{l.detail}</span>
               </div>
             ))}
-            <Link
+            <ButtonLink
               href="/admin/gyms"
-              className="flex min-h-[38px] items-center justify-center gap-2 border-[1.5px] border-ink text-[11px] font-bold uppercase tracking-[0.09em] text-ink"
+              variant="secondary" size="sm"
             >
               <UsageIcon size={14} aria-hidden />
               See usage across all gyms
-            </Link>
+            </ButtonLink>
           </section>
 
           <section aria-labelledby="mfd-signups" className="flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4">
@@ -480,13 +477,13 @@ export function OverviewView({
                 </span>
               </div>
             ))}
-            <Link
+            <ButtonLink
               href="/admin/revenue"
-              className="flex min-h-[38px] items-center justify-center gap-2 border border-inkline text-[11px] font-bold uppercase tracking-[0.09em] text-hi"
+              variant="ghost" tone="inverse" size="sm" className="border-inkline"
             >
               <RevenueIcon size={14} aria-hidden />
               Open platform revenue
-            </Link>
+            </ButtonLink>
           </section>
         </div>
       </div>

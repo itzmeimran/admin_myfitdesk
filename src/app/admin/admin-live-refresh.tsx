@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
+import { istDateKey, millisecondsUntilIstMidnight } from "@/core/dates/ist";
 import { useRouter } from "next/navigation";
 import { requestRefresh } from "@/core/realtime/refresh-scheduler";
 import { useBroadcastChannel } from "@/core/realtime/use-broadcast-channel";
@@ -21,5 +22,26 @@ export function AdminLiveRefresh() {
   const router = useRouter();
   const onChange = useCallback(() => requestRefresh(router), [router]);
   useBroadcastChannel({ topic: "admin:gyms", onChange, onReconnected: onChange });
+  useEffect(() => {
+    let day = istDateKey();
+    let timer: ReturnType<typeof setTimeout>;
+    function checkDay() {
+      const today = istDateKey();
+      if (day !== today) {
+        day = today;
+        onChange();
+      }
+      clearTimeout(timer);
+      timer = setTimeout(checkDay, millisecondsUntilIstMidnight() + 50);
+    }
+    checkDay();
+    document.addEventListener("visibilitychange", checkDay);
+    window.addEventListener("focus", checkDay);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", checkDay);
+      window.removeEventListener("focus", checkDay);
+    };
+  }, [onChange]);
   return null;
 }

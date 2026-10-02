@@ -1,9 +1,9 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/Toast";
-import { ButtonLabel } from "@/components/ButtonLabel";
 import { UploadIcon, DeleteIcon } from "@/core/ui/icons";
 import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES } from "@/core/storage/logo-limits";
 import { removeGymLogo, updateGymLogo } from "./logo-actions";
@@ -96,27 +96,23 @@ export function GymLogoUpload({
         <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-mute">Gym logo</span>
         <p className="text-[11px] text-mute">PNG, JPEG or WebP, up to 5 MB.</p>
         <div className="mt-1 flex items-center gap-4">
-          <button
+          <Button tone="danger" icon={UploadIcon} pending={pending === "upload"}
             type="button"
             disabled={pending !== null}
             onClick={() => inputRef.current?.click()}
-            className="flex items-center text-[11.5px] font-bold text-accent disabled:pointer-events-none disabled:opacity-60"
+            variant="link" size="custom"
           >
-            <ButtonLabel icon={UploadIcon} pending={pending === "upload"}>
               {pending === "upload" ? "Uploading…" : previewUrl ? "Replace logo" : "Upload logo"}
-            </ButtonLabel>
-          </button>
+          </Button>
           {previewUrl ? (
-            <button
+            <Button icon={DeleteIcon} pending={pending === "remove"}
               type="button"
               disabled={pending !== null}
               onClick={handleRemove}
-              className="flex items-center text-[11.5px] font-bold text-mute disabled:pointer-events-none disabled:opacity-60"
+              variant="link" size="custom" className="text-mute"
             >
-              <ButtonLabel icon={DeleteIcon} pending={pending === "remove"}>
                 {pending === "remove" ? "Removing…" : "Remove"}
-              </ButtonLabel>
-            </button>
+            </Button>
           ) : null}
         </div>
         <input

@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { useRef, useState } from "react";
 import type { MemberMembership, MemberPayment, MemberRow, MembershipState } from "@/features/gyms/members";
 import { formatCalendarDate, formatZonedDateTime } from "@/core/dates/format";
@@ -59,9 +61,9 @@ export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { o
     <>
       <div className="flex min-w-0 items-center gap-2.5">
         <MemberAvatar name={member.name} url={avatarUrl} size={32} />
-        <button type="button" onClick={show} className="block min-w-0 max-w-full truncate text-left font-bold hover:underline">
+        <Button type="button" onClick={show} variant="link" size="custom" className="block min-w-0 max-w-full truncate text-left">
           {trigger}
-        </button>
+        </Button>
       </div>
       <Sheet
         open={open}
@@ -76,9 +78,9 @@ export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { o
           <div className="flex flex-col items-center gap-3 border-[1.5px] border-accent bg-accent/5 px-4 py-10 text-center">
             <span className="font-display text-[17px] text-ink">Member details unavailable</span>
             <p className="text-[12px] text-mute">{error}</p>
-            <button type="button" onClick={() => void fetchDetail()} className="border-[1.5px] border-ink bg-ink px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-paper hover:bg-accent">
+            <Button type="button" onClick={() => void fetchDetail()} variant="danger" size="md">
               Retry
-            </button>
+            </Button>
           </div>
         ) : null}
         {detail ? <MemberDetailContent detail={detail} /> : null}
@@ -88,7 +90,8 @@ export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { o
 }
 
 function MemberDetailContent({ detail }: { detail: MemberDetailWithAvatar }) {
-  const { member, timezone } = detail;
+  const { member } = detail;
+  const timezone = IST_TIME_ZONE;
   const currentMembership = detail.memberships.find((item) => ["active", "expiring_soon", "frozen", "upcoming"].includes(item.state)) ?? detail.memberships[0] ?? null;
   const lastPayment = detail.payments[0] ?? null;
 
@@ -267,7 +270,7 @@ function TechnicalId({ label, value }: { label: string; value: string }) {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1_500);
   }
-  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-line px-3 py-2"><span className="min-w-0 flex-1"><dt className="mfd-micro-label">{label}</dt><dd className="truncate font-mono text-[10.5px] text-mute" title={value}>{value}</dd></span><button type="button" onClick={() => void copy()} className="border border-line px-2 py-1 text-[9.5px] font-bold uppercase tracking-[0.08em] hover:border-ink">{copied ? "Copied" : "Copy"}</button></div>;
+  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-line px-3 py-2"><span className="min-w-0 flex-1"><dt className="mfd-micro-label">{label}</dt><dd className="truncate font-mono text-[10.5px] text-mute" title={value}>{value}</dd></span><Button type="button" onClick={() => void copy()} variant="secondary" size="md">{copied ? "Copied" : "Copy"}</Button></div>;
 }
 
 function TechnicalFact({ label, value }: { label: string; value: string }) {

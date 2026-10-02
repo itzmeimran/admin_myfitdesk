@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { InboxIcon } from "@/core/ui/icons";
 
 /** Shared "nothing here" state for every filterable/searchable table in the
@@ -19,12 +20,12 @@ export function EmptyState({
       <InboxIcon size={26} className="text-mute3" aria-hidden />
       <p className="max-w-sm text-[12.5px] leading-relaxed text-mute">{message}</p>
       {resetHref ? (
-        <Link
+        <ButtonLink
           href={resetHref}
-          className="border-[1.5px] border-line px-3 py-2 text-[11px] font-bold uppercase tracking-[0.09em] text-ink"
+          variant="secondary" size="md"
         >
           {resetLabel}
-        </Link>
+        </ButtonLink>
       ) : null}
     </div>
   );

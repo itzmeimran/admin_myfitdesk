@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
@@ -63,7 +64,7 @@ export default async function GymDetailLayout({
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="text-[13px] font-bold text-accent">
               Owner requested account deletion —{" "}
-              {new Date(gym.deletionRequestedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
+              {new Date(gym.deletionRequestedAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, day: "numeric", month: "short" })}
             </span>
             <span className="text-[12px] leading-relaxed text-ink2">
               {gym.owner ? `Requested by ${gym.owner.name}. ` : ""}

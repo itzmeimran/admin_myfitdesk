@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState } from "react";
 import { RevealIcon, HideIcon } from "@/core/ui/icons";
 
@@ -23,15 +24,16 @@ export function MemberContact({ phone, email }: { phone: string | null; email: s
         <span className="block truncate font-mono text-[11.5px]">{shown ? phone ?? "—" : maskedPhone}</span>
         <span className="block truncate text-[11px] text-mute">{shown ? email ?? "—" : maskedEmail}</span>
       </span>
-      <button
+      <Button
         type="button"
         onClick={() => setShown((s) => !s)}
         aria-pressed={shown}
+        aria-label={shown ? "Hide contact details" : "Reveal contact details"}
         title={shown ? "Hide contact details" : "Reveal contact details"}
-        className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center border border-line text-mute"
+        variant="secondary" size="xs" iconOnly
       >
         {shown ? <HideIcon size={14} aria-hidden /> : <RevealIcon size={14} aria-hidden />}
-      </button>
+      </Button>
     </span>
   );
 }

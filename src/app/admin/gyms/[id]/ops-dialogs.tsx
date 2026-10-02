@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { istInputToIso } from "@/core/dates/ist";
 import { useState } from "react";
 import { AdminActionDialog } from "@/components/AdminActionDialog";
 import {
@@ -20,7 +22,7 @@ import { LOCK_CATALOG, type FlagRow, type LockType, type OpsAlert } from "@/feat
 
 type Base = { open: boolean; onClose: () => void; organizationId: string; gymName: string };
 
-const isFuture = (local: string) => new Date(local).getTime() > Date.now();
+const isFuture = (local: string) => Date.parse(istInputToIso(local) ?? "") > Date.now();
 
 export function CreditsDialog({ open, onClose, organizationId, gymName }: Base) {
   const [mode, setMode] = useState<"add" | "remove">("add");
@@ -47,17 +49,15 @@ export function CreditsDialog({ open, onClose, organizationId, gymName }: Base) 
       <div className="flex flex-col gap-2">
         <div className="flex" role="group" aria-label="Add or remove">
           {(["add", "remove"] as const).map((m) => (
-            <button
+            <Button
               key={m}
               type="button"
               aria-pressed={mode === m}
               onClick={() => setMode(m)}
-              className={`min-h-[36px] flex-1 border-[1.5px] border-ink px-3 text-[11px] font-bold uppercase tracking-[0.08em] ${
-                mode === m ? "bg-ink text-hi" : "bg-paper text-mute"
-              } ${m === "remove" ? "border-l-0" : ""}`}
+              variant={mode === m ? "primary" : "ghost"} size="sm" className={`flex-1   ${m === "remove" ? "border-l-0" : ""} `}
             >
               {m === "add" ? "Add credits" : "Remove credits"}
-            </button>
+            </Button>
           ))}
         </div>
         <label className="flex flex-col gap-1">
@@ -129,7 +129,7 @@ export function LockDialog({
 }: Base & { lockType: LockType; enable: boolean }) {
   const entry = LOCK_CATALOG.find((l) => l.type === lockType);
   const [expires, setExpires] = useState("");
-  const expiresIso = expires ? new Date(expires).toISOString() : null;
+  const expiresIso = expires ? istInputToIso(expires) : null;
   const expiryValid = !expires || isFuture(expires);
 
   return (
@@ -157,7 +157,7 @@ export function LockDialog({
     >
       {enable ? (
         <label className="flex flex-col gap-1">
-          <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute">Automatically lift on (optional)</span>
+          <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute">Automatically lift on (IST, optional)</span>
           <input
             type="datetime-local"
             value={expires}

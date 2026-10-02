@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { useState } from "react";
 import type { GymDetail } from "@/features/gyms/detail";
 import type { AssignablePackage } from "@/features/gyms/queries";
@@ -27,14 +29,14 @@ export function BillingActions({ gym, packages }: { gym: GymDetail; packages: As
     packageLabel: sub?.packageName ?? "No package",
     periodLabel: sub?.priceMinor != null ? `${capitalizeBillingPeriod(sub.billingPeriod)} · ${formatMinorWhole(sub.priceMinor, sub.currency ?? "INR")}` : "Trial",
     renewsLabel: sub?.currentPeriodEnd
-      ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
+      ? new Date(sub.currentPeriodEnd).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, day: "numeric", month: "short", year: "numeric" })
       : "—",
     isCancelled,
     isTrialing: gym.status === "Trialing",
     pending: sub?.pending
       ? {
           packageLabel: sub.pending.packageName ?? "Package",
-          startsLabel: new Date(sub.pending.periodStart).toLocaleDateString("en-IN", {
+          startsLabel: new Date(sub.pending.periodStart).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE,
             day: "numeric",
             month: "short",
             year: "numeric",
@@ -111,15 +113,13 @@ function ActionCard({
         {title}
       </span>
       <span className="text-[11.5px] leading-relaxed text-ink2">{body}</span>
-      <button
+      <Button
         type="button"
         onClick={onClick}
-        className={`mt-auto flex min-h-[36px] items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.09em] ${
-          danger ? "bg-accent text-paper" : "border-[1.5px] border-ink text-ink"
-        }`}
+        variant={danger ? "danger" : "secondary"} size="sm" className="mt-auto"
       >
         {cta}
-      </button>
+      </Button>
     </div>
   );
 }

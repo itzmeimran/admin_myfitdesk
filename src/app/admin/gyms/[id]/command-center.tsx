@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import type { GymDetail } from "@/features/gyms/detail";
 import type { GymOverview } from "@/features/gyms/overview";
 import type { OpsSummary, WebhookProvider } from "@/features/gyms/ops/types";
@@ -24,7 +25,7 @@ export function CommandCenter({
   summary: OpsSummary;
   overview: GymOverview | null;
 }) {
-  const tz = gym.defaultTimezone || "Asia/Kolkata";
+  const tz = IST_TIME_ZONE;
   const currency = gym.defaultCurrency || "INR";
   const base = `/admin/gyms/${gym.id}/operations`;
   const now = new Date();

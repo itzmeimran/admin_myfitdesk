@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
@@ -15,7 +16,7 @@ import type { AdminEnvironment } from "@/core/config/environments";
 import { ADMIN_ENVIRONMENT_LABEL } from "@/core/config/environments";
 import { useAdminEnvironment } from "@/core/env/context";
 import { RestoreIcon, RevokeIcon, SuspendIcon, InviteIcon } from "@/core/ui/icons";
-import { GHOST_BUTTON_CLASS, HINT_CLASS, LABEL_CLASS, StatusPill, formatWhen, timeAgo } from "../_components/ui";
+import { HINT_CLASS, LABEL_CLASS, StatusPill, formatWhen, timeAgo } from "../_components/ui";
 import { EnvAccessSummary } from "./env-access-cell";
 
 type Pending =
@@ -256,14 +257,14 @@ export function AdminDrawer({
                         disabled={isPending}
                       />
                     </div>
-                    <button
+                    <Button
                       type="button"
                       disabled={isPending || !newRole || newRole === admin.role}
                       onClick={() => setPendingAction({ kind: "role", role: newRole })}
-                      className={GHOST_BUTTON_CLASS}
+                      variant="secondary" size="sm"
                     >
                       Change role
-                    </button>
+                    </Button>
                   </div>
                 ) : null}
 
@@ -281,24 +282,24 @@ export function AdminDrawer({
 
                 <div className="flex flex-wrap gap-2">
                   {canResend ? (
-                    <button type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "resend" })} className={GHOST_BUTTON_CLASS}>
-                      <InviteIcon size={13} aria-hidden /> Resend invitation
-                    </button>
+                    <Button icon={InviteIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "resend" })} variant="secondary" size="sm">
+                       Resend invitation
+                    </Button>
                   ) : null}
                   {canReactivate ? (
-                    <button type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "reactivate" })} className={GHOST_BUTTON_CLASS}>
-                      <RestoreIcon size={13} aria-hidden /> Reactivate
-                    </button>
+                    <Button icon={RestoreIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "reactivate" })} variant="secondary" size="sm">
+                       Reactivate
+                    </Button>
                   ) : null}
                   {canSuspend ? (
-                    <button type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "suspend" })} className={`${GHOST_BUTTON_CLASS} text-accent`}>
-                      <SuspendIcon size={13} aria-hidden /> Suspend
-                    </button>
+                    <Button icon={SuspendIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "suspend" })} variant="danger-secondary" size="sm" >
+                       Suspend
+                    </Button>
                   ) : null}
                   {canRevoke ? (
-                    <button type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "revoke" })} className={`${GHOST_BUTTON_CLASS} text-accent`}>
-                      <RevokeIcon size={13} aria-hidden /> {admin.status === "pending" || admin.status === "expired" ? "Cancel invitation" : "Revoke access"}
-                    </button>
+                    <Button icon={RevokeIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "revoke" })} variant="danger-secondary" size="sm" >
+                       {admin.status === "pending" || admin.status === "expired" ? "Cancel invitation" : "Revoke access"}
+                    </Button>
                   ) : null}
                 </div>
                 {admin.isSelf ? (

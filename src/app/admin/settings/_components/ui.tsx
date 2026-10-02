@@ -14,10 +14,6 @@ export const INPUT_CLASS =
   "w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none transition-colors hover:border-ink/50 focus:border-ink disabled:cursor-not-allowed disabled:bg-sand/60 disabled:text-mute";
 export const LABEL_CLASS = "text-[9px] font-bold uppercase tracking-[0.12em] text-mute";
 export const HINT_CLASS = "text-[10.5px] leading-relaxed text-mute3";
-export const PRIMARY_BUTTON_CLASS =
-  "press-scale inline-flex min-h-[40px] items-center justify-center gap-2 bg-ink px-4 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-wait disabled:opacity-60";
-export const GHOST_BUTTON_CLASS =
-  "press-scale inline-flex min-h-[36px] items-center justify-center gap-1.5 border-[1.5px] border-line bg-paper px-3 text-[11px] font-bold uppercase tracking-[0.08em] text-ink hover:border-ink disabled:cursor-not-allowed disabled:opacity-50";
 
 export function SettingsCard({
   title,

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { resolvePlatformAdmin } from "@/core/auth/get-platform-admin";
 import { getAdminAccess } from "@/core/auth/access";
 import { getAdminChromeCounts } from "@/features/overview/queries";
@@ -44,12 +45,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <p className="w-full border-t border-line pt-3 text-left text-[11px] text-mute3">
             Reason: <span className="font-mono">{result.reason}</span>
           </p>
-          <Link
+          <ButtonLink
             href="/login"
-            className="press-scale flex w-full items-center justify-center border-[1.5px] border-line bg-paper py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-ink transition hover:border-ink"
+            variant="secondary" size="lg" className="w-full"
           >
             Back to sign in
-          </Link>
+          </ButtonLink>
         </div>
       </main>
     );

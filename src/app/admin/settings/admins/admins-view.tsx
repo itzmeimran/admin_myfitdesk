@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState } from "react";
 import type { PlatformAdminRow, PlatformRole } from "@/features/settings/admins";
 import type { OtherEnvironmentAccess } from "../_server/env-access";
@@ -72,10 +73,10 @@ export function AdminsView({
                   {admins.map((admin) => (
                     <tr key={admin.userId} className="mfd-table-row border-b border-line last:border-b-0">
                       <td className="px-3 py-2.5">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => setSelectedId(admin.userId)}
-                          className="flex max-w-[260px] flex-col text-left"
+                          variant="surface" size="custom" className="flex max-w-[260px] flex-col text-left"
                           aria-label={`Open details for ${admin.email}`}
                         >
                           <span className="truncate font-medium text-ink underline-offset-2 hover:underline">
@@ -83,7 +84,7 @@ export function AdminsView({
                             {admin.isSelf ? <span className="ml-1.5 text-[10.5px] font-normal text-mute3">(you)</span> : null}
                           </span>
                           {admin.displayName ? <span className="truncate text-[11px] text-mute">{admin.email}</span> : null}
-                        </button>
+                        </Button>
                       </td>
                       <td className="px-3 py-2.5 text-ink">{admin.roleLabel}</td>
                       <td className="px-3 py-2.5">
@@ -117,10 +118,10 @@ export function AdminsView({
             <ul className="flex flex-col gap-2.5 md:hidden">
               {admins.map((admin) => (
                 <li key={admin.userId}>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setSelectedId(admin.userId)}
-                    className="press-scale flex w-full flex-col gap-2.5 border-[1.5px] border-line bg-paper p-3.5 text-left hover:border-ink"
+                    variant="surface" size="custom" className="flex w-full flex-col gap-2.5 border-[1.5px] border-line bg-paper p-3.5 text-left hover:border-ink"
                   >
                     <span className="flex items-start justify-between gap-2">
                       <span className="flex min-w-0 flex-col">
@@ -142,7 +143,7 @@ export function AdminsView({
                       other={otherEnvironment.environment}
                       otherStatus={otherStatusFor(admin)}
                     />
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>

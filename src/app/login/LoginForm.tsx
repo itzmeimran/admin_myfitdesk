@@ -1,9 +1,9 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useActionState } from "react";
 import { signIn, type SignInState } from "@/features/auth/actions";
 import { BrandLockup } from "@/core/brand/BrandLockup";
-import { ButtonLabel } from "@/components/ButtonLabel";
 import { SignInIcon } from "@/core/ui/icons";
 
 const initialState: SignInState = { error: null };
@@ -64,15 +64,13 @@ export function LoginForm() {
             </p>
           ) : null}
 
-          <button
+          <Button icon={SignInIcon} pending={pending}
             type="submit"
             disabled={pending}
-            className="mt-1 flex w-full items-center justify-center bg-ink py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-hi transition hover:bg-hi hover:text-ink active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+            variant="primary" size="lg" className="mt-1 w-full"
           >
-            <ButtonLabel icon={SignInIcon} pending={pending}>
               {pending ? "Signing in…" : "Sign in"}
-            </ButtonLabel>
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
@@ -49,7 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   try {
     const gym = await getGymDetail(supabase, id);
     if (!gym) return NextResponse.json({ error: "Gym not found." }, { status: 404 });
-    const tz = gym.defaultTimezone || "Asia/Kolkata";
+    const tz = IST_TIME_ZONE;
     const f = parsed.data;
     const { rows, total } = await getTimeline(
       supabase,

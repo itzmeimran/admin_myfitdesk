@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
@@ -10,7 +11,6 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { AddIcon, CalendarIcon, CalendarRangeIcon, EditIcon, ArchiveIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 const INK = "var(--ink)";
 const PAPER = "var(--paper)";
@@ -125,29 +125,25 @@ export function PackagesView({
             const Icon = p === "Monthly" ? CalendarIcon : CalendarRangeIcon;
             const on = period === p;
             return (
-              <button
+              <Button icon={Icon}
                 key={p}
                 type="button"
                 aria-pressed={on}
                 onClick={() => setPeriod(p)}
-                className={`-ml-[1.5px] flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[11.5px] font-bold transition-colors first:ml-0 ${
-                  on ? "bg-ink text-hi" : "bg-paper text-ink hover:bg-sand"
-                }`}
+                variant="secondary" selected={on} size="sm" className="-ml-[1.5px] first:ml-0"
               >
-                <Icon size={14} aria-hidden />
                 {p}
-              </button>
+              </Button>
             );
           })}
         </div>
-        <button
+        <Button icon={AddIcon}
           type="button"
           onClick={openCreate}
-          className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
+          variant="primary" size="sm"
         >
-          <AddIcon size={ICON_SIZE.button} aria-hidden />
           New package
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -211,25 +207,24 @@ export function PackagesView({
               </div>
 
               <div className="mt-auto flex gap-2 border-t pt-3" style={{ borderColor: s.rule }}>
-                <button
+                <Button icon={EditIcon}
                   type="button"
                   onClick={() => openEdit(pkg)}
-                  className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 border-[1.5px] text-[11px] font-bold"
+                  variant="secondary" size="sm" className="flex-1"
                   style={{ borderColor: s.rule }}
                 >
-                  <EditIcon size={13} aria-hidden />
                   Edit
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   disabled={isArchivingThis}
                   onClick={() => handleToggleArchive(pkg)}
-                  className="flex min-h-[36px] flex-1 items-center justify-center gap-1.5 border-[1.5px] text-[11px] font-bold disabled:cursor-wait disabled:opacity-60"
+                  variant="secondary" size="sm" className="flex-1"
                   style={{ borderColor: s.rule }}
                 >
                   {pkg.secondary === "Restore" ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
                   {isArchivingThis ? "Working…" : pkg.secondary}
-                </button>
+                </Button>
               </div>
             </div>
           );
@@ -502,21 +497,20 @@ function PackageSheet({
         </p>
 
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="press-scale flex min-h-[44px] flex-1 items-center justify-center gap-2 border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
+            variant="secondary" size="lg" className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button pending={isPending} icon={ConfirmIcon}
             type="submit"
             disabled={isPending}
-            className="press-scale flex min-h-[44px] flex-1 items-center justify-center gap-2 bg-hi text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-wait disabled:opacity-70"
+            variant="primary" size="lg" className="flex-1"
           >
-            <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
             {isPending ? "Saving…" : isEditing ? "Save changes" : "Publish package"}
-          </button>
+          </Button>
         </div>
       </form>
     </Sheet>

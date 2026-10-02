@@ -5,6 +5,16 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/Button.tsx"],
+    rules: {
+      "no-restricted-syntax": ["error", {
+        selector: "JSXOpeningElement[name.name='button']",
+        message: "Use the shared Button component from @/components/Button so styles and interaction states stay consistent.",
+      }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

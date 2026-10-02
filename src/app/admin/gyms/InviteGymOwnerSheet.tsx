@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
@@ -8,7 +9,6 @@ import { useToast } from "@/components/Toast";
 import { inviteGymOwner, type InviteFormState } from "./invite-actions";
 import type { AssignablePackage } from "@/features/gyms/queries";
 import { InviteIcon } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 const INITIAL_STATE: InviteFormState = { error: null };
 
@@ -44,14 +44,13 @@ export function InviteGymOwnerSheet({
 
   return (
     <>
-      <button
+      <Button icon={InviteIcon}
         type="button"
         onClick={() => setOpen(true)}
-        className="flex min-h-[36px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
+        variant="primary" size="sm"
       >
-        <InviteIcon size={ICON_SIZE.button} aria-hidden />
         Onboard gym
-      </button>
+      </Button>
 
       <Sheet
         open={open}
@@ -74,13 +73,13 @@ export function InviteGymOwnerSheet({
                 An invitation email has been sent. You can track its status from the gym&apos;s own page.
               </p>
             )}
-            <button
+            <Button
               type="button"
               onClick={() => setOpen(false)}
-              className="flex min-h-[42px] items-center justify-center bg-ink text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi"
+              variant="primary" size="md"
             >
               Done
-            </button>
+            </Button>
           </div>
         ) : (
           <form action={formAction} className="flex flex-col gap-4">
@@ -209,9 +208,8 @@ export function InviteGymOwnerSheet({
               </label>
             </div>
 
-            <SubmitButton
+            <SubmitButton variant="primary" size="lg"
               pendingLabel="Creating gym…"
-              className="min-h-[44px] bg-ink text-[12px] font-bold uppercase tracking-[0.09em] text-hi"
             >
               Create gym &amp; send invitation
             </SubmitButton>

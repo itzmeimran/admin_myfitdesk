@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { IST_TIME_ZONE, istDateKey } from "@/core/dates/ist";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
@@ -11,7 +13,7 @@ import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import {
   AddIcon, AlertIcon, DatabaseIcon, DeleteIcon, DetailsIcon, ProtectIcon, RestoreIcon, UnprotectIcon,
 } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
+
 import {
   createManualBackup,
   requestBackupDeletion,
@@ -48,7 +50,7 @@ const RESTORE_STAGE: Record<string, string> = {
 
 function formatDate(value: string | null) {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  return new Date(value).toLocaleString("en-IN", { timeZone: IST_TIME_ZONE, dateStyle: "medium", timeStyle: "short" });
 }
 
 function formatBytes(value: number | null | undefined) {
@@ -126,7 +128,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
   const filteredBackups = useMemo(() => data.backups.filter((backup) => {
     if (typeFilter !== "all" && backup.backup_type !== typeFilter) return false;
     if (statusFilter !== "all" && backup.status !== statusFilter) return false;
-    if (dateFilter && backup.created_at.slice(0, 10) !== dateFilter) return false;
+    if (dateFilter && istDateKey(new Date(backup.created_at)) !== dateFilter) return false;
     return backup.status !== "deleted";
   }), [data.backups, dateFilter, statusFilter, typeFilter]);
 
@@ -153,15 +155,14 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Disaster Recovery</h1>
           <p className="text-[12.5px] text-mute">Private database backups, verified recovery, and system safeguards.</p>
         </div>
-        <button
+        <Button pending={isPending} icon={AddIcon}
           type="button"
           disabled={isPending || !data.health.configured}
           onClick={() => run(createManualBackup, false)}
-          className="press-scale flex min-h-[40px] items-center gap-2 bg-ink px-3.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-not-allowed disabled:opacity-50"
+          variant="primary" size="md"
         >
-          <AddIcon size={ICON_SIZE.button} aria-hidden />
           {isPending ? "Queuing…" : "Create backup"}
-        </button>
+        </Button>
       </div>
 
       <div className={`border-l-[3px] px-4 py-3 ${production ? "border-accent bg-accent/8" : "border-ink bg-sand"}`}>
@@ -181,11 +182,11 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
       <div className="overflow-x-auto border-b-[1.5px] border-ink">
         <div className="flex min-w-max gap-1">
           {TABS.map((item) => (
-            <button key={item} type="button" onClick={() => setTab(item)}
-              className={`min-h-[42px] border-b-[3px] px-3 text-[11.5px] font-bold ${tab === item ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"}`}>
+            <Button key={item} type="button" onClick={() => setTab(item)}
+              variant="control" size="custom" className={`min-h-[42px] border-b-[3px] px-3 text-[11.5px] font-bold ${tab === item ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}>
               {item}
               {item === "System Health" && data.health.openCriticalAlerts ? ` (${data.health.openCriticalAlerts})` : ""}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -282,7 +283,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
             {data.deletedRecords.map((record) => (
               <div key={`${record.entity_type}-${record.entity_id}`} className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70">
                 <span className="mr-auto min-w-0"><strong className="block truncate text-[13px]">{record.display_name}</strong><span className="text-[11px] text-mute">{label(record.entity_type)} · deleted {formatDate(record.deleted_at)}</span></span>
-                <button type="button" disabled={isPending} onClick={() => setConfirmation({ kind: "deleted-record", entityType: record.entity_type, entityId: record.entity_id, name: record.display_name })} className="press-scale flex min-h-[34px] items-center gap-1.5 border-[1.5px] border-line px-3 text-[11px] font-bold"><RestoreIcon size={13} aria-hidden /> Restore</button>
+                <Button icon={RestoreIcon} type="button" disabled={isPending} onClick={() => setConfirmation({ kind: "deleted-record", entityType: record.entity_type, entityId: record.entity_id, name: record.display_name })} variant="secondary" size="sm"> Restore</Button>
               </div>
             ))}
             {!data.deletedRecords.length ? <Empty message="No soft-deleted records are waiting for recovery." /> : null}
@@ -319,13 +320,13 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
               <h2 className="font-display text-[16px]">Maintenance mode</h2>
               <p className="mt-2 text-[12px] leading-relaxed text-mute">{data.health.maintenanceMode ? data.health.maintenanceReason || "Maintenance mode is active." : "Normal application access is enabled."}</p>
               <label className="mt-3 flex flex-col gap-1"><span className="mfd-micro-label">Reason</span><input value={maintenanceReason} onChange={(event) => setMaintenanceReason(event.target.value)} maxLength={500} className="min-h-[38px] border-[1.5px] border-line bg-paper px-2.5 text-[12px]" /></label>
-              <button type="button" disabled={isPending || !data.health.configured} onClick={() => setConfirmation({ kind: "maintenance", enabled: !data.health.maintenanceMode })} className={`mt-3 min-h-[38px] px-3 text-[11px] font-bold uppercase tracking-[0.09em] ${data.health.maintenanceMode ? "bg-accent text-paper" : "bg-ink text-hi"}`}>{data.health.maintenanceMode ? "Disable maintenance" : "Enable maintenance"}</button>
+              <Button type="button" disabled={isPending || !data.health.configured} onClick={() => setConfirmation({ kind: "maintenance", enabled: !data.health.maintenanceMode })} variant={data.health.maintenanceMode ? "danger" : "primary"} size="sm" className="mt-3">{data.health.maintenanceMode ? "Disable maintenance" : "Enable maintenance"}</Button>
             </div>
           </div>
 
           <div className="border-[1.5px] border-ink bg-paper">
             <div className="border-b-[1.5px] border-ink px-4 py-3"><h2 className="font-display text-[16px]">System alerts</h2></div>
-            {data.alerts.filter((alert) => !alert.resolved_at).map((alert) => <div key={alert.id} className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70"><AlertIcon size={16} className={alert.severity === "critical" ? "text-accent" : "text-mute"} aria-hidden /><span className="mr-auto min-w-0 flex-1"><strong className="block text-[12.5px]">{alert.message}</strong><span className="text-[10.5px] text-mute">{label(alert.type)} · {formatDate(alert.created_at)}</span></span><button disabled={isPending} onClick={() => run(() => resolveAlert(alert.id), false)} className="border-[1.5px] border-line px-2.5 py-1.5 text-[10.5px] font-bold">Resolve</button></div>)}
+            {data.alerts.filter((alert) => !alert.resolved_at).map((alert) => <div key={alert.id} className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70"><AlertIcon size={16} className={alert.severity === "critical" ? "text-accent" : "text-mute"} aria-hidden /><span className="mr-auto min-w-0 flex-1"><strong className="block text-[12.5px]">{alert.message}</strong><span className="text-[10.5px] text-mute">{label(alert.type)} · {formatDate(alert.created_at)}</span></span><Button disabled={isPending} onClick={() => run(() => resolveAlert(alert.id), false)} variant="secondary" size="md">Resolve</Button></div>)}
             {!data.alerts.some((alert) => !alert.resolved_at) ? <Empty message="No open system alerts." /> : null}
           </div>
         </section>

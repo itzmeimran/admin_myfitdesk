@@ -6,7 +6,7 @@ on:
     # started late or dropped (~1 run per 4-8 h). Minutes 7 and 37 give every
     # hour two chances; the worker skips a run when a scheduled hourly backup
     # already exists within 50 minutes, so a healthy hour still yields one
-    # backup. Daily/monthly are promoted on the first run of each UTC day/month.
+    # backup. Daily/monthly are promoted on the first run of each IST day/month.
     - cron: "7,37 * * * *"
   workflow_dispatch:
     inputs:

@@ -34,8 +34,15 @@ const NOW = new Date("2026-09-27T10:00:00.000Z");
 
 test("scheduled tiers are hourly except midnight/day one promotions", () => {
   assert.deepEqual(scheduledBackupTypes(NOW), ["hourly"]);
-  assert.deepEqual(scheduledBackupTypes(new Date("2026-09-27T00:00:00Z")), ["hourly", "daily"]);
-  assert.deepEqual(scheduledBackupTypes(new Date("2026-09-01T00:00:00Z")), ["hourly", "daily", "monthly"]);
+  assert.deepEqual(scheduledBackupTypes(new Date("2026-09-26T18:30:00Z")), ["hourly", "daily"]);
+  assert.deepEqual(scheduledBackupTypes(new Date("2026-08-31T18:30:00Z")), ["hourly", "daily", "monthly"]);
+  assert.deepEqual(scheduledBackupTypes(new Date("2026-09-01T00:00:00Z")), ["hourly"]);
+});
+
+test("catch-up uses the IST month boundary while UTC is still in the previous month", () => {
+  assert.deepEqual(scheduledBackupTypesFor(new Date("2026-09-30T18:29:59Z"), { dailyToday: true }), ["hourly"]);
+  assert.deepEqual(scheduledBackupTypesFor(new Date("2026-09-30T18:30:00Z"), { dailyToday: false }), ["hourly", "daily", "monthly"]);
+  assert.deepEqual(scheduledBackupTypesFor(new Date("2026-09-30T18:30:00Z"), { dailyToday: true, monthlyToday: true }), ["hourly"]);
 });
 
 test("keys isolate environments and match the documented structure", () => {

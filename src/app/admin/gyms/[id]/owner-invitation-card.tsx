@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -74,30 +76,29 @@ export function OwnerInvitationCard({ invitation }: { invitation: OwnerInvitatio
           {invitation.email}
           {invitation.effectiveStatus === "expired" ? " · the link expired, use Resend to send a fresh one." : null}
           {invitation.effectiveStatus === "revoked" ? " · this invitation was revoked." : null}
-          {invitation.effectiveStatus === "invited" ? ` · sent ${new Date(invitation.invitedAt).toLocaleDateString("en-IN")}` : null}
+          {invitation.effectiveStatus === "invited" ? ` · sent ${new Date(invitation.invitedAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE })}` : null}
           {invitation.resendCount > 0 ? ` · resent ${invitation.resendCount}×` : null}
         </span>
       </span>
       {canResend ? (
-        <button
+        <Button pending={isPending} icon={ExtendIcon}
           type="button"
           disabled={isPending}
           onClick={resend}
-          className="flex min-h-[34px] items-center gap-1.5 border-[1.5px] border-current px-3 text-[11px] font-bold uppercase tracking-[0.08em] disabled:cursor-wait disabled:opacity-60"
+          variant="secondary" size="sm" className="border-current"
         >
-          <ExtendIcon size={13} aria-hidden />
           {isPending ? "Sending…" : "Resend invitation"}
-        </button>
+        </Button>
       ) : null}
       {canRevoke ? (
-        <button
+        <Button
           type="button"
           disabled={isPending}
           onClick={() => setConfirmRevoke(true)}
-          className="flex min-h-[34px] items-center px-3 text-[11px] font-bold uppercase tracking-[0.08em] underline underline-offset-2"
+          variant="link" size="custom" className="underline underline-offset-2"
         >
           Revoke
-        </button>
+        </Button>
       ) : null}
 
       <ConfirmDialog

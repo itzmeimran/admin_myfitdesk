@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
@@ -52,10 +53,10 @@ export default async function GymWhatsAppHistoryPage({
                 <td className="border-b border-line px-3 py-3 font-bold">{message.recipient}<span className="block font-normal text-mute3">{message.phone}</span></td>
                 <td className="border-b border-line px-3 py-3">{message.template}</td>
                 <td className="border-b border-line px-3 py-3 capitalize text-mute">{message.category}</td>
-                <td className="whitespace-nowrap border-b border-line px-3 py-3 text-mute">{formatDateTime(message.sentAt ?? message.createdAt, gym.defaultTimezone)}</td>
+                <td className="whitespace-nowrap border-b border-line px-3 py-3 text-mute">{formatDateTime(message.sentAt ?? message.createdAt, IST_TIME_ZONE)}</td>
                 <td className="border-b border-line px-3 py-3"><Status status={message.status} /></td>
                 <td className="max-w-[300px] border-b border-line px-3 py-3">
-                  <details><summary className="cursor-pointer font-bold text-accent">View details</summary><dl className="mt-2 flex flex-col gap-1 text-[10.5px]"><Detail label="Meta ID" value={message.metaMessageId ?? "—"} /><Detail label="Sender" value={senderMode(message.senderMode)} /><Detail label="Error code" value={message.errorCode ?? "—"} /><Detail label="Error" value={message.errorMessage ?? "—"} /><Detail label="Delivered" value={formatDateTime(message.deliveredAt, gym.defaultTimezone)} /><Detail label="Read" value={formatDateTime(message.readAt, gym.defaultTimezone)} /><Detail label="Credits" value={message.creditsUsed.toLocaleString("en-IN")} /></dl></details>
+                  <details><summary className="cursor-pointer font-bold text-accent">View details</summary><dl className="mt-2 flex flex-col gap-1 text-[10.5px]"><Detail label="Meta ID" value={message.metaMessageId ?? "—"} /><Detail label="Sender" value={senderMode(message.senderMode)} /><Detail label="Error code" value={message.errorCode ?? "—"} /><Detail label="Error" value={message.errorMessage ?? "—"} /><Detail label="Delivered" value={formatDateTime(message.deliveredAt, IST_TIME_ZONE)} /><Detail label="Read" value={formatDateTime(message.readAt, IST_TIME_ZONE)} /><Detail label="Credits" value={message.creditsUsed.toLocaleString("en-IN")} /></dl></details>
                 </td>
               </tr>
             ))}

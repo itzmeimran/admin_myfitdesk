@@ -1,15 +1,15 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { invitePlatformAdmin, type InviteState } from "../_server/invite-actions";
 import type { PlatformRole } from "@/features/settings/admins";
 import type { AdminEnvironment } from "@/core/config/environments";
 import { ADMIN_ENVIRONMENT_LABEL } from "@/core/config/environments";
 import { Dropdown } from "@/components/Dropdown";
-import { ButtonLabel } from "@/components/ButtonLabel";
 import { useToast } from "@/components/Toast";
 import { InviteIcon } from "@/core/ui/icons";
-import { Field, INPUT_CLASS, PRIMARY_BUTTON_CLASS, GHOST_BUTTON_CLASS, HINT_CLASS, Notice } from "../_components/ui";
+import { Field, INPUT_CLASS, HINT_CLASS, Notice } from "../_components/ui";
 
 type Scope = "dev" | "prod" | "both";
 
@@ -164,15 +164,13 @@ export function InviteAdminForm({
 
       {canManage ? (
         <div className="flex flex-wrap items-center gap-3">
-          <button
+          <Button icon={InviteIcon} pending={pending}
             type="submit"
             disabled={pending || (needsConfirmation && confirmation.trim().toUpperCase() !== "PRODUCTION")}
-            className={PRIMARY_BUTTON_CLASS}
+            variant="primary" size="md"
           >
-            <ButtonLabel icon={InviteIcon} pending={pending}>
               {pending ? "Sending…" : "Send invitation"}
-            </ButtonLabel>
-          </button>
+          </Button>
           <span className={HINT_CLASS}>Invitations expire after 7 days and can be resent.</span>
         </div>
       ) : (
@@ -207,9 +205,9 @@ function ManualLink({ link }: { link: string }) {
       </span>
       <div className="flex gap-2">
         <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} className={`${INPUT_CLASS} font-mono text-[11px]`} />
-        <button
+        <Button
           type="button"
-          className={GHOST_BUTTON_CLASS}
+          variant="secondary" size="sm"
           onClick={async () => {
             try {
               await navigator.clipboard.writeText(link);
@@ -220,7 +218,7 @@ function ManualLink({ link }: { link: string }) {
           }}
         >
           Copy
-        </button>
+        </Button>
       </div>
     </div>
   );

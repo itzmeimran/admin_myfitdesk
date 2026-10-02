@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { signOutAllOtherAdmins } from "@/features/settings/admin-actions";
@@ -8,7 +9,7 @@ import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { ADMIN_ENVIRONMENT_LABEL } from "@/core/config/environments";
 import { SignOutIcon } from "@/core/ui/icons";
-import { SettingsCard, GHOST_BUTTON_CLASS } from "../_components/ui";
+import { SettingsCard } from "../_components/ui";
 
 /**
  * The one genuinely dangerous PLATFORM action that exists today: end every
@@ -54,9 +55,9 @@ export function DangerZone() {
               Suspend or Revoke on the Admins tab to remove someone&apos;s access. Your own session is not affected.
             </span>
           </div>
-          <button type="button" disabled={isPending} onClick={() => setOpen(true)} className={`${GHOST_BUTTON_CLASS} border-accent text-accent`}>
-            <SignOutIcon size={13} aria-hidden /> Sign out others
-          </button>
+          <Button icon={SignOutIcon} type="button" disabled={isPending} onClick={() => setOpen(true)} variant="danger-secondary" size="sm" >
+             Sign out others
+          </Button>
         </div>
       </SettingsCard>
 

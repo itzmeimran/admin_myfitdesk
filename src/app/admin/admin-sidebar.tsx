@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { usePathname } from "next/navigation";
 import { signOut } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -62,11 +63,11 @@ export function AdminSidebar({ email, gymsCount, permissions }: { email: string;
             const active = isActive(item.href);
             const badge = badgeFor(item.href);
             return (
-              <Link
+              <ButtonLink
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex min-h-[44px] items-center gap-3 border-l-2 px-3 text-[13.5px] ${
+                variant="control" size="custom" className={`flex min-h-[44px] items-center gap-3 border-l-2 px-3 text-[13.5px] ${
                   active
                     ? "border-hi bg-[#302620] font-bold text-paper"
                     : "border-transparent text-mute3 hover:bg-[#302620] hover:text-paper"
@@ -82,7 +83,7 @@ export function AdminSidebar({ email, gymsCount, permissions }: { email: string;
                     {badge}
                   </span>
                 ) : null}
-              </Link>
+              </ButtonLink>
             );
           })}
         </nav>
@@ -99,10 +100,10 @@ export function AdminSidebar({ email, gymsCount, permissions }: { email: string;
           </span>
         </div>
         <form action={signOut}>
-          <SubmitButton
+          <SubmitButton tone="inverse" variant="ghost" size="sm"
             icon={SignOutIcon}
             pendingLabel="Signing out…"
-            className="min-h-[36px] w-full border border-inkline text-[10px] font-bold text-mute3 hover:border-paper hover:text-paper"
+            className="w-full border"
           >
             Sign out
           </SubmitButton>

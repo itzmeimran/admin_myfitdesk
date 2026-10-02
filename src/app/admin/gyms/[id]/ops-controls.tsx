@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { istDateKey } from "@/core/dates/ist";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AdminActionDialog } from "@/components/AdminActionDialog";
@@ -20,11 +22,6 @@ import { formatMinor } from "@/core/money/format";
 import { exactTime, relativeTime } from "@/features/gyms/ops/timeline-format";
 import { StatusPill } from "./ops-ui";
 
-const BTN =
-  "min-h-[34px] border-[1.5px] border-ink bg-paper px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-ink hover:bg-sand disabled:cursor-not-allowed disabled:opacity-45";
-const BTN_PRIMARY = "min-h-[34px] bg-ink px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-not-allowed disabled:opacity-45";
-const BTN_DANGER = "min-h-[34px] border-[1.5px] border-accent px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:bg-accent/8";
-
 /* ---------------------------------------------------------------- WhatsApp */
 
 export function WhatsAppControls({
@@ -42,21 +39,21 @@ export function WhatsAppControls({
   const close = () => setPanel(null);
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" className={BTN_PRIMARY} onClick={() => setPanel("credits")}>
+      <Button type="button" variant="primary" size="sm" onClick={() => setPanel("credits")}>
         Add / remove credits
-      </button>
-      <button type="button" className={paused ? BTN_PRIMARY : BTN_DANGER} onClick={() => setPanel("pause")}>
+      </Button>
+      <Button type="button" variant={paused ? "primary" : "danger-secondary"} size="sm"  onClick={() => setPanel("pause")}>
         {paused ? "Resume sending" : "Pause sending"}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        className={BTN}
+        variant="secondary" size="sm"
         disabled={retryEligible === 0}
         title={retryEligible === 0 ? "No failed message is currently safe to retry" : undefined}
         onClick={() => setPanel("retry")}
       >
         Retry safe failures ({retryEligible})
-      </button>
+      </Button>
       <CreditsDialog open={panel === "credits"} onClose={close} organizationId={organizationId} gymName={gymName} />
       <RetryDialog open={panel === "retry"} onClose={close} organizationId={organizationId} />
       <LockDialog open={panel === "pause"} onClose={close} organizationId={organizationId} gymName={gymName} lockType="block_whatsapp" enable={!paused} />
@@ -68,15 +65,15 @@ export function RetryButton({ organizationId, eligible, label }: { organizationI
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button
         type="button"
-        className={BTN}
+        variant="secondary" size="sm"
         disabled={!eligible}
         title={eligible ? undefined : "Nothing to retry"}
         onClick={() => setOpen(true)}
       >
         {label}
-      </button>
+      </Button>
       <RetryDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} />
     </>
   );
@@ -99,9 +96,9 @@ export function LockRowControl({
   const active = Boolean(state?.isActive);
   return (
     <>
-      <button type="button" className={active ? BTN : BTN_DANGER} onClick={() => setOpen(true)}>
+      <Button type="button" variant={active ? "secondary" : "danger-secondary"} size="sm"  onClick={() => setOpen(true)}>
         {active ? "Lift" : "Enable"}
-      </button>
+      </Button>
       <LockDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} gymName={gymName} lockType={lockType} enable={!active} />
     </>
   );
@@ -113,16 +110,16 @@ export function FlagRowControl({ organizationId, flag }: { organizationId: strin
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button
         type="button"
         role="switch"
         aria-checked={flag.isEnabled}
         aria-label={`${flag.label}: ${flag.isEnabled ? "enabled" : "disabled"}`}
         onClick={() => setOpen(true)}
-        className={`relative h-6 w-11 flex-shrink-0 border-[1.5px] border-ink transition-colors ${flag.isEnabled ? "bg-ink" : "bg-paper"}`}
+        variant="control" size="custom" iconOnly className={`relative h-6 w-11 flex-shrink-0 border-[1.5px] border-ink ${flag.isEnabled ? "bg-ink" : "bg-paper"} `}
       >
         <span className={`absolute top-[2px] h-4 w-4 transition-all ${flag.isEnabled ? "left-[22px] bg-hi" : "left-[2px] bg-mute3"}`} />
-      </button>
+      </Button>
       <FlagDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} flag={flag} />
     </>
   );
@@ -153,13 +150,13 @@ export function AlertControls({ organizationId, alert }: { organizationId: strin
   return (
     <div className="flex flex-wrap gap-2">
       {alert.status === "open" ? (
-        <button type="button" className={BTN} disabled={isPending} onClick={acknowledge}>
+        <Button type="button" variant="secondary" size="sm" disabled={isPending} onClick={acknowledge}>
           Acknowledge
-        </button>
+        </Button>
       ) : null}
-      <button type="button" className={BTN_PRIMARY} onClick={() => setResolving(true)}>
+      <Button type="button" variant="primary" size="sm" onClick={() => setResolving(true)}>
         Resolve
-      </button>
+      </Button>
       <ResolveAlertDialog open={resolving} onClose={() => setResolving(false)} organizationId={organizationId} alert={alert} />
     </div>
   );
@@ -170,9 +167,9 @@ export function RefreshAlertsButton({ organizationId }: { organizationId: string
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
   return (
-    <button
+    <Button pending={isPending}
       type="button"
-      className={BTN}
+      variant="secondary" size="sm"
       disabled={isPending}
       onClick={() =>
         startTransition(async () => {
@@ -186,7 +183,7 @@ export function RefreshAlertsButton({ organizationId }: { organizationId: string
       }
     >
       {isPending ? "Checking…" : "Re-check now"}
-    </button>
+    </Button>
   );
 }
 
@@ -196,12 +193,12 @@ export function AccessControls({ organizationId, gymName }: { organizationId: st
   const [scope, setScope] = useState<"owner" | "all" | null>(null);
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" className={BTN} onClick={() => setScope("owner")}>
+      <Button type="button" variant="secondary" size="sm" onClick={() => setScope("owner")}>
         Force logout owner
-      </button>
-      <button type="button" className={BTN_DANGER} onClick={() => setScope("all")}>
+      </Button>
+      <Button type="button" variant="danger-secondary" size="sm" onClick={() => setScope("all")}>
         Force logout all users
-      </button>
+      </Button>
       <SessionsDialog open={scope !== null} onClose={() => setScope(null)} organizationId={organizationId} gymName={gymName} scope={scope ?? "owner"} />
     </div>
   );
@@ -217,11 +214,11 @@ export function WebhookEventList({ events, timeZone }: { events: WebhookEvent[];
         {events.map((e) => {
           const failed = Boolean(e.processingError) || e.signatureVerified === false;
           return (
-            <button
+            <Button
               key={e.id}
               type="button"
               onClick={() => setSelected(e)}
-              className="grid w-full grid-cols-[1fr_auto] items-center gap-2 px-3 py-2.5 text-left hover:bg-sand/50 sm:grid-cols-[1.2fr_1fr_auto]"
+              variant="surface" className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-3 py-2.5 text-left hover:bg-sand sm:grid-cols-[1.2fr_1fr_auto]"
             >
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-[12.5px] font-bold text-ink">{e.eventType}</span>
@@ -229,7 +226,7 @@ export function WebhookEventList({ events, timeZone }: { events: WebhookEvent[];
               </span>
               <span className="hidden text-[11px] text-mute sm:block">{relativeTime(e.receivedAt)}</span>
               <StatusPill tone={failed ? "Down" : e.processedAt ? "Healthy" : "Attention"}>{failed ? "Failed" : e.processedAt ? "Processed" : "Pending"}</StatusPill>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -292,7 +289,7 @@ export function ExportPanel({ organizationId }: { organizationId: string }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${dataset}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `${dataset}-${istDateKey()}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -316,9 +313,9 @@ export function ExportPanel({ organizationId }: { organizationId: string }) {
           ))}
         </select>
       </label>
-      <button type="button" className={BTN_PRIMARY} onClick={() => setOpen(true)}>
+      <Button type="button" variant="primary" size="sm" onClick={() => setOpen(true)}>
         Export CSV…
-      </button>
+      </Button>
       <AdminActionDialog
         open={open}
         onClose={() => setOpen(false)}
@@ -372,15 +369,15 @@ export function DangerZone({
             <strong className="text-[13px] text-ink">{row.title}</strong>
             <span className="text-[11.5px] leading-relaxed text-mute">{row.text}</span>
           </div>
-          <button
+          <Button
             type="button"
             disabled={row.disabled}
             title={row.hint}
             onClick={() => setPanel(row.key)}
-            className={row.danger ? BTN_DANGER : BTN}
+            variant={row.danger ? "danger-secondary" : "secondary"} size="sm"
           >
             {row.label}
-          </button>
+          </Button>
         </div>
       ))}
       <SuspendSheet open={panel === "suspend"} organizationId={organizationId} name={gymName} onClose={close} />

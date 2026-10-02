@@ -1,0 +1,140 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Loads the actual TS components without a test-runner dependency. */
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const Module = require("node:module");
+const ts = require("typescript");
+const React = require("react");
+const { renderToStaticMarkup } = require("react-dom/server");
+const root = path.resolve(__dirname, "..");
+
+function load(file, mocks = {}) {
+  const filename = path.join(root, file);
+  const source = fs.readFileSync(filename, "utf8");
+  const compiled = ts.transpileModule(source, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020,
+    jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
+  } }).outputText;
+  const m = new Module(filename, module);
+  m.filename = filename;
+  m.paths = Module._nodeModulePaths(path.dirname(filename));
+  const original = m.require.bind(m);
+  m.require = name => {
+    if (name in mocks) return mocks[name];
+    if (name.startsWith("@/") || name.startsWith(".")) {
+      const target = name.startsWith("@/") ? path.join(root, "src", name.slice(2)) : path.resolve(path.dirname(filename), name);
+      const match = [`${target}.ts`, `${target}.tsx`].find(p => fs.existsSync(p));
+      if (match) return load(path.relative(root, match), mocks);
+    }
+    return original(name);
+  };
+  m._compile(compiled, filename);
+  return m.exports;
+}
+
+const { Button } = load("src/components/Button.tsx");
+const { ConfirmIcon } = load("src/core/ui/icons.ts");
+const { ButtonLink } = load("src/components/ButtonLink.tsx", {
+  "next/link": ({ children, ...props }) => React.createElement("a", props, children),
+});
+const html = (component, props) => renderToStaticMarkup(React.createElement(component, props));
+
+test("action buttons retain native form, event, ref and accessibility props", () => {
+  const ref = { current: null };
+  const onClick = () => {};
+  const element = Button({ ref, onClick, form: "pricing", name: "action", value: "save", "aria-label": "Save pricing", children: "Save" });
+  assert.equal(element.type, "button");
+  assert.equal(element.props.type, "button");
+  assert.equal(element.props.ref, ref);
+  assert.equal(element.props.onClick, onClick);
+  assert.equal(element.props.form, "pricing");
+  assert.equal(element.props.name, "action");
+  assert.equal(element.props.value, "save");
+  assert.equal(element.props["aria-label"], "Save pricing");
+  assert.equal(Button({ type: "submit" }).props.type, "submit");
+  assert.equal(Button({ type: "reset" }).props.type, "reset");
+});
+
+test("loading disables the action, announces busy and replaces the existing icon once", () => {
+  const markup = html(Button, { icon: ConfirmIcon, pending: true, pendingLabel: "Saving…", children: "Save" });
+  assert.match(markup, /disabled=""/);
+  assert.match(markup, /aria-busy="true"/);
+  assert.match(markup, /Saving…/);
+  assert.equal((markup.match(/<svg/g) || []).length, 1);
+  assert.match(markup, /animate-spin/);
+  const iconless = html(Button, { pending: true, children: "Working" });
+  assert.equal((iconless.match(/<svg/g) || []).length, 1);
+  const idle = html(Button, { icon: ConfirmIcon, children: "Save" });
+  assert.doesNotMatch(idle, /animate-spin|aria-busy|disabled=/);
+  assert.equal((idle.match(/<svg/g) || []).length, 1);
+  assert.equal(Button({ disabled: true, pending: false }).props.disabled, true);
+});
+
+test("buttons and navigation share variants, sizes and selection without leaking style props", () => {
+  for (const variant of ["primary", "secondary", "danger", "danger-secondary", "ghost", "link", "control", "surface", "overlay"]) {
+    const props = { variant, size: "sm", selected: true, iconOnly: true, tone: "inverse", className: "ml-auto", "aria-label": "Action" };
+    const button = Button(props);
+    const link = ButtonLink({ ...props, href: "/admin" });
+    assert.equal(button.props.className, link.props.className);
+    assert.match(button.props.className, new RegExp(`mfd-button--${variant}(?: |$)`));
+    assert.match(button.props.className, /mfd-button--sm.*mfd-button--icon.*mfd-button--inverse-tone.*ml-auto/);
+    assert.equal(button.props["data-selected"], true);
+    for (const key of ["variant", "size", "iconOnly", "tone", "selected", "pendingLabel"]) assert.equal(button.props[key], undefined);
+  }
+});
+
+test("disabled links block navigation and callbacks; enabled links preserve href and click handlers", () => {
+  let called = 0;
+  let prevented = 0;
+  let stopped = 0;
+  const event = { preventDefault: () => prevented++, stopPropagation: () => stopped++ };
+  for (const state of [{ disabled: true }, { "aria-disabled": true }, { "aria-disabled": "true" }]) {
+    const link = ButtonLink({ ...state, href: "/admin/gyms?page=2", onClick: () => called++, tabIndex: 0 });
+    assert.equal(link.props["aria-disabled"], true);
+    assert.equal(link.props.tabIndex, -1);
+    link.props.onClick(event);
+  }
+  assert.equal(called, 0);
+  assert.equal(prevented, 3);
+  assert.equal(stopped, 3);
+  const link = ButtonLink({ href: "/admin/gyms?page=2", onClick: () => called++, tabIndex: 0 });
+  link.props.onClick(event);
+  assert.equal(link.props.href, "/admin/gyms?page=2");
+  assert.equal(link.props.tabIndex, 0);
+  assert.equal(called, 1);
+});
+
+test("SubmitButton connects form pending state to the shared loading behavior", () => {
+  for (const pending of [false, true]) {
+    const { SubmitButton } = load("src/components/SubmitButton.tsx", { "react-dom": { useFormStatus: () => ({ pending }) } });
+    const markup = html(SubmitButton, { variant: "primary", pendingLabel: "Signing out…", children: "Sign out", form: "logout" });
+    assert.match(markup, /type="submit"/);
+    assert.match(markup, /form="logout"/);
+    assert.match(markup, /mfd-button--primary/);
+    assert.equal(markup.includes("disabled="), pending);
+    assert.equal(markup.includes("Signing out…"), pending);
+  }
+});
+
+test("imperative async actions reject same-tick duplicates and unlock when settled", async () => {
+  const states = [];
+  const { useAsyncAction } = load("src/components/AsyncButton.tsx", {
+    react: { ...React, useState: () => [false, v => states.push(v)], useRef: value => ({ current: value }), useCallback: fn => fn },
+  });
+  let resolve;
+  let calls = 0;
+  const promise = new Promise(r => { resolve = r; });
+  const { run } = useAsyncAction(async () => { calls++; await promise; });
+  run(); run();
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  assert.deepEqual(states, [true]);
+  resolve();
+  await new Promise(r => setImmediate(r));
+  assert.deepEqual(states, [true, false]);
+  run();
+  await new Promise(r => setImmediate(r));
+  assert.equal(calls, 2);
+  assert.deepEqual(states, [true, false, true, false]);
+});

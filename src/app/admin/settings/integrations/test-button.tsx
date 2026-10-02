@@ -1,9 +1,9 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import type { ConnectionTestResult } from "@/features/settings/integration-tests";
-import { SpinnerIcon, RetryIcon } from "@/core/ui/icons";
-import { GHOST_BUTTON_CLASS } from "../_components/ui";
+import { RetryIcon } from "@/core/ui/icons";
 
 /** Runs one server-side connection probe and shows the scrubbed result inline.
  * `run` is a Server Action (credentials never reach the browser). */
@@ -13,7 +13,9 @@ export function TestConnectionButton({ run, label = "Test connection" }: { run: 
 
   return (
     <div className="flex flex-col items-start gap-1.5">
-      <button
+      <Button
+        icon={RetryIcon}
+        pending={isPending}
         type="button"
         disabled={isPending}
         onClick={() =>
@@ -21,11 +23,10 @@ export function TestConnectionButton({ run, label = "Test connection" }: { run: 
             setResult(await run());
           })
         }
-        className={GHOST_BUTTON_CLASS}
+        variant="secondary" size="sm"
       >
-        {isPending ? <SpinnerIcon size={13} className="animate-spin" aria-hidden /> : <RetryIcon size={13} aria-hidden />}
         {isPending ? "Testing…" : label}
-      </button>
+      </Button>
       {result ? (
         <span role="status" className={`text-[11.5px] ${result.ok ? "text-ink" : "text-accent"}`}>
           {result.ok ? "Passed" : "Failed"} — {result.message}

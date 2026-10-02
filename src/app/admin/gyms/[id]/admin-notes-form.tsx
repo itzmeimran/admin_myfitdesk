@@ -31,9 +31,8 @@ export function AdminNotesForm({ organizationId }: { organizationId: string }) {
           placeholder="Add a private note for platform admins…"
           className="min-h-[38px] border-[1.5px] border-line bg-paper px-3 text-[12px] outline-none focus:border-ink"
         />
-        <SubmitButton
+        <SubmitButton variant="primary" size="sm"
           pendingLabel="Adding…"
-          className="min-h-[38px] bg-ink px-4 text-[10.5px] font-bold uppercase tracking-[0.09em] text-hi"
         >
           Add note
         </SubmitButton>

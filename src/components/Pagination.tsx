@@ -1,9 +1,9 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
 import { PrevPageIcon, NextPageIcon } from "@/core/ui/icons";
 import { PageSizeSelect } from "./PageSizeSelect";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/core/ui/pagination";
 
-export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
-export const DEFAULT_PAGE_SIZE = 25;
+export { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/core/ui/pagination";
 
 /** Clamps and parses a `?page=`/`?pageSize=` pair from raw search params into
  * safe, positive integers — shared by every server-paginated tab so a
@@ -73,28 +73,24 @@ export function Pagination({
           Page {page} of {totalPages}
         </span>
         <div className="flex gap-2">
-          <Link
+          <ButtonLink
             aria-label="Previous page"
             aria-disabled={page <= 1}
             tabIndex={page <= 1 ? -1 : undefined}
             href={hrefWith(pathname, searchParams, { page: String(Math.max(1, page - 1)) })}
-            className={`flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-ink transition-colors ${
-              page <= 1 ? "pointer-events-none cursor-not-allowed text-mute3" : "hover:border-ink hover:bg-sand"
-            }`}
+            variant="secondary" size="sm" iconOnly
           >
             <PrevPageIcon size={14} aria-hidden />
-          </Link>
-          <Link
+          </ButtonLink>
+          <ButtonLink
             aria-label="Next page"
             aria-disabled={page >= totalPages}
             tabIndex={page >= totalPages ? -1 : undefined}
             href={hrefWith(pathname, searchParams, { page: String(Math.min(totalPages, page + 1)) })}
-            className={`flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-ink transition-colors ${
-              page >= totalPages ? "pointer-events-none cursor-not-allowed text-mute3" : "hover:border-ink hover:bg-sand"
-            }`}
+            variant="secondary" size="sm" iconOnly
           >
             <NextPageIcon size={14} aria-hidden />
-          </Link>
+          </ButtonLink>
         </div>
       </div>
     </div>

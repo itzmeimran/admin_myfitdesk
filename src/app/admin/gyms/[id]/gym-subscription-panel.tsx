@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { GymDetail } from "@/features/gyms/detail";
@@ -36,12 +38,6 @@ type Panel = null | "subscription" | "suspend" | "reactivate" | "credits" | "ret
 const WARN_BG = "#f3e3d9";
 const CALM_BG = "var(--sand)";
 
-const BTN_BASE =
-  "press-scale inline-flex h-10 items-center justify-center gap-2 border-[1.5px] text-[11px] font-bold uppercase tracking-[0.08em] transition-colors focus-visible:outline-none";
-/** Filled: ink at rest, flips to the highlight yellow on hover. */
-const BTN_PRIMARY = `${BTN_BASE} min-w-0 flex-1 border-ink bg-ink px-3.5 text-hi hover:bg-hi hover:text-ink focus-visible:bg-hi focus-visible:text-ink`;
-/** Outlined square icon button: paper at rest, inverts to ink on hover. */
-const BTN_ICON = `${BTN_BASE} w-10 flex-shrink-0 border-ink bg-paper text-ink hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper`;
 
 /**
  * The header's right-hand panel: the subscription at a glance (days left, a
@@ -74,7 +70,7 @@ export function GymSubscriptionPanel({
       ? `${capitalizeBillingPeriod(sub.billingPeriod)} · ${formatMinorWhole(sub.priceMinor, sub.currency ?? "INR")}`
       : "Trial"
     : "No subscription";
-  const renewsLabel = sub?.currentPeriodEnd ? formatZonedDate(sub.currentPeriodEnd, gym.defaultTimezone) : "—";
+  const renewsLabel = sub?.currentPeriodEnd ? formatZonedDate(sub.currentPeriodEnd, IST_TIME_ZONE) : "—";
 
   const subscriptionGym: SubscriptionSheetGym = {
     organizationId: gym.id,
@@ -88,7 +84,7 @@ export function GymSubscriptionPanel({
     pending: sub?.pending
       ? {
           packageLabel: sub.pending.packageName ?? "Package",
-          startsLabel: formatZonedDate(sub.pending.periodStart, gym.defaultTimezone),
+          startsLabel: formatZonedDate(sub.pending.periodStart, IST_TIME_ZONE),
         }
       : null,
   };
@@ -211,25 +207,23 @@ export function GymSubscriptionPanel({
 
       <div className="mt-auto flex gap-2 pt-0.5">
         {view.primary === "reactivate" ? (
-          <button type="button" onClick={() => setPanel("reactivate")} className={BTN_PRIMARY}>
-            <RestoreIcon size={14} aria-hidden />
+          <Button icon={RestoreIcon} type="button" onClick={() => setPanel("reactivate")} variant="primary" size="md" className="min-w-0 flex-1">
             <span className="truncate">Reactivate gym</span>
-          </button>
+          </Button>
         ) : (
-          <button type="button" onClick={() => setPanel("subscription")} className={BTN_PRIMARY}>
-            <PackagesIcon size={14} aria-hidden />
+          <Button icon={PackagesIcon} type="button" onClick={() => setPanel("subscription")} variant="primary" size="md" className="min-w-0 flex-1">
             <span className="truncate">Manage subscription</span>
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="button"
           onClick={() => setPanel("impersonate")}
           aria-label="View as owner"
           title="View as owner"
-          className={BTN_ICON}
+          variant="secondary" size="md" iconOnly
         >
           <RevealIcon size={15} aria-hidden />
-        </button>
+        </Button>
         <ActionMenu items={menuItems} ariaLabel="More actions" size="md" menuWidth={248} />
       </div>
 
@@ -271,13 +265,13 @@ export function GymSubscriptionPanel({
           </ul>
           <p>Until then, use the Members, Billing and Operations tabs here, which read the same data through audited, read-only views.</p>
           <div className="flex justify-end">
-            <button
+            <Button
               type="button"
               onClick={close}
-              className="press-scale min-h-[38px] bg-ink px-4 text-[11px] font-bold uppercase tracking-[0.09em] text-hi transition-colors hover:bg-hi hover:text-ink"
+              variant="primary" size="sm"
             >
               Got it
-            </button>
+            </Button>
           </div>
         </div>
       </Dialog>

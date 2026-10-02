@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { BrandLockup } from "@/core/brand/BrandLockup";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ADMIN_ENVIRONMENT_LABEL, isAdminEnvironment } from "@/core/config/environments";
@@ -38,12 +39,12 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Sear
         ? "The link has expired or was already used. Ask a Platform Owner to resend your invitation."
         : "The link is incomplete or invalid. Ask a Platform Owner to resend your invitation.";
     content = (
-      <Link
+      <ButtonLink
         href="/login"
-        className="press-scale flex w-full items-center justify-center border-[1.5px] border-line py-3 text-[12px] font-bold uppercase tracking-[0.12em] hover:border-ink"
+        variant="secondary" size="lg" className="w-full"
       >
         Go to sign in
-      </Link>
+      </ButtonLink>
     );
   } else if (environment && hasToken) {
     title = "Accept your invitation";
@@ -53,9 +54,9 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Sear
         <input type="hidden" name="env" value={environment} />
         <input type="hidden" name="token_hash" value={tokenHash} />
         <input type="hidden" name="type" value={type} />
-        <SubmitButton
+        <SubmitButton variant="primary" size="lg"
           pendingLabel="Checking…"
-          className="w-full bg-ink py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-hi"
+          className="w-full"
         >
           Accept invitation
         </SubmitButton>
@@ -67,9 +68,9 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Sear
     content = (
       <form action={continueToSignIn} className="flex flex-col gap-3">
         <input type="hidden" name="env" value={environment} />
-        <SubmitButton
+        <SubmitButton variant="primary" size="lg"
           pendingLabel="Opening…"
-          className="w-full bg-ink py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-hi"
+          className="w-full"
         >
           Continue to sign in
         </SubmitButton>

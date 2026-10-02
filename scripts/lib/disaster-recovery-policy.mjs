@@ -18,23 +18,25 @@ export function assertBackupId(value) {
 }
 
 export function scheduledBackupTypes(now) {
+  const india = new Date(now.valueOf() + 330 * 60 * 1000);
   const types = ["hourly"];
-  if (now.getUTCHours() === 0) types.push("daily");
-  if (now.getUTCHours() === 0 && now.getUTCDate() === 1) types.push("monthly");
+  if (india.getUTCHours() === 0) types.push("daily");
+  if (india.getUTCHours() === 0 && india.getUTCDate() === 1) types.push("monthly");
   return types;
 }
 
 /**
  * Catch-up promotion. GitHub's cron can start a run late, so tying daily and
- * monthly to "the run that happens to land in UTC hour 0" silently drops the
+ * monthly to "the run that happens to land in midnight's hour" silently drops the
  * tier on any delayed day. Instead: a daily is due on the first scheduled run
- * of each UTC date that has none yet, and a monthly on the first run of day 1.
+ * of each IST date that has none yet, and a monthly on the first run of day 1.
  * `existing` says which of those already exist (creating or ready) today.
  */
 export function scheduledBackupTypesFor(now, existing = {}) {
+  const india = new Date(now.valueOf() + 330 * 60 * 1000);
   const types = ["hourly"];
   if (!existing.dailyToday) types.push("daily");
-  if (now.getUTCDate() === 1 && !existing.monthlyToday) types.push("monthly");
+  if (india.getUTCDate() === 1 && !existing.monthlyToday) types.push("monthly");
   return types;
 }
 

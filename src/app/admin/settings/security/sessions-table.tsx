@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminSession } from "@/features/settings/security";
@@ -9,7 +10,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { RevokeIcon } from "@/core/ui/icons";
-import { GHOST_BUTTON_CLASS, StatusPill, timeAgo } from "../_components/ui";
+import { StatusPill, timeAgo } from "../_components/ui";
 
 /** A browser/OS summary from a user-agent string — enough to recognise "my
  * laptop" vs "a phone I don't own", without pretending to be a parser. */
@@ -61,9 +62,9 @@ export function SessionsTable({ sessions, canManage }: { sessions: AdminSession[
               </span>
             </div>
             {canManage && !session.isCurrent ? (
-              <button type="button" disabled={isPending} onClick={() => setTarget(session)} className={`${GHOST_BUTTON_CLASS} text-accent`}>
-                <RevokeIcon size={13} aria-hidden /> End session
-              </button>
+              <Button icon={RevokeIcon} type="button" disabled={isPending} onClick={() => setTarget(session)} variant="danger-secondary" size="sm" >
+                 End session
+              </Button>
             ) : null}
           </li>
         ))}

@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Dropdown } from "./Dropdown";
-import { PAGE_SIZE_OPTIONS } from "./Pagination";
+import { PAGE_SIZE_OPTIONS } from "@/core/ui/pagination";
 
 const OPTIONS = PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(n) }));
 

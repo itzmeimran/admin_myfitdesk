@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { istDateKey } from "@/core/dates/ist";
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
@@ -47,11 +49,11 @@ export function TimelineFeed({
           const subject = eventSubject(e, timeZone);
           const highlights = changeHighlights(e, timeZone);
           return (
-            <button
+            <Button
               key={e.eventId}
               type="button"
               onClick={() => setSelected(e)}
-              className={`flex w-full flex-col gap-1 border-[1.5px] border-l-[5px] border-line bg-paper p-3.5 text-left transition-colors hover:border-ink ${STATUS_BORDER[e.status]}`}
+              variant="surface" size="custom" className={`flex w-full flex-col gap-1 border-[1.5px] border-l-[5px] border-line bg-paper p-3.5 text-left hover:border-ink ${STATUS_BORDER[e.status]} `}
             >
               <span className="flex flex-wrap items-center gap-2">
                 <strong className="text-[13.5px] text-ink">{eventTitle(e)}</strong>
@@ -77,7 +79,7 @@ export function TimelineFeed({
                 <span aria-hidden>·</span>
                 <span>{e.origin}</span>
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -247,7 +249,7 @@ export function ExportActivityButton({
       const url = URL.createObjectURL(await response.blob());
       const a = document.createElement("a");
       a.href = url;
-      a.download = `activity-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `activity-${istDateKey()}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -259,14 +261,13 @@ export function ExportActivityButton({
   }
 
   return (
-    <button
+    <Button icon={ExportIcon}
       type="button"
       onClick={run}
       disabled={busy}
-      className="flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink bg-paper px-3 text-[11px] font-bold uppercase tracking-[0.08em] hover:bg-sand disabled:opacity-60"
+      variant="secondary" size="sm"
     >
-      <ExportIcon size={13} aria-hidden />
       {busy ? "Exporting…" : "Export CSV"}
-    </button>
+    </Button>
   );
 }

@@ -4,6 +4,7 @@ import type { OwnerInvitation } from "@/features/gyms/onboarding-types";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { formatZonedDate } from "@/core/dates/format";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { formatMinorWhole } from "@/core/money/format";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { GymSubscriptionPanel } from "./gym-subscription-panel";
@@ -31,7 +32,7 @@ export function GymHeader({
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase())
     .join("");
-  const enrolledSince = formatZonedDate(gym.createdAt, gym.defaultTimezone);
+  const enrolledSince = formatZonedDate(gym.createdAt, IST_TIME_ZONE);
   const sub = gym.subscription;
   const planName = sub?.packageName ?? (gym.status === "Trialing" ? "Trial" : "No package");
   const planDetail = sub?.packageName

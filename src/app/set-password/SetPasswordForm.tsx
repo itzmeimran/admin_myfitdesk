@@ -1,9 +1,9 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useActionState, useState } from "react";
 import { setInvitedPassword, type SetPasswordState } from "./actions";
 import { BrandLockup } from "@/core/brand/BrandLockup";
-import { ButtonLabel } from "@/components/ButtonLabel";
 import { ConfirmIcon, HideIcon, RevealIcon } from "@/core/ui/icons";
 
 const initialState: SetPasswordState = { error: null };
@@ -41,14 +41,14 @@ export function SetPasswordForm({ environmentLabel, email }: { environmentLabel:
                   className={FIELD}
                 />
                 {name === "password" ? (
-                  <button
+                  <Button
                     type="button"
                     aria-label={show ? "Hide passwords" : "Show passwords"}
                     onClick={() => setShow((v) => !v)}
-                    className="absolute right-0 top-0 flex h-full w-11 items-center justify-center text-mute hover:text-ink"
+                    variant="ghost" size="md" iconOnly className="absolute right-0 top-0 h-full"
                   >
                     {show ? <HideIcon size={16} aria-hidden /> : <RevealIcon size={16} aria-hidden />}
-                  </button>
+                  </Button>
                 ) : null}
               </span>
             </label>
@@ -61,15 +61,13 @@ export function SetPasswordForm({ environmentLabel, email }: { environmentLabel:
             </p>
           ) : null}
 
-          <button
+          <Button icon={ConfirmIcon} pending={pending}
             type="submit"
             disabled={pending}
-            className="press-scale mt-1 flex w-full items-center justify-center bg-ink py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-hi disabled:pointer-events-none disabled:opacity-60"
+            variant="primary" size="lg" className="mt-1 w-full"
           >
-            <ButtonLabel icon={ConfirmIcon} pending={pending}>
               {pending ? "Saving…" : "Set password & continue"}
-            </ButtonLabel>
-          </button>
+          </Button>
         </form>
       </div>
     </div>

@@ -1,8 +1,9 @@
+import { Button } from "@/components/Button";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { getRevenueTiles, listInvoices, getInvoiceCountThisMonth } from "@/features/revenue/queries";
 import { createClient } from "@/core/db/server-client";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { ExportIcon } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 /**
  * Entirely a Server Component — no interactive state on this page beyond
@@ -17,7 +18,7 @@ export default async function RevenuePage() {
     listInvoices(supabase),
     getInvoiceCountThisMonth(supabase),
   ]);
-  const monthLabel = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const monthLabel = new Date().toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, month: "long", year: "numeric" });
 
   return (
     <div className="flex flex-col gap-4">
@@ -26,15 +27,14 @@ export default async function RevenuePage() {
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Platform revenue</h1>
           <p className="text-[12.5px] text-mute">Money gyms paid MyFitDesk · {monthLabel} · MFD invoice series</p>
         </div>
-        <button
+        <Button icon={ExportIcon}
           type="button"
           disabled
           title="Not implemented yet"
-          className="flex min-h-[36px] items-center gap-2 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-not-allowed disabled:opacity-60"
+          variant="secondary" size="sm"
         >
-          <ExportIcon size={ICON_SIZE.button} aria-hidden />
           Download CSV
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-2.5">

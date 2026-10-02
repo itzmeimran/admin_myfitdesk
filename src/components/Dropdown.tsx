@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { NextPageIcon } from "@/core/ui/icons";
@@ -40,7 +41,7 @@ export function Dropdown({
   onChange: (value: string) => void;
   ariaLabel: string;
   className?: string;
-  /** `md` = filter bars (38px); `sm` = compact footer controls (32px). */
+  /** `md` = filter bars (40px); `sm` = compact footer controls (36px). */
   size?: "md" | "sm";
   align?: "left" | "right";
   disabled?: boolean;
@@ -176,12 +177,11 @@ export function Dropdown({
     }
   }
 
-  const sizeClass = size === "sm" ? "min-h-[32px] px-2 text-[11.5px]" : "min-h-[38px] px-3 text-[11.5px] sm:text-[12px]";
   const isFiltered = value !== "" && selectedIndex !== 0;
 
   return (
     <>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
         role="combobox"
@@ -193,13 +193,13 @@ export function Dropdown({
         disabled={disabled}
         onClick={toggle}
         onKeyDown={onKeyDown}
-        className={`flex w-full items-center justify-between gap-2.5 border-[1.5px] bg-paper text-left font-bold transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-none ${sizeClass} ${
-          open || isFiltered ? "border-ink text-ink" : "border-line text-mute"
-        } ${className}`}
+        variant="control"
+        size={size}
+        className={`w-full justify-between gap-2.5 bg-paper text-left ${open || isFiltered ? "border-ink text-ink" : "border-line text-mute"} ${className}`}
       >
         <span className="truncate">{selected?.label ?? options[0]?.label ?? ""}</span>
         <NextPageIcon size={13} aria-hidden className={`flex-shrink-0 transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
-      </button>
+      </Button>
 
       {open && placement
         ? createPortal(

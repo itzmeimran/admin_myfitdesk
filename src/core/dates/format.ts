@@ -4,19 +4,22 @@
  * to this app (not copied from FitDeskApp, which formats dates
  * differently) — the design's exact "day short-month [2-digit year]" shape
  * doesn't exist there to copy. */
+import { IST_TIME_ZONE, istDateKey, istDayDifference } from "./ist";
+
 export function formatShortDate(date: Date, now: Date = new Date()): string {
-  const day = date.getDate();
-  const month = date.toLocaleDateString("en-IN", { month: "short" });
-  if (date.getFullYear() !== now.getFullYear()) {
-    const yy = String(date.getFullYear()).slice(-2);
+  const key = istDateKey(date);
+  const day = Number(key.slice(8, 10));
+  const month = date.toLocaleDateString("en-IN", { month: "short", timeZone: IST_TIME_ZONE });
+  if (key.slice(0, 4) !== istDateKey(now).slice(0, 4)) {
+    const yy = key.slice(2, 4);
     return `${day} ${month} ${yy}`;
   }
   return `${day} ${month}`;
 }
 
-/** Whole days between two instants, floored — used for "Overdue Nd". */
+/** IST calendar days between two instants — used for countdowns and overdue days. */
 export function daysBetween(from: Date, to: Date): number {
-  return Math.floor((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
+  return istDayDifference(from, to);
 }
 
 /** Format an instant in the gym's configured IANA timezone. `timestamptz`

@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { Dropdown } from "@/components/Dropdown";
+import { CreditPackageCatalog } from "./CreditPackageCatalog";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
@@ -7,8 +10,8 @@ import { useToast } from "@/components/Toast";
 import { SearchBox } from "@/components/SearchBox";
 import { Pagination } from "@/components/Pagination";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
-import { formatMinor, formatMinorWhole, toMinorUnits } from "@/core/money/format";
-import { AddIcon, ArchiveIcon, EditIcon, RestoreIcon, SettingsIcon, WhatsAppIcon } from "@/core/ui/icons";
+import { formatMinor, toMinorUnits } from "@/core/money/format";
+import { AddIcon, SettingsIcon, WhatsAppIcon } from "@/core/ui/icons";
 import {
   createWhatsAppCreditPackage,
   grantWhatsAppCredits,
@@ -75,8 +78,8 @@ export function WhatsAppCreditsView({
   const activePackages = packages.filter((item) => item.status === "active");
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-start gap-3">
+    <div className="flex min-w-0 flex-col gap-6">
+      <div className="flex flex-col items-start gap-3">
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">WhatsApp credits</h1>
           <p className="mt-1 max-w-3xl text-[12.5px] leading-relaxed text-mute">
@@ -84,13 +87,6 @@ export function WhatsAppCreditsView({
             adjustments; they do not fabricate payment revenue.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setEditing("new")}
-          className="press-scale flex min-h-[40px] items-center gap-2 bg-ink px-4 text-[11px] font-bold uppercase tracking-[0.09em] text-hi"
-        >
-          <AddIcon size={14} aria-hidden /> New credit package
-        </button>
       </div>
 
       <section className="flex flex-col gap-3 border-t-2 border-ink pt-5">
@@ -102,19 +98,21 @@ export function WhatsAppCreditsView({
               shown separately because that Meta bill belongs to the gym.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <DateRangeFilter />
-            <button
+          <div className="flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
+            <div className="w-full min-w-0 sm:w-auto [&>div]:w-full [&_input]:min-w-0 [&_input]:flex-1 sm:[&_input]:flex-initial">
+              <DateRangeFilter />
+            </div>
+            <Button icon={SettingsIcon}
               type="button"
               onClick={() => setRatesOpen(true)}
-              className="press-scale flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink bg-paper px-3 text-[10.5px] font-bold uppercase tracking-[0.08em] text-ink"
+              variant="secondary" size="lg" className="w-full sm:w-auto"
             >
-              <SettingsIcon size={13} aria-hidden /> Meta rates
-            </button>
+               Meta rates
+            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-1 gap-2.5 min-[360px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <EconomicsTile
             label="Recharge income"
             value={formatMinor(profitability.rechargeIncomeMinor, profitability.currency)}
@@ -155,9 +153,9 @@ export function WhatsAppCreditsView({
               <strong>{profitability.unpricedMessages.toLocaleString("en-IN")} managed messages</strong> have no
               effective Meta rate, so the cost and margin shown above are understated.
             </span>
-            <button type="button" onClick={() => setRatesOpen(true)} className="font-bold text-accent underline underline-offset-2">
+            <Button tone="danger" type="button" onClick={() => setRatesOpen(true)} variant="link" size="custom" className="underline underline-offset-2">
               Configure rates
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -178,7 +176,7 @@ export function WhatsAppCreditsView({
                   <td className="border-b border-line px-3 py-2.5 font-bold capitalize">{row.category}</td>
                   <td className="border-b border-line px-3 py-2.5 text-right">
                     {row.currentRateMinor === null ? (
-                      <button type="button" onClick={() => setRatesOpen(true)} className="font-bold text-accent underline underline-offset-2">Not set</button>
+                      <Button tone="danger" type="button" onClick={() => setRatesOpen(true)} variant="link" size="custom" className="underline underline-offset-2">Not set</Button>
                     ) : (
                       <><strong>{formatMetaRate(row.currentRateMinor, profitability.currency)}</strong><span className="block text-[10px] text-mute">per accepted message</span></>
                     )}
@@ -198,80 +196,19 @@ export function WhatsAppCreditsView({
         </p>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="font-display text-[18px]">Credit packages</h2>
-            <p className="text-[11.5px] text-mute">These prices are read by the gym-owner WhatsApp checkout.</p>
-          </div>
-          <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-mute">
-            {activePackages.length} active · {packages.length - activePackages.length} archived
-          </span>
-        </div>
-
-        {packages.length ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {packages.map((pkg) => (
-              <article
-                key={pkg.id}
-                className={`flex flex-col gap-3 border-[1.5px] bg-paper p-4 transition-colors hover:bg-sand/60 ${
-                  pkg.status === "archived" ? "border-line opacity-70" : "border-ink"
-                }`}
-              >
-                <div className="flex items-start gap-2">
-                  <span className="min-w-0 flex-1">
-                    <strong className="block truncate text-[13.5px]">{pkg.name}</strong>
-                    <span className="font-mono text-[10px] text-mute3">{pkg.code}</span>
-                  </span>
-                  <span className="border border-line px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-mute">
-                    {pkg.status}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 border-y border-line py-3">
-                  <span className="text-[10.5px] text-mute">
-                    Credits<strong className="mt-0.5 block text-[17px] text-ink">{pkg.credits.toLocaleString("en-IN")}</strong>
-                  </span>
-                  <span className="text-right text-[10.5px] text-mute">
-                    Price<strong className="mt-0.5 block text-[17px] text-ink">{formatMinorWhole(pkg.priceMinor, pkg.currency)}</strong>
-                  </span>
-                </div>
-                <div className="mt-auto flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(pkg)}
-                    className="flex min-h-[34px] flex-1 items-center justify-center gap-1.5 border-[1.5px] border-line text-[10.5px] font-bold"
-                  >
-                    <EditIcon size={12} aria-hidden /> Edit
-                  </button>
-                  <button
-                    type="button"
-                    disabled={mutation.isPending}
-                    onClick={() =>
-                      mutation.run(
-                        `status-${pkg.id}`,
-                        () => setWhatsAppCreditPackageStatus(pkg.id, pkg.status === "active" ? "archived" : "active"),
-                        pkg.status === "active" ? "Credit package archived." : "Credit package restored.",
-                      )
-                    }
-                    className="flex min-h-[34px] flex-1 items-center justify-center gap-1.5 border-[1.5px] border-line text-[10.5px] font-bold disabled:opacity-60"
-                  >
-                    {pkg.status === "active" ? <ArchiveIcon size={12} aria-hidden /> : <RestoreIcon size={12} aria-hidden />}
-                    {mutation.busyKey === `status-${pkg.id}`
-                      ? "Saving…"
-                      : pkg.status === "active"
-                        ? "Archive"
-                        : "Restore"}
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="border-[1.5px] border-dashed border-line bg-paper p-8 text-center text-[12.5px] text-mute">
-            No WhatsApp credit packages exist yet. Create one to make it available to gyms.
-          </div>
-        )}
-      </section>
+      <CreditPackageCatalog
+        packages={packages}
+        onEdit={setEditing}
+        pending={mutation.isPending}
+        busyKey={mutation.busyKey}
+        onStatusChange={(pkg) =>
+          mutation.run(
+            `status-${pkg.id}`,
+            () => setWhatsAppCreditPackageStatus(pkg.id, pkg.status === "active" ? "archived" : "active"),
+            pkg.status === "active" ? "Credit package archived." : "Credit package restored.",
+          )
+        }
+      />
 
       <section className="flex flex-col gap-3 border-t-2 border-ink pt-5">
         <div>
@@ -279,42 +216,64 @@ export function WhatsAppCreditsView({
           <p className="text-[11.5px] text-mute">Search by gym name, gym code or city, then add credits from that row.</p>
         </div>
         <SearchBox placeholder="Search gym, code or city" className="max-w-xl" />
-        <div className="overflow-x-auto border-[1.5px] border-ink bg-paper">
-          <table className="w-full min-w-[760px] border-collapse text-[12px]">
-            <thead>
-              <tr className="text-left">
-                <th className="mfd-micro-label border-b border-line px-4 py-2.5">Gym</th>
-                <th className="mfd-micro-label border-b border-line px-3 py-2.5">WhatsApp</th>
-                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Balance</th>
-                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Purchased</th>
-                <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Used</th>
-                <th className="mfd-micro-label border-b border-line px-4 py-2.5 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {gyms.map((gym) => (
-                <tr key={gym.organizationId} className="mfd-table-row transition-colors hover:bg-sand/70">
-                  <td className="border-b border-line px-4 py-2.5">
-                    <strong className="block text-[12.5px]">{gym.name}</strong>
-                    <span className="text-[10.5px] text-mute">{gym.gymCode} · {gym.city}</span>
-                  </td>
-                  <td className="border-b border-line px-3 py-2.5 text-mute">{gym.integrationStatus}</td>
-                  <td className="border-b border-line px-3 py-2.5 text-right font-bold">{gym.balance.toLocaleString("en-IN")}</td>
-                  <td className="border-b border-line px-3 py-2.5 text-right text-mute">{gym.purchasedTotal.toLocaleString("en-IN")}</td>
-                  <td className="border-b border-line px-3 py-2.5 text-right text-mute">{gym.usedTotal.toLocaleString("en-IN")}</td>
-                  <td className="border-b border-line px-4 py-2.5 text-right">
-                    <button
-                      type="button"
-                      onClick={() => setGranting(gym)}
-                      className="inline-flex min-h-[34px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[10.5px] font-bold"
-                    >
-                      <AddIcon size={12} aria-hidden /> Add credits
-                    </button>
-                  </td>
+        <div className="min-w-0 border-[1.5px] border-ink bg-paper">
+          <div className="divide-y divide-line md:hidden">
+            {gyms.map((gym) => (
+              <article key={gym.organizationId} className="flex min-w-0 flex-col gap-3 p-4">
+                <div className="min-w-0">
+                  <h3 className="break-words text-[14px] font-bold">{gym.name}</h3>
+                  <p className="mt-0.5 break-words text-[11.5px] text-mute">{gym.gymCode} · {gym.city}</p>
+                  <p className="mt-1 text-[11.5px] text-mute">WhatsApp · {gym.integrationStatus}</p>
+                </div>
+                <dl className="grid grid-cols-3 gap-2 border-y border-line py-3">
+                  {[{ label: "Balance", value: gym.balance }, { label: "Purchased", value: gym.purchasedTotal }, { label: "Used", value: gym.usedTotal }].map((item) => (
+                    <div key={item.label} className="min-w-0">
+                      <dt className="text-[10px] text-mute">{item.label}</dt>
+                      <dd className="mt-1 break-all text-[16px] font-bold">{item.value.toLocaleString("en-IN")}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <Button icon={AddIcon} variant="secondary" size="lg" className="w-full" onClick={() => setGranting(gym)}>Add credits</Button>
+              </article>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[760px] border-collapse text-[12px]">
+              <thead>
+                <tr className="text-left">
+                  <th className="mfd-micro-label border-b border-line px-4 py-2.5">Gym</th>
+                  <th className="mfd-micro-label border-b border-line px-3 py-2.5">WhatsApp</th>
+                  <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Balance</th>
+                  <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Purchased</th>
+                  <th className="mfd-micro-label border-b border-line px-3 py-2.5 text-right">Used</th>
+                  <th className="mfd-micro-label border-b border-line px-4 py-2.5 text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {gyms.map((gym) => (
+                  <tr key={gym.organizationId} className="mfd-table-row transition-colors hover:bg-sand/70">
+                    <td className="border-b border-line px-4 py-2.5">
+                      <strong className="block text-[12.5px]">{gym.name}</strong>
+                      <span className="text-[10.5px] text-mute">{gym.gymCode} · {gym.city}</span>
+                    </td>
+                    <td className="border-b border-line px-3 py-2.5 text-mute">{gym.integrationStatus}</td>
+                    <td className="border-b border-line px-3 py-2.5 text-right font-bold">{gym.balance.toLocaleString("en-IN")}</td>
+                    <td className="border-b border-line px-3 py-2.5 text-right text-mute">{gym.purchasedTotal.toLocaleString("en-IN")}</td>
+                    <td className="border-b border-line px-3 py-2.5 text-right text-mute">{gym.usedTotal.toLocaleString("en-IN")}</td>
+                    <td className="border-b border-line px-4 py-2.5 text-right">
+                      <Button icon={AddIcon}
+                        type="button"
+                        onClick={() => setGranting(gym)}
+                        variant="secondary" size="sm"
+                      >
+                         Add credits
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {!gyms.length ? <p className="p-8 text-center text-[12.5px] text-mute">No gyms match this search.</p> : null}
           <Pagination
             pathname="/admin/whatsapp-credits"
@@ -338,7 +297,7 @@ function EconomicsTile({ label, value, detail, emphasis, accent }: { label: stri
   return (
     <div className={`flex min-w-0 flex-col gap-1 border-[1.5px] p-3.5 ${emphasis ? "border-ink bg-ink text-paper" : "border-line bg-paper"}`}>
       <span className={`text-[9.5px] font-bold uppercase tracking-[0.1em] ${emphasis ? "text-mute3" : "text-mute"}`}>{label}</span>
-      <strong className={`font-display text-[20px] tracking-[-0.02em] ${accent ? "text-accent" : emphasis ? "text-hi" : "text-ink"}`}>{value}</strong>
+      <strong className={`break-words font-display text-[20px] tracking-[-0.02em] ${accent ? "text-accent" : emphasis ? "text-hi" : "text-ink"}`}>{value}</strong>
       <span className={`text-[10.5px] ${emphasis ? "text-mute3" : "text-mute"}`}>{detail}</span>
     </div>
   );
@@ -412,9 +371,9 @@ function PackageSheet({
         <label className={LABEL}>Sort order<input type="number" min="0" step="1" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} className={INPUT} /></label>
       </div>
       <p className="text-[10.5px] leading-relaxed text-mute3">Existing purchases keep their snapshotted credits and price. Editing this package changes only future checkouts.</p>
-      <button type="button" disabled={mutation.isPending} onClick={save} className="flex min-h-[40px] items-center justify-center bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:opacity-60">
-        {mutation.busyKey === "save-package" ? "Saving…" : pkg ? "Save package" : "Create package"}
-      </button>
+      <Button type="button" disabled={mutation.isPending} pending={mutation.busyKey === "save-package"} pendingLabel="Saving…" onClick={save} variant="primary" size="lg" className="w-full">
+        {pkg ? "Save package" : "Create package"}
+      </Button>
     </Sheet>
   );
 }
@@ -513,9 +472,9 @@ function MetaRatesSheet({
           Use the per-message amount from Meta&apos;s current India rate card or your invoice allocation. Taxes and
           foreign-exchange differences may make the final invoice vary from this estimate.
         </p>
-        <button type="button" disabled={mutation.isPending || !effectiveDate} onClick={save} className="flex min-h-[42px] items-center justify-center bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:opacity-60">
-          {mutation.busyKey === "save-rates" ? "Saving rates…" : "Save effective rates"}
-        </button>
+        <Button type="button" disabled={mutation.isPending || !effectiveDate} pending={mutation.busyKey === "save-rates"} pendingLabel="Saving rates…" onClick={save} variant="primary" size="lg" className="w-full">
+          Save effective rates
+        </Button>
       </div>
     </Sheet>
   );
@@ -560,12 +519,21 @@ function GrantSheet({
             <span className="text-[11.5px] text-mute">Current balance<strong className="ml-2 text-[15px] text-ink">{gym.balance.toLocaleString("en-IN")}</strong></span>
           </div>
           {packages.length ? (
-            <label className={LABEL}>Quick fill from package<select defaultValue="" onChange={(e) => setCredits(e.target.value)} className={INPUT}><option value="">Custom amount</option>{packages.map((pkg) => <option key={pkg.id} value={pkg.credits}>{pkg.name} · {pkg.credits.toLocaleString("en-IN")}</option>)}</select></label>
+            <div className={LABEL}>
+              <span>Quick fill from package</span>
+              <Dropdown
+                ariaLabel="Quick fill from package"
+                value={packages.some((pkg) => String(pkg.credits) === credits) ? credits : ""}
+                options={[{ value: "", label: "Custom amount" }, ...packages.map((pkg) => ({ value: String(pkg.credits), label: `${pkg.name} · ${pkg.credits.toLocaleString("en-IN")}` }))]}
+                onChange={setCredits}
+                className="w-full"
+              />
+            </div>
           ) : null}
           <label className={LABEL}>Credits to add<input type="number" min="1" max="10000000" step="1" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="e.g. 1000" className={INPUT} /></label>
           <label className={LABEL}>Reason / note<textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={3} placeholder="Why this adjustment is being made" className={INPUT} /></label>
           <p className="text-[10.5px] leading-relaxed text-mute3">This adds an adjustment to the credit ledger and admin audit log. It does not create a payment or increase purchased credits.</p>
-          <button type="button" disabled={mutation.isPending || !credits} onClick={grant} className="flex min-h-[40px] items-center justify-center gap-1.5 bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:opacity-60"><AddIcon size={13} aria-hidden />{mutation.busyKey === "grant" ? "Adding…" : "Add credits"}</button>
+          <Button icon={AddIcon} type="button" disabled={mutation.isPending || !credits} pending={mutation.busyKey === "grant"} pendingLabel="Adding…" onClick={grant} variant="primary" size="lg" className="w-full">Add credits</Button>
         </div>
       ) : null}
     </Sheet>

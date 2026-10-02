@@ -1,10 +1,9 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useActionState, useEffect, useRef } from "react";
 import { useToast } from "@/components/Toast";
 import { ConfirmIcon } from "@/core/ui/icons";
-import { ButtonLabel } from "@/components/ButtonLabel";
-import { PRIMARY_BUTTON_CLASS } from "./ui";
 
 type BaseState = { error: string | null; nonce: number; saved?: number | boolean | null };
 
@@ -63,11 +62,9 @@ export function SettingsForm<S extends BaseState>({
         {disabled ? (
           <p className="text-[11.5px] text-mute">{disabledReason ?? "You can view this, but only a Platform Owner can change it."}</p>
         ) : (
-          <button type="submit" disabled={pending} className={PRIMARY_BUTTON_CLASS}>
-            <ButtonLabel icon={ConfirmIcon} pending={pending}>
+          <Button icon={ConfirmIcon} pending={pending} type="submit" disabled={pending} variant="primary" size="md">
               {pending ? "Saving…" : submitLabel}
-            </ButtonLabel>
-          </button>
+          </Button>
         )}
         {footerExtra}
       </div>

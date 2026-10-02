@@ -271,8 +271,8 @@ async function createScheduledBackups() {
   const [state] = await sqlJson(`
     select
       max(created_at) filter (where backup_type = 'hourly') as last_hourly_at,
-      coalesce(bool_or(backup_type = 'daily' and (created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date), false) as daily_today,
-      coalesce(bool_or(backup_type = 'monthly' and (created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date), false) as monthly_today
+      coalesce(bool_or(backup_type = 'daily' and (created_at at time zone 'Asia/Kolkata')::date = (now() at time zone 'Asia/Kolkata')::date), false) as daily_today,
+      coalesce(bool_or(backup_type = 'monthly' and (created_at at time zone 'Asia/Kolkata')::date = (now() at time zone 'Asia/Kolkata')::date), false) as monthly_today
     from public.database_backups
     where environment = '${environment}' and database_identifier = ${b64(databaseIdentifier)}
       and trigger_type = 'scheduled' and status in ('creating', 'ready')

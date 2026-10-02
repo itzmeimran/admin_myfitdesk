@@ -1,7 +1,9 @@
 "use client";
 
+import { ButtonLink } from "@/components/ButtonLink";
+import { Button } from "@/components/Button";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Dropdown } from "@/components/Dropdown";
 import { requestRefresh } from "@/core/realtime/refresh-scheduler";
@@ -94,16 +96,14 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
         {TABS.map((tab) => {
           const active = tab.match(pathname);
           return (
-            <Link
+            <ButtonLink
               key={tab.href}
               href={tabHref(tab.href)}
               aria-current={active ? "page" : undefined}
-              className={`flex-shrink-0 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${
-                active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"
-              }`}
+              variant="control" size="custom" className={`flex-shrink-0 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}
             >
               {tab.label}
-            </Link>
+            </ButtonLink>
           );
         })}
       </nav>
@@ -111,16 +111,14 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div role="group" aria-label="Time range" className="flex max-w-full overflow-x-auto border-[1.5px] border-ink">
           {RANGES.map((r) => (
-            <Link
+            <ButtonLink
               key={r.value}
               href={`${pathname}?${carry({ range: r.value }).toString()}`}
               aria-current={currentRange === r.value ? "true" : undefined}
-              className={`flex-shrink-0 whitespace-nowrap px-2.5 py-2.5 text-[11.5px] font-bold transition-colors sm:px-3 sm:py-2 ${
-                currentRange === r.value ? "bg-ink text-paper" : "text-ink hover:bg-sand"
-              }`}
+              variant={currentRange === r.value ? "primary" : "ghost"} size="md" className="flex-shrink-0 whitespace-nowrap sm:px-3 sm:py-2"
             >
               {r.label}
-            </Link>
+            </ButtonLink>
           ))}
         </div>
 
@@ -133,13 +131,13 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
           />
         </div>
 
-        <button
+        <Button
           type="button"
           role="switch"
           aria-checked={live}
           onClick={() => toggleLive(!live)}
           title={live ? "Click to pause automatic refresh" : "Click to resume automatic refresh"}
-          className="flex min-h-[38px] items-center gap-2.5 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold text-mute transition-colors hover:border-ink sm:ml-auto"
+          variant="control" size="custom" className="flex min-h-[38px] items-center gap-2.5 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold text-mute hover:border-ink sm:ml-auto"
         >
           <span aria-hidden="true" className="relative flex h-2 w-2 flex-shrink-0">
             {live ? <span className="mfd-pulse-ring absolute inset-0 rounded-full bg-live" /> : null}
@@ -147,7 +145,7 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
           </span>
           <span className={live ? "text-ink" : ""}>{live ? "Live" : "Paused"}</span>
           <span className="font-normal">{live ? "· updates every 30 s" : "· click to resume"}</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

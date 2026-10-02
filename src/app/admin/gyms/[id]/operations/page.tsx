@@ -1,4 +1,6 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
+
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { createClient } from "@/core/db/server-client";
@@ -61,29 +63,23 @@ export default async function GymOperationsPage({
   const supabase = await createClient();
   const gym = await getGymDetail(supabase, id);
   if (!gym) notFound();
-  const ctx = { supabase, gym, tz: gym.defaultTimezone || "Asia/Kolkata" };
+  const ctx = { supabase, gym, tz: IST_TIME_ZONE };
   const base = `/admin/gyms/${gym.id}/operations`;
 
   return (
     <div className="flex flex-col gap-4">
       <nav aria-label="Operations sections" className="flex gap-1.5 overflow-x-auto pb-1">
         {SECTIONS.map((s) => (
-          <Link
+          <ButtonLink
             key={s.key}
             href={`${base}?section=${s.key}`}
             aria-current={s.key === section ? "page" : undefined}
-            className={`flex min-h-[34px] flex-shrink-0 items-center whitespace-nowrap border-[1.5px] px-3 text-[11px] font-bold uppercase tracking-[0.07em] ${
-              s.key === section
-                ? s.key === "danger"
-                  ? "border-accent bg-accent text-paper"
-                  : "border-ink bg-ink text-hi"
-                : s.key === "danger"
-                  ? "border-accent/50 text-accent hover:border-accent"
-                  : "border-line text-mute hover:border-ink hover:text-ink"
-            }`}
+            variant={s.key === section ? s.key === "danger" ? "danger" : "primary" : s.key === "danger" ? "danger-secondary" : "secondary"} size="sm" className={`flex-shrink-0 whitespace-nowrap ${s.key === section
+    ? "" : s.key === "danger"
+    ? "border-accent/50" : ""} `}
           >
             {s.label}
-          </Link>
+          </ButtonLink>
         ))}
       </nav>
 

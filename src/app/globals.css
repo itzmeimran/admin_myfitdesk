@@ -169,33 +169,90 @@ html[data-admin-env="prod"] body::before {
   }
 }
 
-/* Baseline micro-interactions for every <button> in the app — the app had
-   dozens of buttons (icon-only close/dismiss buttons, dropdown menu items,
-   sheet/dialog confirm-cancel pairs) with no hover affordance and no
-   `cursor: pointer` at all, since the browser's own UA stylesheet only gives
-   that to `<a>`, never to `<button>`. Centralized here rather than added to
-   each of those call sites individually, same reasoning as `.press-scale`/
-   `.mfd-table-row` above and below. Individual buttons still layer their own
-   `hover:bg-*`/`hover:border-*` on top of this floor. */
-button:not(:disabled) {
-  cursor: pointer;
-}
-button:disabled,
-[aria-disabled="true"] {
-  cursor: not-allowed;
-}
-@media (prefers-reduced-motion: no-preference) {
-  button:not(:disabled) {
-    transition:
-      filter 0.12s ease-out,
-      opacity 0.12s ease-out,
-      transform 0.1s ease-out,
-      background-color 0.12s ease-out,
-      border-color 0.12s ease-out,
-      color 0.12s ease-out;
+/* Button and ButtonLink share this contract. Component-layer rules allow
+   layout utilities and deliberate widget selection states to override them. */
+@layer components {
+  .mfd-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1.5px solid transparent;
+    border-radius: 0;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    touch-action: manipulation;
   }
-  button:not(:disabled):hover {
-    filter: brightness(0.94);
+  .mfd-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .mfd-button:is(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .mfd-button[aria-busy="true"] { cursor: wait; }
+  .mfd-button--xs { min-height: 28px; padding: 0.25rem 0.5rem; }
+  .mfd-button--sm { min-height: 36px; padding: 0.375rem 0.75rem; }
+  .mfd-button--md { min-height: 40px; padding: 0.5rem 1rem; }
+  .mfd-button--lg { min-height: 44px; padding: 0.625rem 1.25rem; font-size: 12px; }
+  .mfd-button:not(.mfd-button--custom) { font-size: 12px; }
+  @media (max-width: 767px) {
+    .mfd-button:not(.mfd-button--custom) { font-size: 13px; }
+  }
+  .mfd-button--icon { padding: 0; flex-shrink: 0; }
+  .mfd-button--icon.mfd-button--xs { width: 28px; height: 28px; }
+  .mfd-button--icon.mfd-button--sm { width: 36px; height: 36px; }
+  .mfd-button--icon.mfd-button--md { width: 40px; height: 40px; }
+  .mfd-button--icon.mfd-button--lg { width: 44px; height: 44px; }
+  .mfd-button > svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .mfd-button--icon > svg { width: 16px; height: 16px; }
+  .mfd-button--primary { border-color: var(--ink); background: var(--ink); color: var(--hi); }
+  .mfd-button--secondary { border-color: var(--line); background: var(--paper); color: var(--ink); }
+  .mfd-button--danger { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+  .mfd-button--danger-secondary { border-color: var(--accent); background: var(--paper); color: var(--accent); }
+  .mfd-button--ghost { background: transparent; color: var(--mute); }
+  .mfd-button--link { border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; }
+  .mfd-button--control, .mfd-button--surface {
+    letter-spacing: inherit; text-transform: inherit; font-size: inherit; line-height: inherit;
+  }
+  .mfd-button--control { border-color: transparent; background: transparent; color: inherit; }
+  .mfd-button--surface { align-items: stretch; justify-content: initial; font-weight: inherit; }
+  .mfd-button--danger-tone { color: var(--accent); }
+  .mfd-button--inverse-tone { color: var(--paper); }
+  .mfd-button--overlay { border: 0; padding: 0; }
+  .mfd-button--primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+    background: var(--hi); color: var(--ink);
+  }
+  .mfd-button--secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible),
+  .mfd-button--control:not(:disabled):not([aria-disabled="true"]):hover {
+    border-color: var(--ink); background: var(--sand);
+  }
+  .mfd-button--danger:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+    background: var(--ink); border-color: var(--ink);
+  }
+  .mfd-button--danger-secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+    background: var(--accent); color: var(--paper);
+  }
+  .mfd-button--ghost:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+    background: var(--sand); color: var(--ink);
+  }
+  .mfd-button--link:not(:disabled):not([aria-disabled="true"]):hover { text-decoration: underline; }
+  .mfd-button--ghost.mfd-button--inverse-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) { background: var(--ink2); color: var(--hi); }
+  .mfd-button--secondary[data-selected="true"] { border-color: var(--ink); background: var(--ink); color: var(--hi); }
+  @media (prefers-reduced-motion: no-preference) {
+    .mfd-button:not(.mfd-button--overlay) {
+      transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, opacity 160ms ease-out, transform 120ms ease-out;
+    }
+    .mfd-button:not(.mfd-button--overlay):not(.mfd-button--control):not(.mfd-button--surface):not(:disabled):not([aria-disabled="true"]):hover { transform: translateY(-1px); }
+    .mfd-button:not(.mfd-button--overlay):not(.mfd-button--control):not(.mfd-button--surface):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.97); }
   }
 }
 

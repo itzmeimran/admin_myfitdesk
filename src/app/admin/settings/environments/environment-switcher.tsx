@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import { useAdminEnvironment } from "@/core/env/context";
 import { setAdminEnvironment } from "@/core/env/actions";
@@ -7,7 +8,6 @@ import { ADMIN_ENVIRONMENTS, ADMIN_ENVIRONMENT_LABEL, type AdminEnvironment } fr
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { DatabaseIcon, SpinnerIcon } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 /**
  * The Settings page's DEV/PROD switch (task requirement §1/§2/§7). Reads
@@ -92,23 +92,17 @@ export function EnvironmentSwitcher() {
           const active = env === environment;
           const isProd = env === "prod";
           return (
-            <button
+            <Button
+              pending={switching === env}
               key={env}
               type="button"
               aria-pressed={active}
               disabled={Boolean(switching)}
               onClick={() => requestSwitch(env)}
-              className={`press-scale flex min-h-[42px] flex-1 items-center justify-center gap-2 border-[1.5px] text-[12px] font-bold uppercase tracking-[0.08em] disabled:cursor-wait disabled:opacity-70 ${
-                active
-                  ? isProd
-                    ? "border-accent bg-accent text-paper"
-                    : "border-ink bg-ink text-hi"
-                  : "border-line bg-paper text-ink hover:border-ink"
-              }`}
+              variant={active ? isProd ? "danger" : "primary" : "secondary"} size="md" className="flex-1"
             >
-              {switching === env ? <SpinnerIcon size={ICON_SIZE.button} className="animate-spin" aria-hidden /> : null}
               {ADMIN_ENVIRONMENT_LABEL[env]}
-            </button>
+            </Button>
           );
         })}
       </div>

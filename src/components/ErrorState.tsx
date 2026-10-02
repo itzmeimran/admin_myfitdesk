@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { ButtonLink } from "@/components/ButtonLink";
 /**
  * The shared body of every error boundary in this app — copied from
  * FitDeskApp/src/components/ErrorState.tsx (see that file's docblock for
@@ -12,8 +14,6 @@
  * string in production anyway, and where it isn't, it tends to be a
  * PostgREST sentence that means nothing without the query it came from.
  */
-
-import Link from "next/link";
 
 export function ErrorState({
   title,
@@ -47,20 +47,20 @@ export function ErrorState({
 
       <div className="flex w-full max-w-[260px] flex-col gap-2">
         {onRetry ? (
-          <button
+          <Button
             type="button"
             onClick={onRetry}
-            className="press-scale flex items-center justify-center bg-hi py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-ink transition hover:bg-ink hover:text-hi"
+            variant="primary" size="lg"
           >
             Try again
-          </button>
+          </Button>
         ) : null}
-        <Link
+        <ButtonLink
           href={homeHref}
-          className="press-scale flex items-center justify-center border-[1.5px] border-line bg-paper py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-ink transition hover:border-ink"
+          variant="secondary" size="lg"
         >
           {homeLabel}
-        </Link>
+        </ButtonLink>
       </div>
 
       {digest ? (

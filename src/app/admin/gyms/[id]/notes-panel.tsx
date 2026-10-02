@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -60,12 +61,12 @@ export function NotesPanel({ organizationId, notes, timeZone }: { organizationId
                 {note.category ? <span className="bg-sand px-1.5 py-0.5 font-bold uppercase tracking-[0.08em] text-ink2">{note.category}</span> : null}
                 {note.updatedAt ? <span>· edited {exactTime(note.updatedAt, timeZone)}</span> : null}
                 <span className="ml-auto flex gap-3">
-                  <button type="button" onClick={() => { setEditing(note.id); setDraft(note.content); }} className="font-bold uppercase tracking-[0.08em] text-mute hover:text-ink">
+                  <Button type="button" onClick={() => { setEditing(note.id); setDraft(note.content); }} variant="link">
                     Edit
-                  </button>
-                  <button type="button" onClick={() => setToDelete(note)} className="font-bold uppercase tracking-[0.08em] text-accent">
+                  </Button>
+                  <Button tone="danger" type="button" onClick={() => setToDelete(note)} variant="link" size="custom">
                     Delete
-                  </button>
+                  </Button>
                 </span>
               </div>
               {editing === note.id ? (
@@ -78,12 +79,12 @@ export function NotesPanel({ organizationId, notes, timeZone }: { organizationId
                     className="w-full resize-none border-[1.5px] border-line bg-paper px-2.5 py-2 text-[12.5px] outline-none focus:border-ink"
                   />
                   <div className="flex gap-2">
-                    <button type="button" disabled={isPending || !draft.trim()} onClick={() => save(note)} className="min-h-[34px] bg-ink px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-hi disabled:opacity-50">
+                    <Button type="button" pending={isPending} disabled={!draft.trim()} onClick={() => save(note)} variant="primary" size="sm">
                       Save
-                    </button>
-                    <button type="button" onClick={() => setEditing(null)} className="min-h-[34px] border-[1.5px] border-line px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-mute">
+                    </Button>
+                    <Button type="button" onClick={() => setEditing(null)} variant="secondary" size="sm">
                       Cancel
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (

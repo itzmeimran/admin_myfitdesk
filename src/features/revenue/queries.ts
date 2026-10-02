@@ -1,4 +1,5 @@
 import "server-only";
+import { IST_TIME_ZONE, istPeriodRange } from "@/core/dates/ist";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
 import { formatMinorWhole } from "@/core/money/format";
@@ -27,10 +28,8 @@ function formatInvoicePeriod(start: string | null, end: string | null, now: Date
   return `${formatShortDate(new Date(start), now)} – ${formatShortDate(new Date(end), now)}`;
 }
 
-function currentMonthRange(now: Date): { start: Date; end: Date } {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return { start, end };
+function currentMonthRange(now: Date) {
+  return istPeriodRange("month", now);
 }
 
 export async function listInvoices(supabase: SupabaseClient<Database>): Promise<Invoice[]> {
@@ -120,7 +119,7 @@ export async function getRevenueTiles(supabase: SupabaseClient<Database>): Promi
   const failedMinor = failed.reduce((sum, r) => sum + r.amount_minor, 0);
   const awaitingMinor = awaitingSettlement.reduce((sum, r) => sum + r.amount_minor, 0);
 
-  const monthName = now.toLocaleDateString("en-IN", { month: "long" });
+  const monthName = now.toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, month: "long" });
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
   return [

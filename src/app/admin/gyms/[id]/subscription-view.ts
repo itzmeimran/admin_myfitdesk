@@ -1,5 +1,6 @@
 import type { GymDetail } from "@/features/gyms/detail";
 import { formatZonedDate } from "@/core/dates/format";
+import { IST_TIME_ZONE, istDayDifference } from "@/core/dates/ist";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 
 const DAY = 86_400_000;
@@ -29,7 +30,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
  * render and the browser's hydration pass.
  */
 export function buildSubscriptionPanelView(gym: GymDetail, now: Date = new Date()): SubscriptionPanelView {
-  const tz = gym.defaultTimezone;
+  const tz = IST_TIME_ZONE;
   const sub = gym.subscription;
 
   const pendingNote = sub?.pending
@@ -79,17 +80,17 @@ export function buildSubscriptionPanelView(gym: GymDetail, now: Date = new Date(
 
   const end = new Date(sub.currentPeriodEnd);
   const start = sub.currentPeriodStart ? new Date(sub.currentPeriodStart) : null;
-  const left = (end.getTime() - now.getTime()) / DAY;
-  const periodDays = start ? Math.max(1, Math.round((end.getTime() - start.getTime()) / DAY)) : null;
+  const left = istDayDifference(now, end);
+  const periodDays = start ? Math.max(1, istDayDifference(start, end)) : null;
   const ticks = periodDays && periodDays <= MAX_TICKS ? periodDays : null;
   const from = start ? `Started ${formatZonedDate(start, tz, false)}` : "";
   const to = formatZonedDate(end, tz, false);
 
   // Past the period end: Grace (still has access) or Read-only (grace used up).
-  if (left < 0) {
-    const overdue = Math.max(1, Math.floor(-left));
+  if (now.getTime() >= end.getTime()) {
+    const overdue = Math.max(0, -left);
     const graceEnd = new Date(end.getTime() + sub.graceDays * DAY);
-    const graceLeft = Math.max(0, sub.graceDays - overdue);
+    const graceLeft = Math.max(0, istDayDifference(now, graceEnd));
     const readOnly = gym.status === "Read-only";
     return {
       ...base,
@@ -104,9 +105,9 @@ export function buildSubscriptionPanelView(gym: GymDetail, now: Date = new Date(
     };
   }
 
-  const daysLeft = Math.floor(left);
-  const elapsed = start ? Math.min(1, Math.max(0, (now.getTime() - start.getTime()) / (end.getTime() - start.getTime()))) : null;
-  const dayNo = start && periodDays ? Math.min(periodDays, Math.max(1, Math.floor((now.getTime() - start.getTime()) / DAY) + 1)) : null;
+  const daysLeft = Math.max(0, left);
+  const elapsed = start && periodDays ? Math.min(1, Math.max(0, istDayDifference(start, now) / periodDays)) : null;
+  const dayNo = start && periodDays ? Math.min(periodDays, Math.max(1, istDayDifference(start, now) + 1)) : null;
   const meter =
     elapsed !== null && dayNo !== null && periodDays !== null
       ? { pct: Math.round(elapsed * 100), ticks, from, mid: `Day ${dayNo} of ${periodDays}`, to }

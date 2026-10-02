@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState } from "react";
 import type { BranchRow } from "@/features/gyms/branches";
 import { Sheet } from "@/components/Sheet";
@@ -18,9 +19,9 @@ export function BranchRowDetail({ branch, trigger }: { branch: BranchRow; trigge
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="block truncate text-left font-bold hover:underline">
+      <Button type="button" onClick={() => setOpen(true)} variant="link" size="custom" className="block truncate text-left">
         {trigger}
-      </button>
+      </Button>
       <Sheet open={open} onClose={() => setOpen(false)} eyebrow="branches" title={branch.name}>
         <dl className="flex flex-col gap-2 text-[12.5px]">
           <Row k="Status">

@@ -1,4 +1,5 @@
 import "server-only";
+import { IST_TIME_ZONE, istPeriodRange } from "@/core/dates/ist";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
 import { formatMinorWhole } from "@/core/money/format";
@@ -90,37 +91,7 @@ export type OverviewPeriod = "month" | "quarter" | "year";
  * built accepting them from day one), so wiring Quarter/Year is this
  * function plus threading `period` through, not a new RPC. `label` feeds
  * every "N new in <label>" caption below. */
-function periodRange(period: OverviewPeriod, now: Date): { start: Date; end: Date; prevStart: Date; prevEnd: Date; label: string } {
-  if (period === "year") {
-    const y = now.getFullYear();
-    return {
-      start: new Date(y, 0, 1),
-      end: new Date(y + 1, 0, 1),
-      prevStart: new Date(y - 1, 0, 1),
-      prevEnd: new Date(y, 0, 1),
-      label: String(y),
-    };
-  }
-  if (period === "quarter") {
-    const q = Math.floor(now.getMonth() / 3);
-    const start = new Date(now.getFullYear(), q * 3, 1);
-    return {
-      start,
-      end: new Date(now.getFullYear(), q * 3 + 3, 1),
-      prevStart: new Date(now.getFullYear(), q * 3 - 3, 1),
-      prevEnd: start,
-      label: `Q${q + 1} ${now.getFullYear()}`,
-    };
-  }
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  return {
-    start,
-    end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-    prevStart: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-    prevEnd: start,
-    label: now.toLocaleDateString("en-IN", { month: "long" }),
-  };
-}
+const periodRange = istPeriodRange;
 
 /** First letters of up to 2 words, uppercased — this app's own derivation
  * (not literal to the design's SF/UF sample values, which aren't
@@ -258,8 +229,7 @@ async function fetchMonthlyPaymentHealth(
   supabase: SupabaseClient<Database>,
   now: Date,
 ): Promise<{ stuckCount: number; refundedCount: number; refundedMinor: number; currency: string }> {
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const { start, end } = istPeriodRange("month", now);
 
   const { data, error } = await supabase
     .from("platform_payments")
@@ -564,7 +534,7 @@ export async function getOverviewData(supabase: SupabaseClient<Database>, period
     health: buildHealth(pipeline, paymentHealth),
     trend: buildTrend(trendRows, now),
     gymsEnrolledCount: stats.total_gyms,
-    headerLine: `${now.toLocaleDateString("en-IN", {
+    headerLine: `${now.toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE,
       weekday: "long",
       day: "numeric",
       month: "long",

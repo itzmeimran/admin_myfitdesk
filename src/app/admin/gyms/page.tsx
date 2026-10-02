@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/ButtonLink";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
 import { isGymFilter, type GymFilter } from "@/features/gyms/mock-data";
@@ -171,13 +173,11 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
           const on = filter === f;
           const href = f === "All" ? pathname : `${pathname}?filter=${encodeURIComponent(f)}`;
           return (
-            <Link
+            <ButtonLink
               key={f}
               href={href}
               aria-pressed={on}
-              className={`flex min-h-[52px] flex-1 flex-col gap-0.5 border-[1.5px] px-3 py-2 transition-colors ${
-                on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink hover:border-ink hover:bg-sand"
-              }`}
+              variant="surface" size="custom" className={`flex min-h-[52px] flex-1 flex-col gap-0.5 border-[1.5px] px-3 py-2 ${on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink hover:border-ink hover:bg-sand"} `}
               style={{ minWidth: 108 }}
             >
               <span className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-[0.1em]" style={{ opacity: 0.75 }}>
@@ -185,7 +185,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
                 {label}
               </span>
               <span className="font-display text-[19px] tracking-[-0.02em]">{value.toLocaleString("en-IN")}</span>
-            </Link>
+            </ButtonLink>
           );
         })}
       </div>
@@ -299,7 +299,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
                 </td>
                 <td className="whitespace-nowrap border-b border-line px-4 py-2.5 text-right font-bold">{g.ltv}</td>
                 <td className="whitespace-nowrap border-b border-line px-3 py-2.5 text-right text-mute">
-                  {new Date(g.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
+                  {new Date(g.createdAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, day: "numeric", month: "short", year: "2-digit" })}
                 </td>
                 <td className="whitespace-nowrap border-b border-line px-3 py-2.5 text-right">
                   <GymRowActions gym={g} packages={assignablePackages} />

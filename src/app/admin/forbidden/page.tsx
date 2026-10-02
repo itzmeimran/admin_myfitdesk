@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { getAdminAccess } from "@/core/auth/access";
 
 /**
@@ -26,12 +27,12 @@ export default async function ForbiddenPage() {
             : "Your account isn't an active platform admin on this environment."}
         </p>
       </div>
-      <Link
+      <ButtonLink
         href="/admin"
-        className="press-scale border-[1.5px] border-line px-3.5 py-2.5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink hover:border-ink"
+        variant="secondary" size="md"
       >
         Back to overview
-      </Link>
+      </ButtonLink>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { CancelIcon, NextPageIcon, type IconType } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 
@@ -36,11 +37,11 @@ export function Sheet({
 
   return (
     <div className="fixed inset-0 z-40 flex flex-col justify-end">
-      <button
+      <Button
         type="button"
         aria-label="Dismiss"
         onClick={onClose}
-        className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
+        variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
       />
       <div
         className={`sheet-slide-up relative flex flex-col gap-3.5 overflow-y-auto border-t-[1.5px] border-ink bg-paper p-4 md:mx-auto md:w-[calc(100%-2rem)] md:border-x-[1.5px] ${maxWidthClassName} ${maxHeightClassName}`}
@@ -52,14 +53,14 @@ export function Sheet({
             </span>
             <span className="font-display text-[19px] tracking-[-0.025em]">{title}</span>
           </span>
-          <button
+          <Button tone="inverse"
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="-mr-2 -mt-2 flex h-10 w-10 flex-shrink-0 items-center justify-center text-mute3 transition-colors hover:bg-white/10 hover:text-paper md:text-mute md:hover:bg-sand md:hover:text-ink"
+            variant="ghost" size="md" iconOnly className="-mr-2 -mt-2 flex-shrink-0 md:text-mute md:hover:bg-sand md:hover:text-ink"
           >
             <CancelIcon size={18} aria-hidden />
-          </button>
+          </Button>
         </div>
         {children}
       </div>
@@ -88,12 +89,11 @@ export function SheetRow({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[52px] items-center gap-3 border-[1.5px] px-3.5 py-2.5 text-left transition-colors ${
-        active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-ink hover:border-ink hover:bg-sand"
-      }`}
+      variant="surface"
+      className={`min-h-[52px] items-center gap-3 px-3.5 py-2.5 text-left ${active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-ink hover:border-ink hover:bg-sand"}`}
     >
       {Icon ? <Icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden /> : null}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -106,6 +106,6 @@ export function SheetRow({
       {showChevron ? (
         <NextPageIcon size={ICON_SIZE.button} className="flex-shrink-0" aria-hidden />
       ) : null}
-    </button>
+    </Button>
   );
 }

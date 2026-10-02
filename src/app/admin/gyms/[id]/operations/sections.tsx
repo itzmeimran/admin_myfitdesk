@@ -1,3 +1,4 @@
+import { ButtonLink } from "@/components/ButtonLink";
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
@@ -346,12 +347,12 @@ export function AlertsSection({ supabase, gym, tz, showResolved }: Ctx & { showR
           description="Raised automatically every 15 minutes from live data, and cleared when the condition goes away."
           action={
             <div className="flex flex-wrap gap-2">
-              <Link
+              <ButtonLink
                 href={`/admin/gyms/${gym.id}/operations?section=alerts${showResolved ? "" : "&resolved=1"}`}
-                className="flex min-h-[34px] items-center border-[1.5px] border-line px-3 text-[10.5px] font-bold uppercase tracking-[0.09em] text-mute hover:text-ink"
+                variant="secondary" size="sm"
               >
                 {showResolved ? "Hide resolved" : "Show resolved"}
-              </Link>
+              </ButtonLink>
               <RefreshAlertsButton organizationId={gym.id} />
             </div>
           }
@@ -555,10 +556,10 @@ export function DataSection({ supabase, gym, tz }: Ctx) {
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <Tile label="Latest successful backup" value={<span className="text-[14px]">{last ? relativeTime(last) : "None found"}</span>} lines={[last ? exactTime(last, tz) : null]} />
                 <Tile label="Backup health" pill={{ text: hours === null ? "No backup" : hours > 26 ? "Stale" : hours > 12 ? "Late" : "On schedule", tone: hours === null || hours > 26 ? "Down" : hours > 12 ? "Attention" : "Healthy" }} />
-                <Link href={`/admin/system/disaster-recovery?org=${gym.id}`} className="flex items-center justify-center gap-2 border-[1.5px] border-ink bg-ink px-3 py-3 text-[11px] font-bold uppercase tracking-[0.09em] text-hi">
+                <ButtonLink href={`/admin/system/disaster-recovery?org=${gym.id}`} variant="primary" size="lg">
                   <DatabaseIcon size={14} aria-hidden />
                   Open Recovery
-                </Link>
+                </ButtonLink>
               </div>
             </SectionCard>
           );

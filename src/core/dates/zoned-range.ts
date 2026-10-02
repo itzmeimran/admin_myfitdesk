@@ -20,7 +20,7 @@ function offsetMinutes(instant: Date, timeZone: string): number {
 export function zonedDayRange(day: string, timeZone: string): { start: string; end: string } | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
   const guess = new Date(`${day}T00:00:00Z`);
-  if (Number.isNaN(guess.getTime())) return null;
+  if (Number.isNaN(guess.getTime()) || guess.toISOString().slice(0, 10) !== day) return null;
   const start = new Date(guess.getTime() - offsetMinutes(guess, timeZone) * 60000);
   const end = new Date(start.getTime() + 24 * 3600 * 1000 - 1);
   return { start: start.toISOString(), end: end.toISOString() };

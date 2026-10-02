@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CancelIcon } from "@/core/ui/icons";
@@ -52,7 +53,7 @@ export function ImageLightbox({
 
   return (
     <>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
         onClick={() => {
@@ -62,21 +63,21 @@ export function ImageLightbox({
         aria-label={`View ${title} picture full size`}
         aria-haspopup="dialog"
         title="Click to enlarge"
-        className={`${className} group overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
+        variant="surface" size="custom" className={` ${className} group overflow-hidden`}
         style={{ cursor: "zoom-in" }}
       >
         <span className="block h-full w-full transition-transform duration-200 ease-out group-hover:scale-110">{children}</span>
-      </button>
+      </Button>
 
       {open
         ? createPortal(
             <div role="dialog" aria-modal="true" aria-label={`${title} picture`} className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-              <button
+              <Button
                 type="button"
                 aria-label="Close picture"
                 tabIndex={-1}
                 onClick={close}
-                className="fade-in absolute inset-0 border-none bg-black/75"
+                variant="overlay" size="custom" className="fade-in absolute inset-0 border-none bg-black/75"
                 style={{ cursor: "zoom-out" }}
               />
               <figure className="fade-in relative flex max-h-full w-full max-w-[min(92vw,560px)] flex-col border-[1.5px] border-ink bg-paper">
@@ -85,15 +86,15 @@ export function ImageLightbox({
                     <span className="truncate font-display text-[15px] tracking-[-0.02em]">{title}</span>
                     {subtitle ? <span className="truncate text-[10.5px] text-mute3">{subtitle}</span> : null}
                   </figcaption>
-                  <button
+                  <Button tone="inverse"
                     ref={closeRef}
                     type="button"
                     aria-label="Close"
                     onClick={close}
-                    className="-mr-2 flex h-9 w-9 flex-shrink-0 items-center justify-center text-mute3 transition-colors hover:bg-white/10 hover:text-paper focus-visible:bg-white/10 focus-visible:text-paper focus-visible:outline-none"
+                    variant="ghost" size="sm" iconOnly className="-mr-2 flex-shrink-0"
                   >
                     <CancelIcon size={17} aria-hidden />
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-sand p-3">
                   {failed ? (

@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/ButtonLink";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
@@ -70,7 +72,7 @@ export default async function GymMembersPage({
   const rowIds = rows.map((row) => row.id);
   const [avatarKeys, memberActors] = await Promise.all([getMemberAvatarKeys(supabase, id, rowIds), getMemberActors(supabase, id, rowIds)]);
   const avatarUrls = await resolveMemberAvatarUrls(supabase, id, avatarKeys);
-  const timezone = summary?.timezone ?? gym.defaultTimezone;
+  const timezone = IST_TIME_ZONE;
   const hasFilters = Boolean(search || memberStatus || branchId || state);
   const clearHref = roster === "deleted" ? `${pathname}?roster=deleted` : pathname;
   const rosterHref = (nextRoster: "current" | "deleted") => nextRoster === "deleted" ? `${pathname}?roster=deleted` : pathname;
@@ -79,12 +81,12 @@ export default async function GymMembersPage({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex" role="group" aria-label="Roster view">
-          <Link href={rosterHref("current")} aria-pressed={roster === "current"} className={`flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-r-0 border-ink px-3 text-[11.5px] font-bold ${roster === "current" ? "bg-ink text-hi" : "bg-paper text-mute hover:bg-sand"}`}>
+          <ButtonLink href={rosterHref("current")} aria-pressed={roster === "current"} variant={roster === "current" ? "primary" : "ghost"} size="sm" className="border-r-0">
             Current roster · {(summary?.totalMembers ?? gym.usage.memberCount).toLocaleString("en-IN")}
-          </Link>
-          <Link href={rosterHref("deleted")} aria-pressed={roster === "deleted"} className={`flex min-h-[36px] items-center gap-1.5 border-[1.5px] border-ink px-3 text-[11.5px] font-bold ${roster === "deleted" ? "bg-ink text-hi" : "bg-paper text-mute hover:bg-sand"}`}>
+          </ButtonLink>
+          <ButtonLink href={rosterHref("deleted")} aria-pressed={roster === "deleted"} variant={roster === "deleted" ? "primary" : "ghost"} size="sm" >
             Deleted · {(summary?.deletedMembers ?? 0).toLocaleString("en-IN")}
-          </Link>
+          </ButtonLink>
         </div>
         <span className="ml-auto border border-accent/40 bg-accent/5 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-accent">
           Platform admin view — read only

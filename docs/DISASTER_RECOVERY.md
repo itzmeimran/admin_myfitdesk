@@ -13,8 +13,8 @@ Backups contain application-managed `public` and `app` schemas. They exclude Sup
 The workflow is scheduled at minutes 7 and 37 of every hour, in UTC (two chances per hour because GitHub's cron is best-effort; the worker skips a run when a scheduled hourly backup already exists within 50 minutes):
 
 - hourly: every run, retained for 48 hours;
-- daily: promoted at 00:07 UTC, retained for 30 days;
-- monthly: promoted at 00:07 UTC on day 1, retained for 12 months;
+- daily: promoted on the first scheduled run after midnight IST, retained for 30 days;
+- monthly: promoted on the first scheduled run on day 1 in IST, retained for 12 months;
 - pre-restore and pre-migration: retained for at least 30 days;
 - manual: retained indefinitely until an administrator requests deletion;
 - any backup with `protected = true`: never removed automatically.
@@ -27,7 +27,7 @@ GitHub's `schedule:` cron is **best-effort**: runs start late or are dropped, mo
 
 Fixes in this repository:
 
-- **Catch-up promotion.** The worker now promotes a daily on the first scheduled run of any UTC date that has none, and a monthly on the first run of day 1, instead of only when a run lands in hour 0.
+- **Catch-up promotion.** The worker promotes a daily on the first scheduled run of any IST date that has none, and a monthly on the first run of day 1 in IST. The SQL duplicate check uses the same IST date. Backup filenames/storage keys retain their UTC timestamp convention; the admin screen displays and filters them in IST.
 - **De-duplication.** A plain hourly run is skipped if a scheduled hourly backup already exists inside the last 50 minutes, so two triggers in one hour give one backup.
 - **`GET /api/cron/backup`.** Dispatches the scheduled backup workflow for both environments. Requires `Authorization: Bearer $CRON_SECRET`; refuses everything (503) when `CRON_SECRET` is unset. It also needs the existing `BACKUP_GITHUB_*` variables.
 - **The UI reports reality.** A banner and System Health tiles show the last scheduled run, hourly runs in the last 24 h, and the longest gap, computed from real backup rows.

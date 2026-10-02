@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { CancelIcon } from "@/core/ui/icons";
 
 /**
@@ -30,11 +31,11 @@ export function Dialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
+      <Button
         type="button"
         aria-label="Dismiss"
         onClick={onClose}
-        className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
+        variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
       />
       <div className="relative flex w-full max-w-md flex-col gap-3.5 overflow-y-auto border-[1.5px] border-ink bg-paper p-4 max-h-[88vh]">
         <div className="flex items-start justify-between gap-3 border-b-[1.5px] border-ink pb-3">
@@ -42,14 +43,14 @@ export function Dialog({
             <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-mute">{eyebrow}</span>
             <span className="font-display text-[17px] tracking-[-0.02em]">{title}</span>
           </span>
-          <button
+          <Button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="-mr-1.5 -mt-1.5 flex h-9 w-9 flex-shrink-0 items-center justify-center text-mute transition-colors hover:bg-sand hover:text-ink"
+            variant="ghost" size="sm" iconOnly className="-mr-1.5 -mt-1.5 flex-shrink-0"
           >
             <CancelIcon size={17} aria-hidden />
-          </button>
+          </Button>
         </div>
         {children}
       </div>

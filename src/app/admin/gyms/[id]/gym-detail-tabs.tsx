@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { usePathname } from "next/navigation";
 
 const TABS = [
@@ -53,17 +54,17 @@ export function GymDetailTabs({
         const active = tab.href === "" ? pathname === base : pathname.startsWith(href);
         const count = counts[tab.href];
         return (
-          <Link
+          <ButtonLink
             key={tab.href}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${
+            variant="control" size="custom" className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${
               active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"
             }`}
           >
             {tab.label}
             {count ? <span className={active ? "text-mute" : "text-mute3"}>{count}</span> : null}
-          </Link>
+          </ButtonLink>
         );
       })}
     </nav>

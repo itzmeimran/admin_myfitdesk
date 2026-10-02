@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
@@ -83,7 +84,7 @@ export async function getGymAuditLog(
       actionLabel: AUDIT_ACTION_LABEL[row.action] ?? row.action,
       adminEmail: row.admin_email ?? "System",
       detail: row.detail,
-      at: formatShortDate(new Date(row.at), now) + " " + new Date(row.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      at: formatShortDate(new Date(row.at), now) + " " + new Date(row.at).toLocaleTimeString("en-IN", { timeZone: IST_TIME_ZONE, hour: "2-digit", minute: "2-digit" }),
     })),
   };
 }

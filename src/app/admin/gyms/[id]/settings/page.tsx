@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
@@ -36,7 +37,7 @@ export default async function GymSettingsPage({ params }: { params: Promise<{ id
               {gym.status}
             </span>
           </Row>
-          <Row k="Created" v={new Date(gym.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })} />
+          <Row k="Created" v={new Date(gym.createdAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, day: "numeric", month: "long", year: "numeric" })} />
           <Row k="Verification" v={gym.contactEmail ? "Contact email on file" : "No contact email on file"} />
         </dl>
       </section>

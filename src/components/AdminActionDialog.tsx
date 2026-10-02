@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@/components/Dialog";
@@ -145,24 +146,23 @@ export function AdminActionDialog({
         ) : null}
 
         <div className="flex justify-end gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="min-h-[40px] border-[1.5px] border-line px-4 text-[11px] font-bold uppercase tracking-[0.09em] text-mute hover:text-ink disabled:opacity-60"
+            variant="secondary" size="md"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={submit}
+            pending={isPending}
             disabled={!canSubmit}
-            className={`press-scale min-h-[40px] px-4 text-[11px] font-bold uppercase tracking-[0.09em] disabled:cursor-not-allowed disabled:opacity-45 ${
-              danger ? "bg-accent text-paper" : "bg-ink text-hi"
-            }`}
+            variant={danger ? "danger" : "primary"} size="md"
           >
             {isPending ? "Working…" : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

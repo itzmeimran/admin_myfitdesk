@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AssignablePackage } from "./queries";
@@ -190,7 +191,7 @@ export function ManageSubscriptionSheet({
             waits until the current paid/trial period ends; the same package renews from the later of today or the
             current renewal date.
           </p>
-          <button
+          <Button pending={busy === "renew"} icon={ExtendIcon}
             type="button"
             disabled={isPending || !renewalPackageId || !paymentAmount.trim()}
             onClick={() => {
@@ -206,11 +207,10 @@ export function ManageSubscriptionSheet({
                 "Manual renewal and payment recorded.",
               );
             }}
-            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-ink bg-ink text-[11px] font-bold uppercase tracking-[0.09em] text-hi disabled:cursor-wait disabled:opacity-70"
+            variant="primary" size="sm"
           >
-            <ExtendIcon size={13} aria-hidden />
             {busy === "renew" ? "Recording…" : "Record renewal"}
-          </button>
+          </Button>
         </div>
 
         <div className={`order-first flex flex-col gap-2 border-[1.5px] p-3 ${gym.isTrialing ? "border-hi bg-hi/10" : "border-line bg-paper"}`}>
@@ -220,15 +220,15 @@ export function ManageSubscriptionSheet({
           {gym.isTrialing ? (
             <div className="flex flex-wrap gap-1.5" aria-label="Common trial extensions">
               {[7, 14, 30].map((value) => (
-                <button
+                <Button
                   key={value}
                   type="button"
                   onClick={() => setDays(String(value))}
                   aria-pressed={days === String(value)}
-                  className={`min-h-[32px] border px-3 text-[10.5px] font-bold ${days === String(value) ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink"}`}
+                  variant={days === String(value) ? "primary" : "secondary"} size="sm"
                 >
                   +{value} days
-                </button>
+                </Button>
               ))}
             </div>
           ) : null}
@@ -250,7 +250,7 @@ export function ManageSubscriptionSheet({
               ? "Keeps the subscription in Trialing status and records the exact before/after dates in the admin audit log. No invoice or revenue is created."
               : "Moves access only. It deliberately creates no invoice or revenue."}
           </p>
-          <button
+          <Button pending={busy === "extend"} icon={ExtendIcon}
             type="button"
             disabled={isPending}
             onClick={() => {
@@ -265,11 +265,10 @@ export function ManageSubscriptionSheet({
                 gym.isTrialing ? `Trial extended by ${n} days.` : "Subscription extended without payment.",
               );
             }}
-            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+            variant="secondary" size="sm"
           >
-            <ExtendIcon size={13} aria-hidden />
             {busy === "extend" ? "Extending…" : gym.isTrialing ? `Extend trial by ${days || "…"} days` : "Extend without payment"}
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">
@@ -283,14 +282,14 @@ export function ManageSubscriptionSheet({
                 Picking another package below replaces this queued one. Today&apos;s access, price and caps are
                 unaffected either way.
               </p>
-              <button
+              <Button pending={busy === "clear"} tone="danger"
                 type="button"
                 disabled={isPending}
                 onClick={() => run("clear", () => clearPendingSubscriptionPackage(gym.organizationId), "Scheduled change cleared.")}
-                className="flex min-h-[32px] items-center justify-center text-[10.5px] font-bold text-accent underline underline-offset-2 disabled:cursor-wait disabled:opacity-60"
+                variant="link" size="custom" className="underline underline-offset-2"
               >
                 {busy === "clear" ? "Clearing…" : "Clear scheduled change"}
-              </button>
+              </Button>
             </div>
           ) : null}
           <select
@@ -313,15 +312,14 @@ export function ManageSubscriptionSheet({
             start automatically when that period ends — today&apos;s access, price and caps are untouched until then.
             Only applies immediately if the gym has already lapsed past its renewal date.
           </p>
-          <button
+          <Button pending={busy === "package"} icon={PackagesIcon}
             type="button"
             disabled={isPending || !packageId}
             onClick={() => run("package", () => changeSubscriptionPackage(gym.organizationId, packageId))}
-            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+            variant="secondary" size="sm"
           >
-            <PackagesIcon size={13} aria-hidden />
             {busy === "package" ? "Saving…" : "Change package"}
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">
@@ -336,14 +334,14 @@ export function ManageSubscriptionSheet({
               <p className="text-[10.5px] text-mute3">
                 Queued automatically — nothing else to do. Runs through {formatShortDate(new Date(scheduled.periodEnd))}.
               </p>
-              <button
+              <Button pending={busy === "clear-schedule"}
                 type="button"
                 disabled={isPending}
                 onClick={() => run("clear-schedule", () => clearScheduledPackage(gym.organizationId))}
-                className="flex min-h-[34px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[10.5px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+                variant="secondary" size="sm"
               >
                 {busy === "clear-schedule" ? "Clearing…" : "Clear scheduled package"}
-              </button>
+              </Button>
             </div>
           ) : (
             <>
@@ -364,15 +362,14 @@ export function ManageSubscriptionSheet({
               <p className="text-[10.5px] text-mute3">
                 Starts automatically at {gym.renewsLabel} — today&apos;s access, price and caps are untouched until then.
               </p>
-              <button
+              <Button pending={busy === "schedule"} icon={CalendarIcon}
                 type="button"
                 disabled={isPending || !schedulePackageId}
                 onClick={() => run("schedule", () => schedulePackage(gym.organizationId, schedulePackageId))}
-                className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+                variant="secondary" size="sm"
               >
-                <CalendarIcon size={13} aria-hidden />
                 {busy === "schedule" ? "Scheduling…" : "Schedule package"}
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -386,7 +383,7 @@ export function ManageSubscriptionSheet({
               ? "Restores billing status without changing the renewal date — Extend separately if they should get access back today."
               : "Ends auto-renew immediately. The gym keeps whatever access its dates already say (grace/read-only rules still apply)."}
           </p>
-          <button
+          <Button
             type="button"
             disabled={isPending}
             onClick={() =>
@@ -394,11 +391,11 @@ export function ManageSubscriptionSheet({
                 ? run("lifecycle", () => restoreSubscription(gym.organizationId))
                 : setConfirmCancel(true)
             }
-            className="flex min-h-[38px] items-center justify-center gap-1.5 border-[1.5px] border-line text-[11px] font-bold text-ink disabled:cursor-wait disabled:opacity-60"
+            variant="secondary" size="sm"
           >
             {gym.isCancelled ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
             {busy === "lifecycle" ? "Working…" : gym.isCancelled ? "Restore subscription" : "Cancel subscription"}
-          </button>
+          </Button>
         </div>
       </div>
 

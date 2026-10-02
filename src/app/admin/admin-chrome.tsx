@@ -1,7 +1,9 @@
 "use client";
 
+import { Button } from "@/components/Button";
+import { ButtonLink } from "@/components/ButtonLink";
 import { useState } from "react";
-import Link from "next/link";
+
 import { usePathname } from "next/navigation";
 import { signOut } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -45,14 +47,14 @@ export function AdminChrome({
 
   return (
     <>
-      <button
+      <Button
         type="button"
         aria-label="Open menu"
         onClick={() => setMenuOpen(true)}
-        className="-ml-2 flex h-11 w-11 flex-shrink-0 items-center justify-center text-ink transition-colors hover:bg-sand md:hidden"
+        variant="ghost" size="lg" iconOnly className="-ml-2 flex-shrink-0 md:hidden"
       >
         <MenuIcon size={20} aria-hidden />
-      </button>
+      </Button>
 
       <div className="mr-auto flex min-w-0 items-center gap-2.5">
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -80,17 +82,17 @@ export function AdminChrome({
       </form>
 
       {alertsCount > 0 ? (
-        <Link
+        <ButtonLink
           href="/admin#mfd-attn"
           aria-label={`View ${alertsCount} accounts needing attention`}
           title="View accounts needing attention"
-          className="press-scale relative flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink bg-paper text-ink"
+          variant="secondary" size="sm" iconOnly className="relative flex-shrink-0"
         >
           <NudgeIcon size={16} aria-hidden />
           <span className="absolute -right-[7px] -top-[7px] flex h-[17px] min-w-[17px] items-center justify-center bg-accent px-1 text-[9.5px] font-bold text-paper">
             {alertsCount}
           </span>
-        </Link>
+        </ButtonLink>
       ) : (
         <span
           aria-label="No accounts currently need attention"
@@ -113,11 +115,11 @@ export function AdminChrome({
         {visibleNavItems(MOBILE_NAV_ITEMS, permissions).map((item) => {
           const badge = badgeFor(item.href);
           return (
-            <Link
+            <ButtonLink
               key={item.href}
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
-              className={`relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 px-0.5 transition-colors ${
+              variant="control" size="custom" className={`relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 px-0.5 ${
                 isActive(item.href) ? "bg-ink text-hi" : "text-mute"
               }`}
             >
@@ -133,7 +135,7 @@ export function AdminChrome({
                   {badge}
                 </span>
               ) : null}
-            </Link>
+            </ButtonLink>
           );
         })}
       </nav>
@@ -152,14 +154,14 @@ export function AdminChrome({
                     <span className="text-[10px] uppercase tracking-[0.1em] text-mute3">Platform admin</span>
                   </span>
                 </span>
-                <button
+                <Button tone="inverse"
                   type="button"
                   aria-label="Close menu"
                   onClick={() => setMenuOpen(false)}
-                  className="-mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center text-mute3 transition-colors hover:bg-white/10 hover:text-paper"
+                  variant="ghost" size="lg" iconOnly className="-mr-2 flex-shrink-0"
                 >
                   <CancelIcon size={18} aria-hidden />
-                </button>
+                </Button>
               </div>
 
               <div className="flex flex-col gap-0.5">
@@ -167,11 +169,11 @@ export function AdminChrome({
                   const active = isActive(item.href);
                   const badge = badgeFor(item.href);
                   return (
-                    <Link
+                    <ButtonLink
                       key={item.href}
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
-                      className={`flex min-h-[48px] items-center gap-3.5 border-l-2 px-3 text-[14px] ${
+                      variant="control" size="custom" className={`flex min-h-[48px] items-center gap-3.5 border-l-2 px-3 text-[14px] ${
                         active
                           ? "border-hi bg-[#302620] font-bold text-paper"
                           : "border-transparent text-mute3 hover:bg-[#302620] hover:text-paper"
@@ -187,7 +189,7 @@ export function AdminChrome({
                           {badge}
                         </span>
                       ) : null}
-                    </Link>
+                    </ButtonLink>
                   );
                 })}
               </div>
@@ -204,21 +206,21 @@ export function AdminChrome({
                 </span>
               </div>
               <form action={signOut}>
-                <SubmitButton
+                <SubmitButton tone="inverse" variant="ghost" size="sm"
                   icon={SignOutIcon}
                   pendingLabel="Signing out…"
-                  className="min-h-[38px] w-full border border-inkline text-[10.5px] font-bold text-mute3 hover:border-paper hover:text-paper"
+                  className="w-full border"
                 >
                   Sign out
                 </SubmitButton>
               </form>
             </div>
           </nav>
-          <button
+          <Button
             type="button"
             aria-label="Dismiss"
             onClick={() => setMenuOpen(false)}
-            className="flex-1 cursor-pointer border-none bg-black/45"
+            variant="overlay" size="custom" className="flex-1 cursor-pointer border-none bg-black/45"
           />
         </div>
       ) : null}

@@ -1,5 +1,8 @@
+import { ButtonLink } from "@/components/ButtonLink";
+import { buttonClasses } from "@/core/ui/button-styles";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
 import { getTimeline } from "@/features/gyms/ops/queries";
@@ -60,7 +63,7 @@ export default async function GymActivityPage({
   const supabase = await createClient();
   const gym = await getGymDetail(supabase, id);
   if (!gym) notFound();
-  const tz = gym.defaultTimezone || "Asia/Kolkata";
+  const tz = IST_TIME_ZONE;
 
   const timeline = await getTimeline(
     supabase,
@@ -105,24 +108,21 @@ export default async function GymActivityPage({
     return `${pathname}${p.toString() ? `?${p}` : ""}`;
   })();
 
-  const chip = (active: boolean) =>
-    `flex min-h-[34px] items-center border-[1.5px] px-3 text-[11px] font-bold ${active ? "border-ink bg-ink text-hi" : "border-line bg-paper text-mute hover:border-ink hover:text-ink"}`;
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Date range">
-          <Link href={presetHref(0)} className={chip(preset.today)}>Today</Link>
-          <Link href={presetHref(6)} className={chip(preset.week)}>Last 7 days</Link>
-          <Link href={presetHref(29)} className={chip(preset.month)}>Last 30 days</Link>
-          <span className={chip(Boolean(custom))}>Custom</span>
+          <ButtonLink href={presetHref(0)} size="sm" selected={preset.today} aria-current={preset.today ? "true" : undefined}>Today</ButtonLink>
+          <ButtonLink href={presetHref(6)} size="sm" selected={preset.week} aria-current={preset.week ? "true" : undefined}>Last 7 days</ButtonLink>
+          <ButtonLink href={presetHref(29)} size="sm" selected={preset.month} aria-current={preset.month ? "true" : undefined}>Last 30 days</ButtonLink>
+          <span data-selected={Boolean(custom) || undefined} className={buttonClasses({ size: "sm" })}>Custom</span>
         </div>
         <DateRangeFilter />
         <span className="ml-auto flex items-center gap-3 text-[11.5px] text-mute3">
           {timeline.data ? `${timeline.data.total.toLocaleString("en-IN")} events` : null}
-          <Link href={sortHref} className="font-bold text-mute underline underline-offset-2 hover:text-ink">
+          <ButtonLink href={sortHref} variant="link" size="custom" className="underline underline-offset-2">
             {sortDir === "desc" ? "Newest first" : "Oldest first"}
-          </Link>
+          </ButtonLink>
           <ExportActivityButton
             organizationId={id}
             filters={{ search, category, actorType, status, from: dateFrom, to: dateTo, sortDir }}
@@ -140,9 +140,9 @@ export default async function GymActivityPage({
         <FilterSelect param="actor" placeholder="Any actor" options={ACTORS} />
         <FilterSelect param="status" placeholder="Any status" options={STATUSES} />
         {hasFilters ? (
-          <Link href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
+          <ButtonLink href={pathname} variant="link" size="custom" className="underline underline-offset-2">
             Reset filters
-          </Link>
+          </ButtonLink>
         ) : null}
       </div>
 

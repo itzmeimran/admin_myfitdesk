@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState } from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
@@ -7,7 +8,6 @@ import type { GymDetail } from "@/features/gyms/detail";
 import { updateGymProfile, type ProfileFormState } from "@/features/gyms/actions";
 import { useToast } from "@/components/Toast";
 import { ConfirmIcon } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 const initialState: ProfileFormState = { error: null };
 
@@ -59,14 +59,13 @@ export function GymProfileForm({ gym }: { gym: GymDetail }) {
           min={0}
         />
       </div>
-      <button
+      <Button pending={isPending} icon={ConfirmIcon}
         type="submit"
         disabled={isPending}
-        className="press-scale flex min-h-[42px] items-center justify-center gap-2 self-start bg-hi px-5 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-wait disabled:opacity-70"
+        variant="primary" size="md" className="self-start"
       >
-        <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
         {isPending ? "Saving…" : "Save changes"}
-      </button>
+      </Button>
     </form>
   );
 }

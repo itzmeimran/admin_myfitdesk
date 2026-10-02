@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/ButtonLink";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
@@ -59,9 +61,9 @@ export default async function GymOverviewPage({ params }: { params: Promise<{ id
         <p className="text-[12.5px] leading-relaxed text-mute">
           The gym header and other tabs are still available. Retry this page after the overview database migration is applied.
         </p>
-        <Link href={`/admin/gyms/${gym.id}`} className="w-fit border-[1.5px] border-ink px-3 py-2 text-[10.5px] font-bold uppercase tracking-[0.09em]">
+        <ButtonLink href={`/admin/gyms/${gym.id}`} variant="secondary" size="md" className="w-fit">
           Retry overview
-        </Link>
+        </ButtonLink>
       </section>
       </div>
     );
@@ -130,16 +132,16 @@ function OverviewContent({
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
           <Metric label="Current plan" value={sub?.packageName ?? (gym.status === "Trialing" ? "Trial" : "No package")} />
           <Metric label="Status" value={gym.status} pill />
-          <Metric label="Expiry / renewal" value={expiry ? formatDate(expiry, overview.timezone) : "Not scheduled"} supporting={daysLabel(daysRemaining)} />
+          <Metric label="Expiry / renewal" value={expiry ? formatDate(expiry, IST_TIME_ZONE) : "Not scheduled"} supporting={daysLabel(daysRemaining)} />
           <Metric label="Lifetime paid" value={formatMinorWhole(overview.subscription.lifetimePaidMinor, currency)} />
         </div>
         <div className="grid grid-cols-1 gap-0 border-[1.5px] border-line bg-paper sm:grid-cols-3">
-          <Info label="Started" value={sub?.currentPeriodStart ? formatDate(new Date(sub.currentPeriodStart), overview.timezone) : "—"} />
+          <Info label="Started" value={sub?.currentPeriodStart ? formatDate(new Date(sub.currentPeriodStart), IST_TIME_ZONE) : "—"} />
           <Info label="Billing cycle" value={capitalizeBillingPeriod(sub?.billingPeriod)} />
           <Info
             label="Last subscription payment"
             value={overview.subscription.lastPaymentMinor !== null ? formatMinorWhole(overview.subscription.lastPaymentMinor, currency) : "No successful payment"}
-            supporting={formatDateTime(overview.subscription.lastPaymentAt, overview.timezone)}
+            supporting={formatDateTime(overview.subscription.lastPaymentAt, IST_TIME_ZONE)}
           />
         </div>
       </Section>
@@ -158,12 +160,12 @@ function OverviewContent({
             <Info label="Sender mode" value={senderModeLabel(overview.whatsapp.lastSenderMode)} />
             <Info label="Utility" value={`${overview.whatsapp.utilityMonth.toLocaleString("en-IN")} this month`} />
             <Info label="Marketing" value={`${overview.whatsapp.marketingMonth.toLocaleString("en-IN")} this month`} />
-            <Info label="Last message" value={formatDateTime(overview.whatsapp.lastMessageAt, overview.timezone)} />
-            <Info label="Last webhook" value={formatDateTime(overview.whatsapp.lastWebhookAt, overview.timezone)} />
+            <Info label="Last message" value={formatDateTime(overview.whatsapp.lastMessageAt, IST_TIME_ZONE)} />
+            <Info label="Last webhook" value={formatDateTime(overview.whatsapp.lastWebhookAt, IST_TIME_ZONE)} />
             <Info
               label="Last credit purchase"
               value={overview.whatsapp.lastCreditPurchaseMinor !== null ? formatMinorWhole(overview.whatsapp.lastCreditPurchaseMinor, currency) : "No purchase"}
-              supporting={formatDateTime(overview.whatsapp.lastCreditPurchaseAt, overview.timezone)}
+              supporting={formatDateTime(overview.whatsapp.lastCreditPurchaseAt, IST_TIME_ZONE)}
             />
             <Info label="Credits consumed" value={overview.whatsapp.creditsUsedMonth.toLocaleString("en-IN")} supporting="This month" />
           </div>
@@ -173,7 +175,7 @@ function OverviewContent({
               <strong className="text-[13px] leading-relaxed text-ink">
                 {overview.whatsapp.latestFailure.errorMessage || overview.whatsapp.latestFailure.errorCode || "Delivery failed without provider detail"}
               </strong>
-              <span className="text-[11.5px] text-mute">{formatDateTime(overview.whatsapp.latestFailure.at, overview.timezone)}</span>
+              <span className="text-[11.5px] text-mute">{formatDateTime(overview.whatsapp.latestFailure.at, IST_TIME_ZONE)}</span>
               <Link href={`/admin/gyms/${gym.id}/whatsapp?status=failed`} className="mt-auto w-fit text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">View failures →</Link>
             </div>
           ) : (
@@ -184,7 +186,7 @@ function OverviewContent({
 
       <Section title="Recent WhatsApp messages" description="Latest outbound messages. Expand a row for delivery diagnostics." id="whatsapp-messages">
         {overview.whatsapp.recentMessages.length ? (
-          <MessageHistory messages={overview.whatsapp.recentMessages} timezone={overview.timezone} />
+          <MessageHistory messages={overview.whatsapp.recentMessages} timezone={IST_TIME_ZONE} />
         ) : (
           <EmptyCopy>No outbound WhatsApp messages have been recorded for this gym.</EmptyCopy>
         )}
@@ -194,7 +196,7 @@ function OverviewContent({
       <Section title="Revenue" description="Gym collections and MyFitDesk earnings stay deliberately separate.">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <RevenueCard title="Gym business revenue" subtitle="Money members paid to the gym" values={[["Today", formatMinorWhole(overview.gymRevenue.todayMinor, currency)], ["This month", formatMinorWhole(overview.gymRevenue.monthMinor, currency)], ["Previous month", formatMinorWhole(overview.gymRevenue.previousMonthMinor, currency)], ["Lifetime", formatMinorWhole(overview.gymRevenue.lifetimeMinor, currency)]]} footer={`${overview.gymRevenue.paymentsThisMonth.toLocaleString("en-IN")} payments this month`} />
-          <RevenueCard title="MyFitDesk revenue from this gym" subtitle="Subscription and WhatsApp credit purchases" values={[["This month", formatMinorWhole(overview.myFitDeskRevenue.monthMinor, currency)], ["Lifetime", formatMinorWhole(overview.myFitDeskRevenue.lifetimeMinor, currency)]]} footer={`Last payment: ${formatDateTime(overview.myFitDeskRevenue.lastPaymentAt, overview.timezone)}`} />
+          <RevenueCard title="MyFitDesk revenue from this gym" subtitle="Subscription and WhatsApp credit purchases" values={[["This month", formatMinorWhole(overview.myFitDeskRevenue.monthMinor, currency)], ["Lifetime", formatMinorWhole(overview.myFitDeskRevenue.lifetimeMinor, currency)]]} footer={`Last payment: ${formatDateTime(overview.myFitDeskRevenue.lastPaymentAt, IST_TIME_ZONE)}`} />
         </div>
       </Section>
 
@@ -206,12 +208,12 @@ function OverviewContent({
           <Metric label="Expiring in 7 days" value={overview.activity.expiring7d.toLocaleString("en-IN")} accent={overview.activity.expiring7d > 0} />
           <Metric label="New members" value={overview.activity.newMembersMonth.toLocaleString("en-IN")} supporting="This month" />
           <Metric label="Payments" value={overview.activity.paymentsMonth.toLocaleString("en-IN")} supporting="This month" />
-          <Metric label="Last member added" value={formatDateTime(overview.activity.lastMemberAddedAt, overview.timezone)} compact />
-          <Metric label="Last gym payment" value={formatDateTime(overview.activity.lastGymPaymentAt, overview.timezone)} compact />
+          <Metric label="Last member added" value={formatDateTime(overview.activity.lastMemberAddedAt, IST_TIME_ZONE)} compact />
+          <Metric label="Last gym payment" value={formatDateTime(overview.activity.lastGymPaymentAt, IST_TIME_ZONE)} compact />
         </div>
         <div className="grid grid-cols-1 gap-0 border-[1.5px] border-line bg-paper sm:grid-cols-2">
-          <div className="p-4 sm:border-r sm:border-line"><span className="text-[10px] font-bold uppercase tracking-[0.11em] text-mute3">Last owner activity</span><div className="mt-1 flex flex-wrap items-baseline gap-2"><strong className="text-[15px]">{formatDateTime(overview.activity.lastOwnerActivityAt, overview.timezone)}</strong><span className="text-[11.5px] text-mute">{activityFreshness(overview.activity.lastOwnerActivityAt, now)}</span></div></div>
-          <div className="border-t border-line p-4 sm:border-t-0"><span className="text-[10px] font-bold uppercase tracking-[0.11em] text-mute3">Last important gym action</span><div className="mt-1 flex flex-wrap items-baseline gap-2"><strong className="text-[13px]">{overview.activity.lastGymAction ?? "No activity recorded"}</strong><span className="text-[11.5px] text-mute">{formatDateTime(overview.activity.lastGymActionAt, overview.timezone)}</span></div></div>
+          <div className="p-4 sm:border-r sm:border-line"><span className="text-[10px] font-bold uppercase tracking-[0.11em] text-mute3">Last owner activity</span><div className="mt-1 flex flex-wrap items-baseline gap-2"><strong className="text-[15px]">{formatDateTime(overview.activity.lastOwnerActivityAt, IST_TIME_ZONE)}</strong><span className="text-[11.5px] text-mute">{activityFreshness(overview.activity.lastOwnerActivityAt, now)}</span></div></div>
+          <div className="border-t border-line p-4 sm:border-t-0"><span className="text-[10px] font-bold uppercase tracking-[0.11em] text-mute3">Last important gym action</span><div className="mt-1 flex flex-wrap items-baseline gap-2"><strong className="text-[13px]">{overview.activity.lastGymAction ?? "No activity recorded"}</strong><span className="text-[11.5px] text-mute">{formatDateTime(overview.activity.lastGymActionAt, IST_TIME_ZONE)}</span></div></div>
         </div>
       </Section>
 
@@ -226,14 +228,14 @@ function OverviewContent({
       <Section title="System health" description="Only services with reliable stored signals are shown.">
         <div className="grid grid-cols-1 gap-0 border-[1.5px] border-line bg-paper sm:grid-cols-2 lg:grid-cols-4">
           <Health label="WhatsApp" value={connectionLabel(overview)} bad={overview.whatsapp.connectionStatus === "error"} />
-          <Health label="Queue worker" value={overview.health.lastQueueDrainAt ? `Last ran ${formatDateTime(overview.health.lastQueueDrainAt, overview.timezone)}` : "No run recorded"} bad={overview.whatsapp.stuckCount > 0} />
+          <Health label="Queue worker" value={overview.health.lastQueueDrainAt ? `Last ran ${formatDateTime(overview.health.lastQueueDrainAt, IST_TIME_ZONE)}` : "No run recorded"} bad={overview.whatsapp.stuckCount > 0} />
           <Health label="Scheduled campaigns" value={overview.health.scheduledFailures ? `${overview.health.scheduledFailures} failed in 24h` : "Healthy"} bad={overview.health.scheduledFailures > 0} />
-          <Health label="Automations" value={overview.health.automationFailuresMonth ? `${overview.health.automationFailuresMonth} failed this month` : "Healthy"} bad={overview.health.automationFailuresMonth > 0} supporting={overview.health.lastAutomationAt ? `Last: ${formatDateTime(overview.health.lastAutomationAt, overview.timezone)}` : undefined} />
+          <Health label="Automations" value={overview.health.automationFailuresMonth ? `${overview.health.automationFailuresMonth} failed this month` : "Healthy"} bad={overview.health.automationFailuresMonth > 0} supporting={overview.health.lastAutomationAt ? `Last: ${formatDateTime(overview.health.lastAutomationAt, IST_TIME_ZONE)}` : undefined} />
         </div>
       </Section>
 
       <Section title="Recent activity" description="Latest important platform billing and admin events.">
-        {overview.recentActivity.length ? <div className="divide-y divide-line border-[1.5px] border-line bg-paper">{overview.recentActivity.map((event, index) => <div key={`${event.kind}-${event.at}-${index}`} className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-3 text-[12.5px]"><span className="font-bold text-ink">{activityLabel(event.label)}</span><span className="text-mute">{event.amountMinor !== null ? `${formatMinorWhole(event.amountMinor, event.currency ?? currency)} · ` : ""}{formatDateTime(event.at, overview.timezone)}</span></div>)}</div> : <EmptyCopy>No important activity has been recorded yet.</EmptyCopy>}
+        {overview.recentActivity.length ? <div className="divide-y divide-line border-[1.5px] border-line bg-paper">{overview.recentActivity.map((event, index) => <div key={`${event.kind}-${event.at}-${index}`} className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-3 text-[12.5px]"><span className="font-bold text-ink">{activityLabel(event.label)}</span><span className="text-mute">{event.amountMinor !== null ? `${formatMinorWhole(event.amountMinor, event.currency ?? currency)} · ` : ""}{formatDateTime(event.at, IST_TIME_ZONE)}</span></div>)}</div> : <EmptyCopy>No important activity has been recorded yet.</EmptyCopy>}
         <Link href={`/admin/gyms/${gym.id}/activity`} className="w-fit text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">View complete activity →</Link>
       </Section>
 
@@ -244,7 +246,7 @@ function OverviewContent({
 
         <Section title="Admin notes" description="Private — never visible to the gym owner, staff or trainers.">
           {notes ? (
-            <NotesPanel organizationId={gym.id} notes={notes} timeZone={overview.timezone} />
+            <NotesPanel organizationId={gym.id} notes={notes} timeZone={IST_TIME_ZONE} />
           ) : (
             <SectionError title="Admin notes" message={notesError ?? "Unavailable."} />
           )}

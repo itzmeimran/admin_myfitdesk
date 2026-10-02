@@ -1,4 +1,5 @@
 "use server";
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { assertPermission } from "@/core/auth/access";
 
 import { revalidatePath } from "next/cache";
@@ -340,7 +341,7 @@ export async function exportGymsCsv(params: GymListParams): Promise<ExportGymsRe
         g.staff,
         g.renews,
         g.ltv,
-        new Date(g.createdAt).toLocaleDateString("en-IN"),
+        new Date(g.createdAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE }),
       ]),
     };
   } catch (e) {

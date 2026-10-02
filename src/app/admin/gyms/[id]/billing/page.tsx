@@ -1,3 +1,4 @@
+import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
@@ -10,6 +11,7 @@ import { Pagination, parsePagination } from "@/components/Pagination";
 import { EmptyState } from "@/components/EmptyState";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { formatMinorWhole } from "@/core/money/format";
+import { zonedDayRange } from "@/core/dates/zoned-range";
 import { formatShortDate } from "@/core/dates/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { PAYMENT_METHODS } from "@/features/gyms/payment-method";
@@ -60,8 +62,8 @@ export default async function GymBillingPage({
       status,
       provider,
       method,
-      dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
-      dateTo: dateTo ? new Date(`${dateTo}T23:59:59`).toISOString() : undefined,
+      dateFrom: dateFrom ? zonedDayRange(dateFrom, IST_TIME_ZONE)?.start : undefined,
+      dateTo: dateTo ? zonedDayRange(dateTo, IST_TIME_ZONE)?.end : undefined,
       sortCol,
       sortDir,
       limit: pageSize,

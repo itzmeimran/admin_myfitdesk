@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:dr": "node --test scripts/disaster-recovery-policy.test.mjs",
+    "test:ist": "node --test scripts/ist-calendar.test.cjs",
+    "test:buttons": "node --test scripts/button-system.test.cjs",
     "backup:pre-migration": "node scripts/create-pre-migration-backup.mjs"
   },
   "dependencies": {

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useId, useState } from "react";
 import { AlertIcon } from "@/core/ui/icons";
 
@@ -71,11 +72,11 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button
+      <Button
         type="button"
         aria-label="Dismiss"
         onClick={onCancel}
-        className="fade-in absolute inset-0 cursor-pointer border-none bg-black/50"
+        variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/50"
       />
       <div
         role="alertdialog"
@@ -118,24 +119,23 @@ export function ConfirmDialog({
           </label>
         ) : null}
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="flex min-h-[40px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink transition-colors hover:border-ink hover:bg-sand disabled:opacity-60"
+            variant="secondary" size="md" className="flex-1"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => onConfirm(typedValue.trim())}
+            pending={pending}
             disabled={pending || !typedConfirmationSatisfied}
-            className={`press-scale flex min-h-[40px] flex-1 items-center justify-center text-[11.5px] font-bold uppercase tracking-[0.09em] disabled:cursor-not-allowed disabled:opacity-50 ${
-              danger ? "bg-accent text-paper" : "bg-ink text-hi"
-            }`}
+            variant={danger ? "danger" : "primary"} size="md" className="flex-1"
           >
             {pending ? "Working…" : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { usePathname } from "next/navigation";
 
 export type SettingsTab = { href: string; label: string };
@@ -25,16 +26,16 @@ export function SettingsTabs({ tabs }: { tabs: SettingsTab[] }) {
       {tabs.map((tab) => {
         const active = tab.href === "/admin/settings" ? pathname === tab.href : pathname.startsWith(tab.href);
         return (
-          <Link
+          <ButtonLink
             key={tab.href}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`flex flex-shrink-0 items-center whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${
+            variant="control" size="custom" className={`flex flex-shrink-0 items-center whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${
               active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"
             }`}
           >
             {tab.label}
-          </Link>
+          </ButtonLink>
         );
       })}
     </nav>

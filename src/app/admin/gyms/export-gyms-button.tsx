@@ -1,12 +1,12 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useTransition } from "react";
 import { downloadCsv } from "@/core/csv";
 import { exportGymsCsv } from "@/features/gyms/actions";
 import type { GymListParams } from "@/features/gyms/queries";
 import { useToast } from "@/components/Toast";
 import { ExportIcon } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 // Kept here rather than exported from actions.ts: a "use server" file may
 // only export async functions — a plain array export there broke every
@@ -53,14 +53,13 @@ export function ExportGymsButton({ params }: { params: GymListParams }) {
   }
 
   return (
-    <button
+    <Button pending={isPending} icon={ExportIcon}
       type="button"
       disabled={isPending}
       onClick={handleExport}
-      className="flex min-h-[36px] items-center gap-2 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink disabled:cursor-wait disabled:opacity-70"
+      variant="secondary" size="sm"
     >
-      <ExportIcon size={ICON_SIZE.button} aria-hidden />
       {isPending ? "Exporting…" : "Export CSV"}
-    </button>
+    </Button>
   );
 }

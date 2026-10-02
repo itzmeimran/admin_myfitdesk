@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { GymListRow, AssignablePackage } from "@/features/gyms/queries";
@@ -156,22 +157,21 @@ export function SuspendSheet({
           </label>
         ) : null}
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="flex min-h-[42px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink transition-colors hover:border-ink hover:bg-sand"
+            variant="secondary" size="md" className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button pending={isPending} icon={AlertIcon}
             type="button"
             disabled={isPending || !canSubmit}
             onClick={confirm}
-            className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 bg-accent text-[11.5px] font-bold uppercase tracking-[0.09em] text-paper disabled:cursor-not-allowed disabled:opacity-50"
+            variant="danger" size="md" className="flex-1"
           >
-            <AlertIcon size={13} aria-hidden />
             {isPending ? "Suspending…" : "Suspend gym"}
-          </button>
+          </Button>
         </div>
       </div>
     </Sheet>

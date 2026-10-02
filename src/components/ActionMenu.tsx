@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { IconType } from "@/core/ui/icons";
@@ -187,7 +188,7 @@ export function ActionMenu({
 
   return (
     <>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
         aria-label={ariaLabel}
@@ -197,18 +198,13 @@ export function ActionMenu({
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
-        className={
-          size === "md"
-            ? `press-scale inline-flex h-10 w-10 flex-shrink-0 items-center justify-center border-[1.5px] border-ink transition-colors hover:bg-ink hover:text-paper focus-visible:bg-ink focus-visible:text-paper focus-visible:outline-none disabled:opacity-40 ${
-                open ? "bg-ink text-paper" : "bg-paper text-ink"
-              }`
-            : `inline-flex h-8 w-8 items-center justify-center border-[1.5px] text-ink transition-colors hover:border-ink hover:bg-sand focus-visible:border-ink focus-visible:outline-none disabled:opacity-40 ${
-                open ? "border-ink bg-sand" : "border-line"
-              }`
-        }
+        variant="secondary"
+        size={size}
+        iconOnly
+        selected={open}
+        icon={MoreIcon}
       >
-        <MoreIcon size={16} aria-hidden />
-      </button>
+      </Button>
 
       {open && placement
         ? createPortal(

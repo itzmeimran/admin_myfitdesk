@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/Button";
 /**
  * Last-resort boundary: this only renders when the *root layout itself*
  * fails, which means it replaces `layout.tsx` entirely and must supply its
@@ -64,7 +65,7 @@ export default function GlobalError({
             in a moment.
           </p>
 
-          <button
+          <Button variant="ghost" size="md"
             type="button"
             onClick={reset}
             style={{
@@ -82,7 +83,7 @@ export default function GlobalError({
             }}
           >
             Try again
-          </button>
+          </Button>
 
           {error.digest ? (
             <p style={{ fontSize: "11px", color: "#b3a99d", marginTop: "16px" }}>

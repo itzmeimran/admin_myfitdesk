@@ -1,5 +1,7 @@
 "use client";
 
+import { ButtonLink } from "@/components/ButtonLink";
+import { Button } from "@/components/Button";
 import { useState, useTransition, useActionState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,7 +37,6 @@ import {
   ToggleOnIcon,
   ToggleOffIcon,
 } from "@/core/ui/icons";
-import { ICON_SIZE } from "@/core/ui/icon-size";
 
 /**
  * Every package, one screen. A row of cards picks which package is under
@@ -63,10 +64,6 @@ const CARD = "flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4";
 const LABEL = "text-[9px] font-bold uppercase tracking-[0.12em] text-mute";
 const INPUT =
   "w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink";
-const PRIMARY =
-  "press-scale flex min-h-[44px] items-center justify-center gap-2 bg-hi px-4 text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink transition-colors hover:bg-[#e0ae3d] disabled:cursor-wait disabled:opacity-70";
-const GHOST =
-  "press-scale flex min-h-[36px] items-center justify-center gap-1.5 border-[1.5px] border-line px-3 text-[11px] font-bold text-ink transition-colors hover:border-ink hover:bg-sand disabled:cursor-wait disabled:opacity-60";
 
 /** Runs a Server Action that returns `{ error }`, toasting either way and
  * refreshing the Server Component tree on success. Every non-form button on
@@ -186,12 +183,10 @@ function PackagePicker({ packages, selectedId }: { packages: SimplePackage[]; se
       {packages.map((pkg) => {
         const isSelected = pkg.id === selectedId;
         return (
-          <Link
+          <ButtonLink
             key={pkg.id}
             href={`/admin/packages?pkg=${pkg.id}`}
-            className={`flex flex-col gap-1.5 border-[1.5px] bg-paper p-3.5 transition ${
-              isSelected ? "border-[2.5px] border-accent" : "border-line hover:border-ink"
-            }`}
+            variant="surface" size="custom" className={`flex flex-col gap-1.5 border-[1.5px] bg-paper p-3.5 ${isSelected ? "border-[2.5px] border-accent" : "border-line hover:border-ink"} `}
           >
             <div className="flex items-start justify-between gap-2">
               <span className="min-w-0 truncate text-[12.5px] font-bold">{pkg.name}</span>
@@ -205,19 +200,17 @@ function PackagePicker({ packages, selectedId }: { packages: SimplePackage[]; se
             <span className="text-[10.5px] text-mute3">
               {pkg.gymCount} {pkg.gymCount === 1 ? "gym" : "gyms"}
             </span>
-          </Link>
+          </ButtonLink>
         );
       })}
 
-      <Link
+      <ButtonLink
         href="/admin/packages?pkg=new"
-        className={`flex min-h-[84px] flex-col items-center justify-center gap-1 border-[1.5px] border-dashed bg-paper p-3.5 text-center transition ${
-          selectedId === "new" ? "border-[2.5px] border-accent border-solid" : "border-line hover:border-ink"
-        }`}
+        variant="surface" size="custom" className={`flex min-h-[84px] flex-col items-center justify-center gap-1 border-[1.5px] border-dashed bg-paper p-3.5 text-center ${selectedId === "new" ? "border-[2.5px] border-accent border-solid" : "border-line hover:border-ink"} `}
       >
         <AddIcon size={16} aria-hidden />
         <span className="text-[11.5px] font-bold">New package</span>
-      </Link>
+      </ButtonLink>
     </div>
   );
 }
@@ -259,14 +252,14 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
           <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute3">Live</span>
           <span className="text-[12.5px]">Gym owners see the packages below on their subscription screen.</span>
         </span>
-        <button
+        <Button
           type="button"
           disabled={isBusy("model")}
           onClick={() => setConfirmRevert(true)}
-          className="flex min-h-[36px] w-full items-center justify-center gap-1.5 border-[1.5px] border-mute px-3 text-[11px] font-bold text-paper disabled:cursor-wait disabled:opacity-60 sm:w-auto sm:justify-start"
+          variant="ghost" tone="inverse" size="sm" className="w-full border-mute sm:w-auto sm:justify-start"
         >
           Switch back to the old tiers
-        </button>
+        </Button>
         <ConfirmDialog
           open={confirmRevert}
           danger
@@ -297,16 +290,15 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
           </span>
         </span>
       </div>
-      <button
+      <Button pending={isPending} icon={ConfirmIcon}
         type="button"
         disabled={!hasPackages || isPending}
         title={hasPackages ? undefined : "Set up a package first."}
         onClick={() => setConfirmGoLive(true)}
-        className={`${PRIMARY} w-full sm:w-auto`}
+        variant="primary" size="lg" className="w-full sm:w-auto"
       >
-        <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
         {isPending ? "Going live…" : "Go live & retire the old tiers"}
-      </button>
+      </Button>
       <ConfirmDialog
         open={confirmGoLive}
         danger
@@ -461,10 +453,9 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-        <button type="submit" disabled={isPending} className={PRIMARY}>
-          <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
+        <Button pending={isPending} icon={ConfirmIcon} type="submit" disabled={isPending} variant="primary" size="lg">
           {isPending ? "Saving…" : "Save pricing"}
-        </button>
+        </Button>
         <span className="text-[11px] leading-relaxed text-mute3">
           Repricing never changes what a gym already paid — it applies from their next renewal.
         </span>
@@ -487,7 +478,7 @@ function TermVisibility({ pkg }: { pkg: SimplePackage }) {
         {offerable.map((term) => {
           const Icon = term.isPurchasable ? ToggleOnIcon : ToggleOffIcon;
           return (
-            <button
+            <Button icon={Icon}
               key={term.key}
               type="button"
               disabled={isBusy(term.key)}
@@ -498,11 +489,10 @@ function TermVisibility({ pkg }: { pkg: SimplePackage }) {
                   term.isPurchasable ? `${term.label} hidden from new gyms.` : `${term.label} is back on offer.`,
                 )
               }
-              className={`${GHOST} ${term.isPurchasable ? "border-ink" : "opacity-70"}`}
+              variant="secondary" size="sm" className={term.isPurchasable ? undefined : "opacity-70"}
             >
-              <Icon size={15} aria-hidden />
               {term.label}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -536,11 +526,10 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
           </p>
         </div>
         <div className="flex flex-shrink-0 gap-2">
-          <button type="button" onClick={() => setOpen(true)} className={GHOST}>
-            <EditIcon size={13} aria-hidden />
+          <Button icon={EditIcon} type="button" onClick={() => setOpen(true)} variant="secondary" size="sm">
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={isBusy("status")}
             onClick={() =>
@@ -548,11 +537,11 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
                 ? run("status", () => setPlanStatus(pkg.id, "active"), `${pkg.name} restored.`)
                 : setConfirmArchive(true)
             }
-            className={GHOST}
+            variant="secondary" size="sm"
           >
             {archived ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
             {archived ? "Restore" : "Archive"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -647,17 +636,16 @@ function DetailsSheet({ pkg, onClose }: { pkg: SimplePackage; onClose: () => voi
         </div>
 
         <div className="flex gap-2 border-t border-line pt-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="press-scale flex min-h-[44px] flex-1 items-center justify-center border-[1.5px] border-line bg-paper text-[11.5px] font-bold uppercase tracking-[0.09em] text-ink"
+            variant="secondary" size="lg" className="flex-1"
           >
             Cancel
-          </button>
-          <button type="submit" disabled={isPending} className={`${PRIMARY} flex-1`}>
-            <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
+          </Button>
+          <Button pending={isPending} icon={ConfirmIcon} type="submit" disabled={isPending} variant="primary" size="lg" className="flex-1">
             {isPending ? "Saving…" : "Save changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </Sheet>
@@ -689,15 +677,15 @@ function FeaturesCard({ pkg }: { pkg: SimplePackage }) {
               className="flex items-center gap-2 border-b border-line py-2 text-[12.5px] last:border-0"
             >
               <span className="min-w-0 flex-1">{feature.name}</span>
-              <button
+              <Button
                 type="button"
                 aria-label={`Remove ${feature.name}`}
                 disabled={isBusy(feature.id)}
                 onClick={() => run(feature.id, () => removeFeature(feature.id), `${feature.name} removed.`)}
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-mute disabled:opacity-40"
+                variant="ghost" size="sm" iconOnly className="flex-shrink-0"
               >
                 <DeleteIcon size={14} aria-hidden />
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -718,10 +706,9 @@ function FeaturesCard({ pkg }: { pkg: SimplePackage }) {
           className={`${INPUT} min-w-0 flex-1`}
           style={{ flexBasis: 200 }}
         />
-        <button type="submit" disabled={isPending} className={PRIMARY}>
-          <AddIcon size={ICON_SIZE.button} aria-hidden />
+        <Button pending={isPending} icon={AddIcon} type="submit" disabled={isPending} variant="primary" size="lg">
           {isPending ? "Adding…" : "Add"}
-        </button>
+        </Button>
       </form>
     </div>
   );
@@ -756,15 +743,14 @@ function ExtraTermsCard({ pkg }: { pkg: SimplePackage }) {
               {formatMinorWhole(cycle.priceMinor, cycle.currency)} · {cycle.durationDays} days ·{" "}
               {cycle.gymCount} {cycle.gymCount === 1 ? "gym" : "gyms"}
             </span>
-            <button
+            <Button pending={isBusy(cycle.id)} icon={ArchiveIcon}
               type="button"
               disabled={isBusy(cycle.id)}
               onClick={() => setConfirmId(cycle.id)}
-              className={`${GHOST} ml-auto`}
+              variant="secondary" size="sm" className="ml-auto"
             >
-              <ArchiveIcon size={13} aria-hidden />
               {isBusy(cycle.id) ? "Retiring…" : "Retire"}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
@@ -890,10 +876,9 @@ function SetupCard() {
       </div>
 
       <div className="border-t border-line pt-3">
-        <button type="submit" disabled={isPending} className={PRIMARY}>
-          <ConfirmIcon size={ICON_SIZE.button} aria-hidden />
+        <Button pending={isPending} icon={ConfirmIcon} type="submit" disabled={isPending} variant="primary" size="lg">
           {isPending ? "Creating…" : "Create package"}
-        </button>
+        </Button>
       </div>
     </form>
   );

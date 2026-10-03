@@ -2603,6 +2603,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: Json
       }
+      admin_gym_trend: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
       admin_gym_whatsapp_messages: {
         Args: { p_limit?: number; p_offset?: number; p_organization_id: string; p_status?: string }
         Returns: {

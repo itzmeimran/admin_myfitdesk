@@ -14,6 +14,9 @@ import { UsageBar } from "@/components/UsageBar";
 import { NotesPanel } from "./notes-panel";
 import { CommandCenter } from "./command-center";
 import { SectionError } from "./ops-ui";
+import { GymTrendChart } from "./gym-trend-chart";
+import { getGymTrend } from "@/features/gyms/trend";
+import type { GymTrend } from "@/features/gyms/trend-types";
 import { getNotes, getOpsSummary } from "@/features/gyms/ops/queries";
 import type { NoteRow, OpsSummary } from "@/features/gyms/ops/types";
 import { AUDIT_ACTION_LABEL } from "@/features/gyms/audit";
@@ -23,7 +26,7 @@ type Alert = { tone: "critical" | "warning"; text: string };
 export default async function GymOverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [gym, overviewResult, summaryResult, notesResult] = await Promise.all([
+  const [gym, overviewResult, summaryResult, notesResult, trendResult] = await Promise.all([
     getGymDetail(supabase, id),
     getGymOverview(supabase, id)
       .then((data) => ({ data, error: null as string | null }))
@@ -39,6 +42,12 @@ export default async function GymOverviewPage({ params }: { params: Promise<{ id
       .catch((error: unknown) => ({
         data: null as NoteRow[] | null,
         error: error instanceof Error ? error.message : "Notes unavailable",
+      })),
+    getGymTrend(supabase, id)
+      .then((data) => ({ data, error: null as string | null }))
+      .catch((error: unknown) => ({
+        data: null as GymTrend | null,
+        error: error instanceof Error ? error.message : "Trend unavailable",
       })),
   ]);
   if (!gym) notFound();
@@ -76,6 +85,8 @@ export default async function GymOverviewPage({ params }: { params: Promise<{ id
       commandCenter={commandCenter}
       notes={notesResult.data}
       notesError={notesResult.error}
+      trend={trendResult.data}
+      trendError={trendResult.error}
     />
   );
 }
@@ -86,12 +97,16 @@ function OverviewContent({
   commandCenter,
   notes,
   notesError,
+  trend,
+  trendError,
 }: {
   gym: GymDetail;
   overview: GymOverview;
   commandCenter: React.ReactNode;
   notes: NoteRow[] | null;
   notesError: string | null;
+  trend: GymTrend | null;
+  trendError: string | null;
 }) {
   const now = new Date();
   const sub = gym.subscription;
@@ -191,6 +206,14 @@ function OverviewContent({
           <EmptyCopy>No outbound WhatsApp messages have been recorded for this gym.</EmptyCopy>
         )}
         <Link href={`/admin/gyms/${gym.id}/whatsapp`} className="w-fit text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">View complete WhatsApp history →</Link>
+      </Section>
+
+      <Section title="Payments & enrollments" description="Money members paid the gym and new sign-ups, in IST." id="trend">
+        {trend ? (
+          <GymTrendChart trend={trend} currency={currency} />
+        ) : (
+          <SectionError title="Payments & enrollments" message={trendError ?? "Unavailable."} />
+        )}
       </Section>
 
       <Section title="Revenue" description="Gym collections and MyFitDesk earnings stay deliberately separate.">

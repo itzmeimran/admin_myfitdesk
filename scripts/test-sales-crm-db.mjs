@@ -24,7 +24,7 @@ try {
  grant usage on schema public,app,auth to anon,authenticated,service_role;
  create table public.platform_roles(role text primary key,label text,description text,sort_order integer);
  create table public.platform_role_permissions(role text references public.platform_roles,permission text,primary key(role,permission));
- create table public.platform_admins(user_id uuid primary key references auth.users,role text references public.platform_roles,status text default 'active',revoked_at timestamptz,granted_at timestamptz default now());
+ create table public.platform_admins(user_id uuid primary key references auth.users,email text not null,role text references public.platform_roles,status text default 'active',revoked_at timestamptz,granted_at timestamptz default now());
  create table public.organizations(id uuid primary key default gen_random_uuid(),name text,city text,contact_phone text,contact_email text,created_at timestamptz default now());
  create table public.organization_subscriptions(organization_id uuid primary key references public.organizations,status text,current_period_end timestamptz);
  create table public.admin_audit_log(id bigint generated always as identity,admin_id uuid,action text,detail jsonb,at timestamptz default now());
@@ -35,7 +35,7 @@ try {
  insert into public.platform_roles values('platform_owner','Owner','',1),('support_admin','Support','',2);
  insert into public.platform_role_permissions values('platform_owner','gyms.manage'),('platform_owner','admins.manage');
  insert into auth.users(id,email) values('${owner}','owner@fixture.test'),('${manager}','manager@fixture.test'),('${rep}','rep@fixture.test'),('${other}','other@fixture.test'),('${support}','support@fixture.test');
- insert into public.platform_admins(user_id,role) values('${owner}','platform_owner'),('${support}','support_admin');
+ insert into public.platform_admins(user_id,email,role) values('${owner}','owner@fixture.test','platform_owner'),('${support}','support@fixture.test','support_admin');
  grant select on public.platform_admins to service_role;
  `);
  // Existing invitation seam is stubbed only here; the actual migration delegates to 1012.
@@ -46,7 +46,7 @@ try {
  return jsonb_build_object('organization_id',o,'invitation_id',gen_random_uuid(),'email',p_email);end$$;`);
  await db.exec(await readFile(new URL('../supabase/migrations/1021_book_demo_foundation.sql',import.meta.url),'utf8'));
  await db.exec(await readFile(new URL('../supabase/migrations/1022_sales_crm.sql',import.meta.url),'utf8'));
- await db.exec(`insert into public.platform_admins(user_id,role,sales_team) values('${manager}','sales_manager','South'),('${rep}','sales_rep','South'),('${other}','sales_rep','West');
+ await db.exec(`insert into public.platform_admins(user_id,email,role,sales_team) values('${manager}','manager@fixture.test','sales_manager','South'),('${rep}','rep@fixture.test','sales_rep','South'),('${other}','other@fixture.test','sales_rep','West');
  insert into public.platform_sales_leads(id,gym,contact,phone,email,city,state,branches,members,owner,stage,created_at) values
  ('${lead}','Alpha Gym','Owner','+919876543210','alpha@fixture.test','Hyderabad','Telangana','1','Under 100','${rep}','new',now()-interval '10 days'),
  ('${foreign}','West Gym','West','+919876543211','west@fixture.test','Mumbai','Maharashtra','1','Under 100','${other}','new',now()),

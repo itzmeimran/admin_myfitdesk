@@ -4,6 +4,8 @@ Implemented at `/admin/sales`, preserving the handoff UI. The sample store and r
 
 ## Database setup
 
+**Rollout update (2026-10-04):** the user authorized the WhatsApp dependency scripts in both environments. Migration 1021 was already present; 1022 and 1023 were applied together in one transaction per project after verified pre-migration backups. The corrected `1022_verify.sql` (including required platform-admin fixture emails) passed in a DEV rollback rehearsal and again against the committed DEV functions, exercising the real deployed onboarding helper. PROD received schema/privilege and real-owner read checks; fixture tests were kept in DEV. Remote history was not changed. See [WHATSAPP_INBOX_IMPLEMENTATION.md](WHATSAPP_INBOX_IMPLEMENTATION.md) for the backup run and activation limits. Do not reapply the installed migrations.
+
 Apply **1021_book_demo_foundation.sql**, then **1022_sales_crm.sql** in the DEV SQL Editor. The latter extends `platform_sales_leads` and `platform_sales_activities`; it creates follow-up and assignment records, not another lead store. Historical migration files and remote history are unchanged. 1023 (WhatsApp inbox) depends on these migrations.
 
 Run `supabase/apply/1022_verify.sql` in DEV after applying. It creates temporary fixture accounts/leads, exercises owner/manager/rep/non-sales-admin access under the authenticated database role, and rolls back all rows. Do not run these files on production without explicit approval and the repository's pre-migration backup procedure.

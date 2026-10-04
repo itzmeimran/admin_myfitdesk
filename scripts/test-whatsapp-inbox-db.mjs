@@ -27,7 +27,7 @@ try {
  create table public.organization_subscriptions(organization_id uuid primary key references public.organizations,status text,current_period_end timestamptz);
  create table public.whatsapp_messages(id uuid primary key default gen_random_uuid(),phone_number_e164 text,sender_mode text,direction text);
  create table public.members(id uuid primary key default gen_random_uuid(),phone_e164 text,deleted_at timestamptz);
- create table public.staff_memberships(id uuid primary key default gen_random_uuid(),phone_e164 text,organization_id uuid,first_name text,last_name text,created_at timestamptz default now(),deletion_requested_at timestamptz);
+ create table public.staff_memberships(id uuid primary key default gen_random_uuid(),phone_e164 text,organization_id uuid,first_name text,last_name text,created_at timestamptz default now(),deletion_requested_at timestamptz,role text default 'staff',access_status text default 'active');
  create table public.admin_audit_log(id bigint generated always as identity,admin_id uuid,action text,detail jsonb);
  create function app.is_platform_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.platform_admins where user_id=auth.uid() and status='active' and revoked_at is null)$$;
  create function app.platform_admin_role() returns text language sql stable security definer set search_path='' as $$select role from public.platform_admins where user_id=auth.uid() and status='active' and revoked_at is null$$;
@@ -46,7 +46,7 @@ try {
  await db.exec('revoke all on function app.has_platform_permission(text) from public,anon,authenticated;');
  await db.exec(`create function public.admin_create_gym_owner_invitation(p_gym_name text,p_owner_first_name text,p_owner_last_name text,p_email text,p_phone text default null,p_city text default null,p_state text default null,p_postal_code text default null,p_billing_mode text default 'trial',p_trial_days integer default 14,p_notes text default null) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$begin
  if not app.has_platform_permission('gyms.manage') then raise exception 'Not authorized';end if;return '{}'::jsonb;end$$;`);
- for (const file of ['1021_book_demo_foundation.sql','1022_sales_crm.sql','1023_platform_whatsapp_inbox.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
+ for (const file of ['1021_book_demo_foundation.sql','1022_sales_crm.sql','1023_platform_whatsapp_inbox.sql','1024_platform_whatsapp_active_staff.sql']) await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
  await db.exec(`insert into public.whatsapp_messages(phone_number_e164,sender_mode,direction) values('+919876543211','managed','outbound');
  insert into public.organizations(name,contact_phone) values('Known Gym','98765 43212');
  insert into public.members(phone_e164) values('+919876543219');
@@ -116,6 +116,25 @@ try {
  const audits=(await db.query('select detail::text from public.admin_audit_log')).rows;assert.ok(!audits.some(a=>a.detail.includes('Private note')||a.detail.includes('Test reply')));
  const broadcasts=(await db.query('select payload from public.broadcast_fixture')).rows;assert.ok(broadcasts.length>0);assert.ok(broadcasts.every(b=>Object.keys(b.payload).sort().join(',')==='n,op,t'));
  const secured=(await db.query(`select count(*)::int n from pg_class where relname like 'platform_wa_%' and relkind='r' and relrowsecurity and relforcerowsecurity`)).rows[0].n;assert.equal(secured,4);
+
+ // Active team contacts take precedence; ordinary and inactive member content stays private.
+ await actor(admin,'service_role');
+ for (const [index,role,access,deleted,allowed] of [
+  [1,'owner','active',false,true],[2,'staff','active',false,true],[3,'trainer','active',false,true],
+  [4,'owner','disabled',false,false],[5,'staff','invite_pending',false,false],[6,'owner','active',true,false],
+ ]) {
+  const phone='+91981111000'+index;
+  await db.exec('reset role');
+  await db.query('insert into public.members(phone_e164) values($1)',[phone]);
+  await db.query("insert into public.whatsapp_messages(phone_number_e164,sender_mode,direction) values($1,'managed','outbound')",[phone]);
+  await db.query('insert into public.staff_memberships(phone_e164,role,access_status,deletion_requested_at) values($1,$2,$3,$4)',[phone,role,access,deleted?new Date():null]);
+  await actor(admin,'service_role');
+  const outcome=await ingest(phone,'staff-precedence-'+index,undefined,'text','Privacy fixture '+index);
+  assert.equal(outcome.stored,allowed);
+  assert.equal(outcome.classification,allowed?'platform':'gym_member');
+ }
+ await db.exec('reset role');
+ assert.equal((await db.query("select count(*)::int n from public.platform_wa_messages where body like 'Privacy fixture %'")).rows[0].n,3);
  await db.exec(await readFile(new URL('../supabase/apply/1023_verify.sql',import.meta.url),'utf8'));
  console.log('WhatsApp inbox SQL passed: permissions, privacy, deduplication, pagination/search, writes, CRM, retry and status recovery.');
 } catch (error) { console.error(error.message, error.where ?? error.stack?.split('\n').find(l=>l.includes('test-whatsapp-inbox-db')) ?? ''); process.exitCode=1; }

@@ -8,12 +8,12 @@ insert into auth.users(id,email,aud,role) values
  ('f0220000-0000-4000-8000-000000000003','crm-rep-1022@fixture.invalid','authenticated','authenticated'),
  ('f0220000-0000-4000-8000-000000000004','crm-west-1022@fixture.invalid','authenticated','authenticated'),
  ('f0220000-0000-4000-8000-000000000005','crm-support-1022@fixture.invalid','authenticated','authenticated');
-insert into public.platform_admins(user_id,role,status,sales_team) values
- ('f0220000-0000-4000-8000-000000000001','platform_owner','active',null),
- ('f0220000-0000-4000-8000-000000000002','sales_manager','active','CRM verification South'),
- ('f0220000-0000-4000-8000-000000000003','sales_rep','active','CRM verification South'),
- ('f0220000-0000-4000-8000-000000000004','sales_rep','active','CRM verification West'),
- ('f0220000-0000-4000-8000-000000000005','support_admin','active',null);
+insert into public.platform_admins(user_id,email,role,status,sales_team) values
+ ('f0220000-0000-4000-8000-000000000001','crm-owner-1022@fixture.invalid','platform_owner','active',null),
+ ('f0220000-0000-4000-8000-000000000002','crm-manager-1022@fixture.invalid','sales_manager','active','CRM verification South'),
+ ('f0220000-0000-4000-8000-000000000003','crm-rep-1022@fixture.invalid','sales_rep','active','CRM verification South'),
+ ('f0220000-0000-4000-8000-000000000004','crm-west-1022@fixture.invalid','sales_rep','active','CRM verification West'),
+ ('f0220000-0000-4000-8000-000000000005','crm-support-1022@fixture.invalid','support_admin','active',null);
 insert into public.platform_sales_leads(id,gym,contact,phone,email,city,state,branches,members,owner,stage) values
  ('f0221000-0000-4000-8000-000000000001','CRM verification South','Test Owner','+919900001022','crm-1022-south@fixture.invalid','Test City','Test State','1','Under 100','f0220000-0000-4000-8000-000000000003','new'),
  ('f0221000-0000-4000-8000-000000000002','CRM verification West','Test Owner','+919900001023','crm-1022-west@fixture.invalid','Test City','Test State','1','Under 100','f0220000-0000-4000-8000-000000000004','new'),

@@ -97,7 +97,7 @@ export function InboxView({ initial }: { initial: InboxInitial }) {
  const refreshTarget = useMemo(() => ({ refresh: () => refreshRef.current() }), []);
  const schedule = useCallback(() => requestRefresh(refreshTarget), [refreshTarget]);
  useEffect(() => () => cancelRefresh(refreshTarget), [refreshTarget]);
- const live = useBroadcastChannel({ topic: 'admin:whatsapp-inbox', onChange: schedule, onReconnected: schedule });
+ const live = useBroadcastChannel({ topic: 'admin:whatsapp-inbox', onChange: schedule, onSubscribed: schedule });
  useEffect(() => {
   filters.current = { filter, query }; ++listSequence.current;
   const timer = setTimeout(() => { setListLoading(true); startTransition(() => { void fetchList(); }); }, 300);

@@ -13,6 +13,9 @@ type Options = {
   topic: string;
   /** Called with the (content-free) payload of every `change` message. */
   onChange: (payload: ChangePayload) => void;
+  /** Reconcile after every successful join, including the first. The server
+   * snapshot may predate a write that happened before the socket joined. */
+  onSubscribed?: () => void;
   /** Called after the channel re-joins following a drop — the moment to
    * reconcile anything that changed while it was down. */
   onReconnected?: () => void;
@@ -34,14 +37,16 @@ type Options = {
  *   admins only — see the 20260930120000 migration), so the session's JWT
  *   must be handed to the socket BEFORE joining: `realtime.setAuth()`.
  */
-export function useBroadcastChannel({ topic, onChange, onReconnected }: Options): LiveStatus {
+export function useBroadcastChannel({ topic, onChange, onSubscribed, onReconnected }: Options): LiveStatus {
   const environment = useAdminEnvironment();
   const [status, setStatus] = useState<LiveStatus>("connecting");
 
   const onChangeRef = useRef(onChange);
+  const onSubscribedRef = useRef(onSubscribed);
   const onReconnectedRef = useRef(onReconnected);
   useEffect(() => {
     onChangeRef.current = onChange;
+    onSubscribedRef.current = onSubscribed;
     onReconnectedRef.current = onReconnected;
   });
 
@@ -76,6 +81,7 @@ export function useBroadcastChannel({ topic, onChange, onReconnected }: Options)
           if (cancelled) return;
           if (s === "SUBSCRIBED") {
             setStatus(online() ? "live" : "offline");
+            onSubscribedRef.current?.();
             if (everLive) onReconnectedRef.current?.();
             everLive = true;
           } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") {

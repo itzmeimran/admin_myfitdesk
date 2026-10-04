@@ -32,18 +32,20 @@ export function AdminChrome({
   email,
   gymsCount,
   alertsCount,
+  salesAttentionCount,
   permissions,
 }: {
   email: string;
   gymsCount: number;
   alertsCount: number;
+  salesAttentionCount: number | null;
   permissions: string[];
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
-  const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : undefined);
+  const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : href === '/admin/sales' && salesAttentionCount ? String(salesAttentionCount) : undefined);
 
   return (
     <>

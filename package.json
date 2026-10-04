@@ -11,6 +11,8 @@
     "test:dr": "node --test scripts/disaster-recovery-policy.test.mjs",
     "test:ist": "node --test scripts/ist-calendar.test.cjs",
     "test:buttons": "node --test scripts/button-system.test.cjs",
+    "test:book-demo": "node --test scripts/book-demo.test.cjs",
+    "test:whatsapp-inbox": "node --test scripts/whatsapp-inbox.test.cjs",
     "backup:pre-migration": "node scripts/create-pre-migration-backup.mjs"
   },
   "dependencies": {

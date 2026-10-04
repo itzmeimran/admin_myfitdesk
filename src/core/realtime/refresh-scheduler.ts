@@ -28,7 +28,7 @@ const MIN_INTERVAL_MS = 1_500;
 
 type Refreshable = { refresh: () => void };
 
-let router: Refreshable | null = null;
+const targets = new Set<Refreshable>();
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let maxWaitTimer: ReturnType<typeof setTimeout> | null = null;
 let lastRunAt = 0;
@@ -44,7 +44,7 @@ function clearTimers() {
 
 function flush() {
   clearTimers();
-  if (!router) return;
+  if (!targets.size) return;
 
   if (typeof document !== "undefined" && document.hidden) {
     dirtyWhileHidden = true;
@@ -58,7 +58,9 @@ function flush() {
   }
 
   lastRunAt = Date.now();
-  router.refresh();
+  const pending = [...targets];
+  targets.clear();
+  pending.forEach(target => target.refresh());
 }
 
 function bindVisibility() {
@@ -75,8 +77,11 @@ function bindVisibility() {
 /** Ask for a (coalesced) `router.refresh()`. Safe to call as often as you like. */
 export function requestRefresh(target: Refreshable) {
   bindVisibility();
-  router = target;
+  targets.add(target);
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(flush, DEBOUNCE_MS);
   if (!maxWaitTimer) maxWaitTimer = setTimeout(flush, MAX_WAIT_MS);
 }
+
+/** A targeted view may unmount before a queued refresh runs. */
+export function cancelRefresh(target: Refreshable) { targets.delete(target); }

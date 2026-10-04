@@ -1,9 +1,11 @@
 import {
   OverviewIcon,
+  CrmIcon,
   GymsIcon,
   PackagesIcon,
   RevenueIcon,
   WhatsAppIcon,
+  ConversationIcon,
   SettingsIcon,
   DatabaseIcon,
   ApiPerformanceIcon,
@@ -49,9 +51,11 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: OverviewIcon },
   { href: "/admin/gyms", label: "Gyms", icon: GymsIcon, permission: "gyms.view" },
+  { href: "/admin/sales", label: "Sales", icon: CrmIcon, permission: "sales.view" },
   { href: "/admin/packages", label: "Packages", icon: PackagesIcon, permission: "packages.view" },
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon, permission: "revenue.view" },
   { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon, permission: "whatsapp.view" },
+  { href: "/admin/whatsapp/inbox", label: "WhatsApp inbox", icon: ConversationIcon, permission: "whatsapp.view" },
   { href: "/admin/api-performance", label: "API Performance", icon: ApiPerformanceIcon, permission: "api_performance.view" },
   { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon, permission: "recovery.view" },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon, permission: "settings.view" },

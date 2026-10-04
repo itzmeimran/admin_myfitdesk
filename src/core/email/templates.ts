@@ -16,6 +16,21 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+export function demoRequestEmail(input: {
+  gym: string; name: string; phone: string; email: string; city: string; state: string;
+  message: string; date: string; time: number; supportEmail: string; sales?: boolean;
+}): { subject: string; html: string; text: string } {
+  const minutes = 600 + input.time * 30;
+  const hour = Math.floor(minutes / 60);
+  const when = `${input.date} · ${((hour + 11) % 12) + 1}:${minutes % 60 ? "30" : "00"} ${hour < 12 ? "AM" : "PM"} IST`;
+  const subject = input.sales ? "New MyFitDesk demo request" : "Your MyFitDesk demo request has been received";
+  const lines = [input.sales ? `Demo requested by ${input.name} for ${input.gym}.` : `Thanks, ${input.name}. We've received your demo request for ${input.gym}.`,
+    `Preferred time: ${when}`, "Your slot isn't booked until we confirm it. We'll contact you, usually within one working day.",
+    ...(input.sales ? [`Phone: ${input.phone}`, `Email: ${input.email}`, `Location: ${input.city}, ${input.state}`, `Message: ${input.message || "—"}`] : []),
+    `Questions or changes: ${input.supportEmail}`];
+  return { subject, text: lines.join("\n\n"), html: `<html><body style="font-family:Arial,sans-serif;color:#1b1512;background:#f7f2ea;padding:24px"><h1 style="font-size:22px">${escapeHtml(subject)}</h1>${lines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")}</body></html>` };
+}
+
 const INK = "#1b1512";
 const PAPER = "#f7f2ea";
 const ACCENT = "#bf3b15";

@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { Dropdown } from "@/components/Dropdown";
 import { useToast } from "@/components/Toast";
 import { SkeletonBlock } from "@/components/Skeleton";
-import { changeAdminRole, changeAdminStatus, loadAdminDetail } from "@/features/settings/admin-actions";
+import { changeAdminRole, changeAdminStatus, changeSalesTeam, loadAdminDetail } from "@/features/settings/admin-actions";
 import { resendPlatformAdminInvite } from "../_server/invite-actions";
 import type { AdminDetail, PlatformAdminRow, PlatformRole } from "@/features/settings/admins";
 import { ADMIN_STATUS_LABEL } from "@/core/auth/permissions";
@@ -20,6 +20,7 @@ import { HINT_CLASS, LABEL_CLASS, StatusPill, formatWhen, timeAgo } from "../_co
 import { EnvAccessSummary } from "./env-access-cell";
 
 type Pending =
+  | { kind: 'team'; team: string }
   | { kind: "role"; role: string }
   | { kind: "suspend" }
   | { kind: "reactivate" }
@@ -27,6 +28,7 @@ type Pending =
   | { kind: "resend" };
 
 const CONFIRM_COPY: Record<Pending["kind"], { title: (who: string) => string; body: string; label: string; danger: boolean }> = {
+  team: {title:who=>`Change ${who}'s sales team?`,body:'Sales managers see leads assigned within their team. This change is recorded in the audit log.',label:'Change team',danger:true},
   role: {
     title: (who) => `Change ${who}'s role?`,
     body: "Their permissions change immediately. Role changes are recorded in the access history.",
@@ -81,6 +83,7 @@ export function AdminDrawer({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [newRole, setNewRole] = useState("");
+  const [newTeam,setNewTeam]=useState('');
   const [reason, setReason] = useState("");
   const [pendingAction, setPendingAction] = useState<Pending | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -97,6 +100,7 @@ export function AdminDrawer({
     loadAdminDetail(userId).then((result) => {
       if (cancelled) return;
       setDetail(result.detail);
+      setNewTeam(result.detail?.salesTeam??'');
       setDetailError(result.error);
       setLoadedFor(userId);
     });
@@ -120,7 +124,10 @@ export function AdminDrawer({
     startTransition(async () => {
       let error: string | null = null;
       let message = "Done.";
-      if (action.kind === "role") {
+      if(action.kind === 'team') {
+        ({error}=await changeSalesTeam(admin.userId,action.team,confirmation));
+        message=`Sales team updated for ${who}.`;
+      } else if (action.kind === "role") {
         ({ error } = await changeAdminRole(admin.userId, action.role, confirmation));
         message = `${who} is now ${roles.find((r) => r.role === action.role)?.label ?? action.role}.`;
       } else if (action.kind === "resend") {
@@ -243,6 +250,17 @@ export function AdminDrawer({
             {canManage ? (
               <section className="flex flex-col gap-3 border-t-[1.5px] border-ink pt-4">
                 <span className={LABEL_CLASS}>Manage access</span>
+                {['sales_rep','sales_manager','platform_owner'].includes(admin.role) ? (
+                  <div className="flex flex-wrap items-end gap-2">
+                    <label className="flex min-w-[200px] flex-1 flex-col gap-1.5">
+                      <span className="text-[10.5px] text-mute">Sales team</span>
+                      <input value={newTeam} onChange={e=>setNewTeam(e.target.value)} maxLength={80} disabled={isPending||loading}
+                        placeholder="e.g. South" className="border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] outline-none focus:border-ink" />
+                    </label>
+                    <Button variant="secondary" size="sm" disabled={isPending||loading||newTeam.trim()===(detail?.salesTeam??'')}
+                      onClick={()=>setPendingAction({kind:'team',team:newTeam.trim()})}>Change team</Button>
+                  </div>
+                ):null}
 
                 {admin.status === "active" || admin.status === "suspended" || admin.status === "pending" ? (
                   <div className="flex flex-wrap items-end gap-2">

@@ -90,6 +90,7 @@ export async function listPlatformRoles(supabase: SupabaseClient<Database>): Pro
 export type AdminActivity = { id: number; action: string; at: string; environment: string | null; entity_type: string | null };
 
 export type AdminDetail = {
+  salesTeam: string | null;
   permissions: string[];
   sessionCount: number;
   suspendedByEmail: string | null;
@@ -109,6 +110,7 @@ export async function getAdminDetail(supabase: SupabaseClient<Database>, userId:
     recent_activity: AdminActivity[];
   };
   return loaded({
+    salesTeam: ((await loose(supabase).rpc('admin_sales_get_team', {p_user_id:userId})).data as string | null) ?? null,
     permissions: raw.permissions ?? [],
     sessionCount: Number(raw.session_count ?? 0),
     suspendedByEmail: raw.suspended_by_email,

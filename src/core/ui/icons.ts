@@ -103,4 +103,17 @@ export {
   LuInfo as DetailsIcon,
   LuShieldCheck as ProtectIcon,
   LuShieldOff as UnprotectIcon,
+  LuMail as MailIcon,
+  LuSend as SendIcon,
+
+  // WhatsApp inbox
+  LuPaperclip as AttachIcon,
+  LuFileText as TemplateIcon,
+  LuPanelRight as DetailsPanelIcon,
+  LuLink as LinkIcon,
+  LuClock as ClockIcon,
+  LuCheckCheck as DoubleCheckIcon,
+  LuCircleAlert as FailedIcon,
+  LuMessageSquare as ConversationIcon,
+  LuKanban as CrmIcon,
 } from "react-icons/lu";

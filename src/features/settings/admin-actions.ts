@@ -6,6 +6,7 @@ import { loose } from "@/core/db/loose-client";
 import { checkPermission, type AdminAccess } from "@/core/auth/access";
 import { requireProductionConfirmation } from "@/core/auth/production-guard";
 import { getAdminDetail, type AdminDetail } from "./admins";
+import { z } from 'zod';
 
 /**
  * Admin-lifecycle writes (role, suspend / reactivate / revoke, sessions). Plain
@@ -20,6 +21,14 @@ import { getAdminDetail, type AdminDetail } from "./admins";
  */
 
 export type ActionResult = { error: string | null };
+export async function changeSalesTeam(userId:string,team:string,confirmation?:string):Promise<ActionResult> {
+  const allowed=await authorize('admins.manage',confirmation,true);
+  if(!allowed.ok)return {error:allowed.error};
+  if(!z.string().uuid().safeParse(userId).success||team.trim().length>80)return {error:'Invalid sales team'};
+  const {error}=await loose(await createClient()).rpc('admin_sales_set_team',{p_user_id:userId,p_team:team.trim()||null});
+  if(error)return {error:error.message};
+  revalidatePath('/admin','layout');return {error:null};
+}
 
 async function authorize(
   permission: "admins.manage" | "admins.view",

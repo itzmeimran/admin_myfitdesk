@@ -6,6 +6,7 @@ import { getPublicSupabaseCredentials } from "@/core/config/public";
 import { isEmailConfigured } from "@/core/config/email";
 import { isR2TargetConfigured, resolveR2RolloutMode, type R2RolloutMode } from "@/core/storage/r2-client";
 import type { AdminEnvironment } from "@/core/config/environments";
+import { managedWhatsAppConfig } from '@/core/config/whatsapp';
 import { loaded, loadedFailure, type Loaded } from "./rpc-result";
 
 /**
@@ -43,6 +44,7 @@ export type DeploymentConfig = {
   r2: { legacy: boolean; public: boolean; private: boolean; rolloutMode: R2RolloutMode };
   backupDispatchConfigured: boolean;
   cronSecretConfigured: boolean;
+  managedWhatsAppConfigured: boolean;
 };
 
 /** What THIS deployment has configured. Presence checks only. */
@@ -64,5 +66,6 @@ export function getDeploymentConfig(environment: AdminEnvironment): DeploymentCo
     },
     backupDispatchConfigured: Boolean(process.env.BACKUP_GITHUB_TOKEN?.trim() && process.env.BACKUP_GITHUB_REPOSITORY?.trim()),
     cronSecretConfigured: Boolean(process.env.CRON_SECRET?.trim()),
+    managedWhatsAppConfigured: Boolean(managedWhatsAppConfig(environment)),
   };
 }

@@ -3,6 +3,7 @@ import { ButtonLink } from "@/components/ButtonLink";
 import { resolvePlatformAdmin } from "@/core/auth/get-platform-admin";
 import { getAdminAccess } from "@/core/auth/access";
 import { getAdminChromeCounts } from "@/features/overview/queries";
+import { getSalesAttentionCount } from '@/features/sales/queries';
 import { createClient } from "@/core/db/server-client";
 import { ToastProvider } from "@/components/Toast";
 import { AdminSidebar } from "./admin-sidebar";
@@ -63,17 +64,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const access = await getAdminAccess();
   const permissions: string[] = access?.permissions ?? [];
   const supabase = await createClient();
-  const { gymsCount, alertsCount } = await getAdminChromeCounts(supabase);
+  const [{ gymsCount, alertsCount },salesAttentionCount] = await Promise.all([
+    getAdminChromeCounts(supabase),permissions.includes('sales.view')?getSalesAttentionCount(supabase):Promise.resolve(null),
+  ]);
 
   return (
     <ToastProvider>
       <AdminLiveRefresh />
       <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
-        <AdminSidebar email={email} gymsCount={gymsCount} permissions={permissions} />
+        <AdminSidebar email={email} gymsCount={gymsCount} salesAttentionCount={salesAttentionCount} permissions={permissions} />
 
         <div className="flex h-dvh flex-1 flex-col md:ml-[236px] md:min-w-0">
           <header className="flex flex-shrink-0 items-center gap-3 border-b-[1.5px] border-ink bg-paper px-4 py-3 md:px-6">
-            <AdminChrome email={email} gymsCount={gymsCount} alertsCount={alertsCount} permissions={permissions} />
+            <AdminChrome email={email} gymsCount={gymsCount} alertsCount={alertsCount} salesAttentionCount={salesAttentionCount} permissions={permissions} />
           </header>
 
           <main className="flex-1 overflow-y-auto bg-paper pb-24 md:pb-8">

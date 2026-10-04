@@ -10,6 +10,9 @@
  * can import the names.
  */
 export const PERMISSIONS = [
+  "sales.view",
+  "sales.manage",
+  "sales.reassign",
   "settings.view",
   "settings.manage",
   "admins.view",
@@ -36,6 +39,8 @@ export const PERMISSIONS = [
 export type Permission = (typeof PERMISSIONS)[number];
 
 export const ROLE_LABEL: Record<string, string> = {
+  sales_manager: "Sales Manager",
+  sales_rep: "Sales Rep",
   platform_owner: "Platform Owner",
   operations_admin: "Operations Admin",
   support_admin: "Support Admin",

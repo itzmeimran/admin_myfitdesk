@@ -31,11 +31,11 @@ import { EnvironmentPill } from "./environment-pill";
  * list describes finer per-section reflow (e.g. tile/card wrap counts),
  * not a different chrome cutoff.
  */
-export function AdminSidebar({ email, gymsCount, permissions }: { email: string; gymsCount: number; permissions: string[] }) {
+export function AdminSidebar({ email, gymsCount, salesAttentionCount, permissions }: { email: string; gymsCount: number; salesAttentionCount: number | null; permissions: string[] }) {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
-  const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : undefined);
+  const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : href === '/admin/sales' && salesAttentionCount ? String(salesAttentionCount) : undefined);
 
   return (
     <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex md:h-dvh md:w-[236px] md:flex-shrink-0 md:flex-col md:justify-between md:overflow-y-auto md:border-r-[1.5px] md:border-ink md:bg-ink md:p-3.5 md:text-paper">
@@ -77,7 +77,7 @@ export function AdminSidebar({ email, gymsCount, permissions }: { email: string;
                 <span className="flex-1 truncate">{item.label}</span>
                 {badge ? (
                   <span
-                    aria-label={`${badge} total`}
+                    aria-label={`${badge} ${item.href === '/admin/sales' ? 'need attention' : 'total'}`}
                     className="flex-shrink-0 text-[11px] font-bold tabular-nums text-mute3"
                   >
                     {badge}

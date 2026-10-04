@@ -35,6 +35,9 @@ export function Dropdown({
   size = "md",
   align = "left",
   disabled = false,
+  id,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: {
   value: string;
   options: DropdownOption[];
@@ -45,6 +48,9 @@ export function Dropdown({
   size?: "md" | "sm";
   align?: "left" | "right";
   disabled?: boolean;
+  id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }) {
   const selectedIndex = Math.max(
     0,
@@ -183,25 +189,28 @@ export function Dropdown({
     <>
       <Button
         ref={triggerRef}
+        id={id}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         type="button"
         role="combobox"
         aria-label={ariaLabel}
         aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={open ? listId : undefined}
-        aria-activedescendant={open ? optionId(activeIndex) : undefined}
+        aria-expanded={open && !disabled}
+        aria-controls={open && !disabled ? listId : undefined}
+        aria-activedescendant={open && !disabled ? optionId(activeIndex) : undefined}
         disabled={disabled}
         onClick={toggle}
         onKeyDown={onKeyDown}
         variant="control"
         size={size}
-        className={`w-full justify-between gap-2.5 bg-paper text-left ${open || isFiltered ? "border-ink text-ink" : "border-line text-mute"} ${className}`}
+        className={`w-full justify-between gap-2.5 bg-paper text-left ${ariaInvalid ? "border-accent text-ink" : open || isFiltered ? "border-ink text-ink" : "border-line text-mute"} ${className}`}
       >
         <span className="truncate">{selected?.label ?? options[0]?.label ?? ""}</span>
         <NextPageIcon size={13} aria-hidden className={`flex-shrink-0 transition-transform ${open ? "-rotate-90" : "rotate-90"}`} />
       </Button>
 
-      {open && placement
+      {open && placement && !disabled
         ? createPortal(
             <div
               ref={menuRef}

@@ -107,14 +107,16 @@ function buildCards(config: ReturnType<typeof getDeploymentConfig>, health: Inte
     {
       name: "Meta WhatsApp",
       status: whatsappStatus,
-      summary: "Each gym connects its own WhatsApp Business account. This summarises those connections across the platform.",
+      summary: "Gym messaging uses the shared managed number or a gym’s own connected WhatsApp Business account. These counts summarise gym connections.",
       facts: [
         { label: "Gyms connected", value: whatsapp ? `${whatsapp.connected} of ${whatsapp.total}` : "—" },
         { label: "Connected with errors", value: whatsapp ? String(whatsapp.with_error) : "—" },
         { label: "Tokens expiring within 7 days", value: whatsapp ? String(whatsapp.tokens_expiring_7d) : "—" },
         { label: "Last webhook received", value: whatsapp?.last_webhook_at ? `${timeAgo(whatsapp.last_webhook_at)}` : "None recorded" },
+        { label: 'Platform inbox sender', value: config.managedWhatsAppConfigured ? 'Configured for this environment' : 'Not configured' },
+        { label: 'Platform inbox subscription', value: 'Uses the existing tenant-app callback; verify with a signed inbound message' },
       ],
-      footer: <>Credits and delivery live on <TextLink href="/admin/whatsapp-credits">WhatsApp credits</TextLink>.</>,
+      footer: <>Gym credits and delivery live on <TextLink href="/admin/whatsapp-credits">WhatsApp credits</TextLink>. Platform conversations live in the <TextLink href="/admin/whatsapp/inbox">WhatsApp inbox</TextLink>.</>,
     },
     {
       name: "Resend (email)",

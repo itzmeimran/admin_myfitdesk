@@ -1,8 +1,9 @@
 "use client";
 
+import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { Button } from "@/components/Button";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -29,8 +30,10 @@ const TONE: Record<OwnerInvitation["effectiveStatus"], string> = {
 export function OwnerInvitationCard({ invitation }: { invitation: OwnerInvitation }) {
   const router = useRouter();
   const toast = useToast();
-  const [isPending, startTransition] = useTransition();
+
   const [confirmRevoke, setConfirmRevoke] = useState(false);
+  const phoneInvitation = invitation.invitationMethod === "whatsapp";
+  const [isPending, startTransition] = useConfirmedTransition(phoneInvitation ? 'Resend a WhatsApp OTP to the gym owner?' : 'Resend the gym owner invitation?', confirmRevoke);
 
   const canResend = invitation.effectiveStatus === "invited" || invitation.effectiveStatus === "expired" || invitation.effectiveStatus === "email_verified";
   const canRevoke = invitation.status === "pending";
@@ -73,8 +76,9 @@ export function OwnerInvitationCard({ invitation }: { invitation: OwnerInvitatio
           Owner onboarding — {OWNER_INVITATION_STATUS_LABEL[invitation.effectiveStatus]}
         </span>
         <span className="text-[12px] leading-relaxed opacity-90">
-          {invitation.email}
-          {invitation.effectiveStatus === "expired" ? " · the link expired, use Resend to send a fresh one." : null}
+          {phoneInvitation ? invitation.invitedPhone : invitation.email}
+          {phoneInvitation && invitation.effectiveStatus === "invited" ? " · awaiting WhatsApp OTP verification" : null}
+          {invitation.effectiveStatus === "expired" ? " · the invitation expired, use Resend to send a fresh one." : null}
           {invitation.effectiveStatus === "revoked" ? " · this invitation was revoked." : null}
           {invitation.effectiveStatus === "invited" ? ` · sent ${new Date(invitation.invitedAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE })}` : null}
           {invitation.resendCount > 0 ? ` · resent ${invitation.resendCount}×` : null}
@@ -87,7 +91,7 @@ export function OwnerInvitationCard({ invitation }: { invitation: OwnerInvitatio
           onClick={resend}
           variant="secondary" size="sm" className="border-current"
         >
-          {isPending ? "Sending…" : "Resend invitation"}
+          {isPending ? "Sending…" : phoneInvitation ? "Resend OTP" : "Resend invitation"}
         </Button>
       ) : null}
       {canRevoke ? (
@@ -104,7 +108,7 @@ export function OwnerInvitationCard({ invitation }: { invitation: OwnerInvitatio
       <ConfirmDialog
         open={confirmRevoke}
         title="Revoke this invitation?"
-        description="The owner will no longer be able to use this invitation link. The gym itself is unaffected — you can invite a different email afterward."
+        description="The owner will no longer be able to use this invitation to join the gym."
         confirmLabel="Revoke invitation"
         danger
         pending={isPending}

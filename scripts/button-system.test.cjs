@@ -120,7 +120,7 @@ test("SubmitButton connects form pending state to the shared loading behavior", 
 test("imperative async actions reject same-tick duplicates and unlock when settled", async () => {
   const states = [];
   const { useAsyncAction } = load("src/components/AsyncButton.tsx", {
-    react: { ...React, useState: () => [false, v => states.push(v)], useRef: value => ({ current: value }), useCallback: fn => fn },
+    react: { ...React, useContext: () => null, useState: () => [false, v => states.push(v)], useRef: value => ({ current: value }), useCallback: fn => fn },
   });
   let resolve;
   let calls = 0;

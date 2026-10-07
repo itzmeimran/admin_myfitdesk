@@ -23,6 +23,7 @@ const ACTION_LABEL: Record<string, string> = {
   "invitation.sent": "Owner invitation sent",
   "invitation.resent": "Owner invitation resent",
   "invitation.revoked": "Owner invitation revoked",
+  "invitation.phone_verified": "Owner phone verified and account activated",
   "payment.manual_record": "Manual payment recorded",
   "admin_note.added": "Admin note added",
   "admin_note.edited": "Admin note edited",

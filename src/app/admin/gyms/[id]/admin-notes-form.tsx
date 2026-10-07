@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { useActionState, useEffect, useRef } from "react";
 import { SubmitButton } from "@/components/SubmitButton";
 import { addGymNote, type AddGymNoteState } from "@/features/gyms/overview-actions";
@@ -15,7 +16,7 @@ export function AdminNotesForm({ organizationId }: { organizationId: string }) {
   }, [state.success]);
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-2.5">
+    <ConfirmedForm confirmation="Add this private note to the gym history?" ref={formRef} action={action} className="flex flex-col gap-2.5">
       <input type="hidden" name="organizationId" value={organizationId} />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[140px_1fr_auto]">
         <input
@@ -38,6 +39,6 @@ export function AdminNotesForm({ organizationId }: { organizationId: string }) {
         </SubmitButton>
       </div>
       {state.error ? <p role="alert" className="text-[11.5px] text-accent">{state.error}</p> : null}
-    </form>
+    </ConfirmedForm>
   );
 }

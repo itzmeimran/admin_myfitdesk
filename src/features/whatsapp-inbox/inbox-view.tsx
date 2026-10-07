@@ -3,7 +3,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/Button';
 import { ButtonLink } from '@/components/ButtonLink';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useActionConfirmation } from '@/components/ActionConfirmationProvider';
 import { useToast } from '@/components/Toast';
 import { ConversationIcon } from '@/core/ui/icons';
 import { useBroadcastChannel } from '@/core/realtime/use-broadcast-channel';
@@ -19,6 +19,7 @@ import type { Conversation, Cursor, InboxFilter, InboxInitial, OutboundMessage }
 /** Reconcile via curated RPCs without remounting the open thread or its draft. */
 export function InboxView({ initial }: { initial: InboxInitial }) {
  const toast = useToast();
+ const confirmAction = useActionConfirmation();
  const { team, templates, currentUserId, canManage, canCreateLead } = initial;
  const [rows, setRows] = useState(initial.conversations);
  const [counts, setCounts] = useState(initial.counts);
@@ -33,7 +34,6 @@ export function InboxView({ initial }: { initial: InboxInitial }) {
  const [threadLoading, setThreadLoading] = useState(false);
  const [pending, setPending] = useState(false);
  const [error, setError] = useState(initial.error);
- const [confirmBlock, setConfirmBlock] = useState(false);
  const [hasEarlier, setHasEarlier] = useState(false);
  const selectedRef = useRef<string | null>(null);
  const selectedValue = useRef(selected);
@@ -131,17 +131,31 @@ export function InboxView({ initial }: { initial: InboxInitial }) {
    await fetchList(); return true;
   } catch { toast.error('Unable to save the change. Please retry.'); return false; }
  };
- const run = (command: string, input: Record<string, unknown> = {}) => {
-  setPending(true); startTransition(async () => { await mutate(command, input); setPending(false); });
+ const confirmedMutation = async (command: string, input: Record<string, unknown> = {}, id = selectedRef.current) => {
+  if (!id || pending) return false;
+  const target = selectedValue.current?.name ?? selectedValue.current?.phone ?? 'this conversation';
+  const descriptions: Record<string,string> = {
+   assign:`Change the assignee for ${target}?`, unread:`Mark ${target} as unread?`,
+   close:`Close the conversation with ${target}?`, reopen:`Reopen the conversation with ${target}?`,
+   archive:`Archive the conversation with ${target}?`, block:`Block ${target}? The conversation will be hidden and future inbound messages dropped.`,
+   note:`Save this private team note for ${target}?`, lead:`Create or link a CRM lead for ${target}?`,
+  };
+  return Boolean(await confirmAction({title:'Are you sure?',description:descriptions[command]??`Apply this change to ${target}?`,danger:command==='block'},async()=>{
+   setPending(true);try{return await mutate(command,input,id);}finally{setPending(false);}
+  }));
  };
- const send = (text: string, templateKey?: string, retryMessage?: OutboundMessage) => {
+ const run = (command: string, input: Record<string, unknown> = {}) => { void confirmedMutation(command,input); };
+ const send = async (text: string, templateKey?: string, retryMessage?: OutboundMessage) => {
   const c = selectedValue.current;
-  if (!c || !canManage) return;
+  if (!c || !canManage || pending) return false;
+  return Boolean(await confirmAction({title:retryMessage?'Retry this WhatsApp message?':'Send this WhatsApp message?',description:`Send ${templateKey?'the selected template':'this message'} to ${c.name??c.phone}?`,confirmLabel:'Yes, send'},async()=>{
+  setPending(true);
+  try {
   const clientRef = retryMessage?.clientRef ?? crypto.randomUUID();
   const optimistic: OutboundMessage = { id: retryMessage?.id ?? clientRef, clientRef, kind: 'out', text, at: nowIst(), status: 'sending', source: 'manual', by: team.find(t => t.id === currentUserId)?.short ?? 'Me', template: templateKey };
   pendingSends.current.set(clientRef, optimistic);
   setSelected(old => old ? { ...old, messages: [...old.messages.filter(m => m.id !== optimistic.id), optimistic] } : old);
-  startTransition(async () => {
+  {
    try {
     const result = await sendInboxMessage({ conversationId: c.id, clientRef, body: text, templateKey, retry: Boolean(retryMessage) });
     if (result.error) toast.error(result.error);
@@ -154,7 +168,10 @@ export function InboxView({ initial }: { initial: InboxInitial }) {
     toast.error('Connection lost. Waiting for delivery confirmation.');
    }
    await fetchThread(c.id); await fetchList();
-  });
+  }
+  return true;
+  } finally {setPending(false);}
+  }));
  };
  const retry = (id: string) => {
   const m = selected?.messages.find(m => m.id === id);
@@ -179,18 +196,16 @@ export function InboxView({ initial }: { initial: InboxInitial }) {
       canManage={canManage} canSend={canManage && initial.configured} pending={pending} hasEarlier={hasEarlier} onLoadEarlier={() => startTransition(() => { void fetchThread(selected.id, true); })}
       onBack={deselect} onTogglePanel={() => setPanelOpen(o => !o)} onOpenPanel={options => { setPanelOpen(true); setCreatingLead(Boolean(options?.create)); }}
       onAssign={assigneeId => run('assign', { assigneeId })} onToggleClosed={() => run(selected.status === 'open' ? 'close' : 'reopen')}
-      onMarkUnread={() => run('unread')} onArchive={() => run('archive')} onBlock={() => setConfirmBlock(true)} onSend={send} onRetry={retry} />
+      onMarkUnread={() => run('unread')} onArchive={() => run('archive')} onBlock={() => run('block')} onSend={send} onRetry={retry} />
       : <div className="flex flex-1 flex-col items-center justify-center gap-2.5 p-6 text-center"><ConversationIcon size={22}/><b>{counts.total ? 'No conversation selected' : 'Your inbox is empty'}</b><p className="max-w-[300px] text-[13px] text-mute">{counts.total ? 'Select a conversation to view messages.' : 'When a gym owner or lead messages MyFitDesk on WhatsApp, the conversation opens here.'}</p></div>}
     </section>
     {selected && panelOpen ? <aside aria-label="Contact details" className="absolute inset-y-0 right-0 z-20 flex w-full flex-shrink-0 flex-col border-ink bg-paper lg:w-[300px] lg:border-l-[1.5px] 2xl:static 2xl:z-auto 2xl:border-l 2xl:border-line">
      <ContactPanel key={selected.id} conversation={selected} team={team} startCreating={creatingLead} canManage={canManage} canCreateLead={canCreateLead} pending={pending}
       onClose={() => { setPanelOpen(false); setCreatingLead(false); }} onAssign={assigneeId => run('assign', { assigneeId })}
-      onNote={async (note, version) => { let ok = false; await new Promise<void>(resolve => startTransition(async () => { ok = await mutate('note', { note, version }, selected.id); resolve(); })); return ok; }}
-      onCreateLead={async input => { setPending(true); let ok = false; await new Promise<void>(resolve => startTransition(async () => { ok = await mutate('lead', input); resolve(); })); setPending(false); if (ok) { setCreatingLead(false); toast.success('Linked to Sales CRM'); } return ok; }} />
+      onNote={(note,version)=>confirmedMutation('note',{note,version},selected.id)}
+      onCreateLead={async input => { const ok=await confirmedMutation('lead',input,selected.id); if(ok){setCreatingLead(false);toast.success('Linked to Sales CRM');}return ok; }} />
     </aside> : null}
    </div>
-   <ConfirmDialog open={confirmBlock} title="Block this number?" description="This conversation will be hidden and future inbound messages will be dropped. You can unblock it from Archived & blocked." confirmLabel="Block number" danger pending={pending}
-    onCancel={() => setConfirmBlock(false)} onConfirm={() => { setConfirmBlock(false); run('block'); }} />
   </div>
  );
 }

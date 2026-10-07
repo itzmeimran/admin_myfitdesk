@@ -66,14 +66,14 @@ function Drawer({ lead: l }: { lead: Lead }) {
   const moreLinks: { label: string; act: () => void; disabled?: boolean; note?: string }[] = [
     { label: "Reassign", act: open({ kind: "reassign", id: l.id }), disabled: !canReassign, note: canReassign ? "" : "Only a manager or admin can reassign this lead" },
     { label: l.priority === "high" ? "Remove high priority" : "Mark high priority", act: () => commands.togglePriority(l.id) },
-    ...(converted ? [] : [{ label: "Convert", act: () => commands.moveLead(l.id, "converted") }]),
+    ...(converted || closed ? [] : [{ label: l.organizationId?'Confirm paid conversion':'Create / link gym', act: () => commands.moveLead(l.id, "converted") }]),
     ...(closed || converted ? [] : [{ label: "Mark lost / not interested", act: open({ kind: "lost", id: l.id, outcome: "Lost" }) }]),
   ];
 
   const contactLinks = [
     { label: "Call", href: `tel:${l.phone}`, Icon: LuPhone, aria: `Call ${l.contact}` },
     { label: "WhatsApp", href: `https://wa.me/${l.phone.replace(/\D/g, '')}`, Icon: LuMessageCircle, aria: `WhatsApp ${l.contact}` },
-    { label: "Email", href: `mailto:${l.email}`, Icon: LuMail, aria: `Email ${l.contact}` },
+    ...(l.email?[{ label: "Email", href: `mailto:${l.email}`, Icon: LuMail, aria: `Email ${l.contact}` }]:[]),
   ];
 
   const stageChip = converted ? "ink" : closed ? "sand" : "outline";

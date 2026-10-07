@@ -7,6 +7,7 @@ import { useToast } from "@/components/Toast";
 import { UploadIcon, DeleteIcon } from "@/core/ui/icons";
 import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES } from "@/core/storage/logo-limits";
 import { removeGymLogo, updateGymLogo } from "./logo-actions";
+import { useActionConfirmation } from '@/components/ActionConfirmationProvider';
 
 /** Upload, replace or remove a gym's logo — any number of times. */
 export function GymLogoUpload({
@@ -19,6 +20,7 @@ export function GymLogoUpload({
   logoUrl: string | null;
 }) {
   const toast = useToast();
+  const confirmAction=useActionConfirmation();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<"upload" | "remove" | null>(null);
@@ -46,6 +48,7 @@ export function GymLogoUpload({
       return;
     }
 
+    await confirmAction({title:'Update gym logo?',description:`Upload this image as the logo for ${gymName}?`},async()=>{
     setPending("upload");
     const localPreview = URL.createObjectURL(file);
     setPreviewUrl(localPreview);
@@ -64,10 +67,12 @@ export function GymLogoUpload({
       URL.revokeObjectURL(localPreview);
       setPending(null);
     }
+    });
   }
 
   async function handleRemove() {
     if (pending) return;
+    await confirmAction({title:'Remove gym logo?',description:`Remove the current logo from ${gymName}?`,danger:true},async()=>{
     setPending("remove");
     try {
       const result = await removeGymLogo(organizationId);
@@ -80,6 +85,7 @@ export function GymLogoUpload({
     } finally {
       setPending(null);
     }
+    });
   }
 
   return (

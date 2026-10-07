@@ -1,7 +1,8 @@
 "use client";
 
+import { useActionConfirmation } from '@/components/ActionConfirmationProvider';
 import { Button } from "@/components/Button";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AssignablePackage } from "./queries";
 import {
@@ -68,7 +69,9 @@ export function ManageSubscriptionSheet({
   const router = useRouter();
   const toast = useToast();
   const environment = useAdminEnvironment();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setPending] = useState(false);
+  const confirmAction = useActionConfirmation();
+  const writing = useRef(false);
   const [busy, setBusy] = useState<"renew" | "extend" | "package" | "clear" | "lifecycle" | "schedule" | "clear-schedule" | null>(null);
   const [days, setDays] = useState(gym.isTrialing ? "14" : "7");
   const initialRenewalPackage = packages.find((p) => p.id === gym.packageId) ?? packages[0];
@@ -108,26 +111,24 @@ export function ManageSubscriptionSheet({
   }, [open, gym.organizationId]);
 
   function run(
-    kind: "renew" | "extend" | "package" | "clear" | "lifecycle" | "schedule" | "clear-schedule",
-    action: () => Promise<{ error: string | null }>,
-    successMessage = "Subscription updated.",
+    kind: 'renew'|'extend'|'package'|'clear'|'lifecycle'|'schedule'|'clear-schedule',
+    action: () => Promise<{error:string|null}>, successMessage='Subscription updated.', confirmed=false,
   ) {
-    setBusy(kind);
-    startTransition(async () => {
-      const { error } = await action();
-      setBusy(null);
-      if (error) {
-        toast.error(error);
-        return;
-      }
-      toast.success(successMessage);
-      if (kind === "schedule" || kind === "clear-schedule") {
-        getScheduledPackage(gym.organizationId)
-          .then(setScheduled)
-          .catch(() => {});
-      }
-      router.refresh();
-    });
+    const perform=async()=>{
+      if (writing.current) return;
+      writing.current = true;
+      setBusy(kind);setPending(true);
+      try{
+        const {error}=await action();
+        if(error){toast.error(error);return;}
+        toast.success(successMessage);
+        if(kind==='schedule'||kind==='clear-schedule')getScheduledPackage(gym.organizationId).then(setScheduled).catch(()=>{});
+        router.refresh();
+      }catch(error){toast.error(error instanceof Error ? error.message : 'Unable to update the subscription');}
+      finally{writing.current=false;setBusy(null);setPending(false);}
+    };
+    if(confirmed)void perform();
+    else void confirmAction({title:'Are you sure?',description:'Apply this subscription change to '+gym.name+'? Review the dates, package and any payment details before continuing.'},perform);
   }
 
   return (
@@ -408,8 +409,7 @@ export function ManageSubscriptionSheet({
         pending={isPending}
         requireTypedConfirmation={environment === "prod" ? "PRODUCTION" : undefined}
         onConfirm={() => {
-          setConfirmCancel(false);
-          run("lifecycle", () => cancelSubscription(gym.organizationId));
+          run("lifecycle", async () => { const result=await cancelSubscription(gym.organizationId); setConfirmCancel(false); return result; }, "Subscription cancelled.", true);
         }}
         onCancel={() => setConfirmCancel(false)}
       />

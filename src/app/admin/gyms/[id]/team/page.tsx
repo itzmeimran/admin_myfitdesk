@@ -132,7 +132,7 @@ export default async function GymTeamPage({
         </div>
         {gym.owner ? (
           <div className="flex flex-wrap gap-x-6 gap-y-1.5">
-            <Fact label="Email" value={gym.owner.email} />
+            <Fact label="Email" value={gym.owner.email || "Phone login"} />
             <Fact label="Phone" value={gym.owner.phone ?? "—"} mono />
           </div>
         ) : null}

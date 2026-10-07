@@ -30,10 +30,14 @@ import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
 import { createServiceClient } from "@/core/db/service-client";
 import { text } from "@/core/forms/form-values";
-import { emailEnv, isEmailConfigured } from "@/core/config/email";
+import { isEmailConfigured } from "@/core/config/email";
+import { tenantAppOrigin } from "@/core/config/tenant-app";
+import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 import { sendSystemEmail } from "@/core/email/system-email";
 import { gymOwnerInviteEmail } from "@/core/email/templates";
 import { getPlatformSettingsOrFallback } from "@/features/settings/platform-settings";
+import { normalizeOwnerPhone } from "@/core/auth/owner-phone";
+import { sendOwnerPhoneOtp } from "@/core/auth/send-owner-phone-otp";
 
 import { ALLOWED_LOGO_TYPES, MAX_LOGO_BYTES } from "@/core/storage/logo-limits";
 import { processLogoImage } from "@/core/storage/process-logo-image";
@@ -46,7 +50,8 @@ const inviteSchema = z
     gymName: z.string().trim().min(1, "Enter a gym name.").max(160),
     ownerFirstName: z.string().trim().min(1, "Enter the owner's first name.").max(100),
     ownerLastName: z.string().trim().max(100).optional().default(""),
-    email: z.string().trim().min(1, "Enter an email address.").email("Enter a valid email address."),
+    invitationMethod: z.enum(["email", "whatsapp"]).default("email"),
+    email: z.string().trim().max(254).optional().default(""),
     phone: z.string().trim().max(30).optional().default(""),
     addressLine: z.string().trim().max(200).optional().default(""),
     city: z.string().trim().max(120).optional().default(""),
@@ -63,6 +68,12 @@ const inviteSchema = z
     notes: z.string().trim().max(500).optional().default(""),
   })
   .superRefine((val, ctx) => {
+    if (val.invitationMethod === "email" && !z.email().safeParse(val.email).success) {
+      ctx.addIssue({ code: "custom", message: "Enter a valid email address.", path: ["email"] });
+    }
+    if (val.invitationMethod === "whatsapp" && !normalizeOwnerPhone(val.phone)) {
+      ctx.addIssue({ code: "custom", message: "Enter a valid mobile number, including the country code for numbers outside India.", path: ["phone"] });
+    }
     if (val.billingMode === "paid" && !z.string().uuid().safeParse(val.packageId).success) {
       ctx.addIssue({ code: "custom", message: "Choose a subscription plan.", path: ["packageId"] });
     }
@@ -76,7 +87,7 @@ const inviteSchema = z
 
 export type InviteFormState = {
   error: string | null;
-  success?: { gymCode: string; organizationId: string; manualLink?: string };
+  success?: { gymCode: string; organizationId: string; invitationMethod?: "email" | "whatsapp"; manualLink?: string };
 };
 
 function positiveIntOrUndefined(raw: string): number | undefined {
@@ -88,6 +99,7 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
   await assertPermission("gyms.manage");
   const parsed = inviteSchema.safeParse({
     gymName: text(formData, "gymName"),
+    invitationMethod: text(formData, "invitationMethod") || "email",
     ownerFirstName: text(formData, "ownerFirstName"),
     ownerLastName: text(formData, "ownerLastName"),
     email: text(formData, "email"),
@@ -127,12 +139,11 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
   // blank. Read here on the server so the browser can't choose its own defaults.
   const platform = await getPlatformSettingsOrFallback(supabase);
 
-  const { data: created, error: createError } = await supabase.rpc("admin_create_gym_owner_invitation", {
+  const args = {
     p_gym_name: data.gymName,
     p_owner_first_name: data.ownerFirstName,
-    p_owner_last_name: data.ownerLastName || undefined,
-    p_email: data.email,
-    p_phone: data.phone || undefined,
+    p_owner_last_name: data.ownerLastName,
+    p_phone: data.invitationMethod === "whatsapp" ? normalizeOwnerPhone(data.phone)! : data.phone || undefined,
     p_address_line: data.addressLine || undefined,
     p_city: data.city || undefined,
     p_state: data.state || undefined,
@@ -150,7 +161,10 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
           ? positiveIntOrUndefined(data.customDays)
           : undefined,
     p_notes: data.notes || undefined,
-  });
+  };
+  const { data: created, error: createError } = data.invitationMethod === "whatsapp"
+    ? await supabase.rpc("admin_create_gym_owner_phone_invitation", { ...args, p_phone: normalizeOwnerPhone(data.phone)! })
+    : await supabase.rpc("admin_create_gym_owner_invitation", { ...args, p_email: data.email });
 
   if (createError) {
     // The RPC's own messages (duplicate email, existing account, invalid
@@ -198,7 +212,16 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
   revalidatePath("/admin/gyms");
   revalidatePath("/admin");
 
-  const redirectTo = `${emailEnv.MYFITDESK_ORIGIN}/auth/confirm?type=invite&next=${encodeURIComponent("/invite/accept")}`;
+  if (data.invitationMethod === "whatsapp") {
+    const deliveryError = await sendOwnerPhoneOtp(result.invitation_id);
+    return { error: null, success: {
+      gymCode: result.gym_code, organizationId: result.organization_id, invitationMethod: "whatsapp",
+      ...(deliveryError ? { manualLink: deliveryError } : {}),
+    } };
+  }
+
+  const origin = tenantAppOrigin(await getActiveAdminEnvironment());
+  const redirectTo = `${origin}/auth/confirm?type=invite&next=${encodeURIComponent("/invite/accept")}`;
 
   if (!isEmailConfigured()) {
     return {
@@ -229,7 +252,7 @@ export async function inviteGymOwner(_prev: InviteFormState, formData: FormData)
     };
   }
 
-  const confirmationUrl = `${emailEnv.MYFITDESK_ORIGIN}/auth/confirm?token_hash=${encodeURIComponent(
+  const confirmationUrl = `${origin}/auth/confirm?token_hash=${encodeURIComponent(
     linkData.properties.hashed_token,
   )}&type=invite&next=${encodeURIComponent("/invite/accept")}`;
 
@@ -271,9 +294,17 @@ export async function resendGymOwnerInvitation(invitationId: string): Promise<Ac
   });
   if (error) return { error: error.message };
 
-  const row = (Array.isArray(resent) ? resent[0] : resent) as { email: string; organization_id: string; organization_name: string };
+  const row = (Array.isArray(resent) ? resent[0] : resent) as { email: string; organization_id: string; organization_name: string; invitation_channel?: "email" | "whatsapp" };
 
-  const redirectTo = `${emailEnv.MYFITDESK_ORIGIN}/auth/confirm?type=invite&next=${encodeURIComponent("/invite/accept")}`;
+  if (row.invitation_channel === "whatsapp") {
+    const deliveryError = await sendOwnerPhoneOtp(invitationId);
+    revalidatePath("/admin/gyms");
+    revalidatePath("/admin/gyms/[id]", "layout");
+    return { error: deliveryError };
+  }
+
+  const origin = tenantAppOrigin(await getActiveAdminEnvironment());
+  const redirectTo = `${origin}/auth/confirm?type=invite&next=${encodeURIComponent("/invite/accept")}`;
 
   if (!isEmailConfigured()) {
     return { error: "Email isn't configured on this server — the invitation was reset, but no email was sent." };
@@ -289,7 +320,7 @@ export async function resendGymOwnerInvitation(invitationId: string): Promise<Ac
     return { error: `Couldn't generate a new link: ${linkError?.message ?? "unknown error"}` };
   }
 
-  const confirmationUrl = `${emailEnv.MYFITDESK_ORIGIN}/auth/confirm?token_hash=${encodeURIComponent(
+  const confirmationUrl = `${origin}/auth/confirm?token_hash=${encodeURIComponent(
     linkData.properties.hashed_token,
   )}&type=invite&next=${encodeURIComponent("/invite/accept")}`;
 

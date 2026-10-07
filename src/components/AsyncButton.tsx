@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { Button, type ButtonProps } from "./Button";
+import { useActionConfirmation } from './ActionConfirmationProvider';
 
 /** Pending state and a synchronous guard against duplicate imperative actions. */
 export function useAsyncAction<Args extends unknown[]>(
@@ -9,18 +10,18 @@ export function useAsyncAction<Args extends unknown[]>(
 ): { run: (...args: Args) => void; pending: boolean } {
   const [pending, setPending] = useState(false);
   const inFlight = useRef(false);
+  const confirmAction = useActionConfirmation();
 
   const run = useCallback(
     (...args: Args) => {
       if (inFlight.current) return;
-      inFlight.current = true;
-      setPending(true);
-      void Promise.resolve().then(() => action(...args)).finally(() => {
-        inFlight.current = false;
-        setPending(false);
+      void confirmAction({ title: 'Are you sure?', description: 'Apply the requested change?' }, async () => {
+        inFlight.current = true; setPending(true);
+        try { await action(...args); }
+        finally { inFlight.current = false; setPending(false); }
       });
     },
-    [action],
+    [action, confirmAction],
   );
 
   return { run, pending };

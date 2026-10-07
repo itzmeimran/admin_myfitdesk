@@ -1,7 +1,9 @@
 "use client";
 
+import { useConfirmedTransition } from '@/components/use-confirmed-transition';
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import type { Package } from "@/features/packages/mock-data";
@@ -65,10 +67,11 @@ export function PackagesView({
   const [editing, setEditing] = useState<Package | null>(null);
   const [archiving, setArchiving] = useState<string | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<Package | null>(null);
+  const [isPending, startTransition] = useConfirmedTransition('Restore this archived package and make it available again?', confirmArchive !== null);
   const router = useRouter();
   const toast = useToast();
   const environment = useAdminEnvironment();
-  const [isPending, startTransition] = useTransition();
+
   const packages = period === "Yearly" ? yearly : monthly;
 
   function openCreate() {
@@ -311,7 +314,7 @@ function PackageSheet({
       eyebrow={isEditing ? "Updates one row in platform_packages" : "Writes one row to platform_packages"}
       title={isEditing ? `Edit ${editing?.name}` : "New package"}
     >
-      <form action={formAction} className="flex flex-col gap-3.5">
+      <ConfirmedForm confirmation="Save these package changes?" action={formAction} className="flex flex-col gap-3.5">
         {isEditing && raw ? <input type="hidden" name="id" value={raw.id} /> : null}
         <div className="flex flex-wrap gap-3">
           <label className="flex flex-col gap-1" style={{ flexBasis: 220 }}>
@@ -512,7 +515,7 @@ function PackageSheet({
             {isPending ? "Saving…" : isEditing ? "Save changes" : "Publish package"}
           </Button>
         </div>
-      </form>
+      </ConfirmedForm>
     </Sheet>
   );
 }

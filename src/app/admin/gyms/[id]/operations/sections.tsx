@@ -428,7 +428,7 @@ export function AccessSection({ supabase, gym, tz }: Ctx) {
           {access.owner ? (
             <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
               <Tile label="Owner" value={<span className="text-[14px]">{access.owner.name || "—"}</span>} lines={[access.owner.accessStatus === "active" ? "Access active" : `Access ${access.owner.accessStatus}`]} />
-              <Tile label="Email" value={<span className="break-all text-[13px]">{access.owner.email ?? "—"}</span>} lines={[access.owner.emailVerified ? "Verified" : "Not verified"]} tone={access.owner.emailVerified ? "neutral" : "accent"} />
+              <Tile label="Email" value={<span className="break-all text-[13px]">{access.owner.email ?? "—"}</span>} lines={[access.owner.email ? access.owner.emailVerified ? "Verified" : "Not verified" : "Phone login"]} tone={!access.owner.email || access.owner.emailVerified ? "neutral" : "accent"} />
               <Tile label="Phone" value={<span className="text-[13px]">{access.owner.phone ?? "—"}</span>} lines={[access.owner.phone ? (access.owner.phoneVerified ? "Verified" : "Not verified in authentication") : "No phone on file"]} />
               <Tile
                 label="Last login"

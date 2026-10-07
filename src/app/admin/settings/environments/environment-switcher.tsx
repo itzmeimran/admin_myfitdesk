@@ -15,7 +15,7 @@ import { DatabaseIcon, SpinnerIcon } from "@/core/ui/icons";
  * from the `admin-env` cookie — see core/env/context.tsx) and writes a new
  * one through the `setAdminEnvironment` Server Action (core/env/actions.ts).
  *
- * Switching to DEV is a single click; switching to PROD requires an extra
+ * Switching to either environment requires confirmation; PROD requires an extra
  * ConfirmDialog step where the admin has to type "PRODUCTION" — and that word
  * is re-checked by the Server Action (core/env/actions.ts), so it isn't only a
  * UI gate. Other dangerous actions on PROD (this app's other dialogs) ask for
@@ -41,11 +41,7 @@ export function EnvironmentSwitcher() {
 
   function requestSwitch(target: AdminEnvironment) {
     if (target === environment || isPending || switching) return;
-    if (target === "prod") {
-      setConfirmTarget(target);
-      return;
-    }
-    performSwitch(target, "");
+    setConfirmTarget(target);
   }
 
   function performSwitch(target: AdminEnvironment, confirmation: string) {
@@ -127,12 +123,12 @@ export function EnvironmentSwitcher() {
 
       <ConfirmDialog
         open={confirmTarget !== null}
-        danger
-        title="Switch to Production?"
-        description="You are about to access live customer data. Changes made here can affect real gyms, members, subscriptions, payments and platform operations."
-        confirmLabel="Switch to Production"
+        danger={confirmTarget==='prod'}
+        title={`Switch to ${confirmTarget==='prod'?'Production':'Development'}?`}
+        description={confirmTarget==='prod'?"You are about to access live customer data. Changes made here can affect real gyms, members, subscriptions, payments and platform operations.":'Switch to the separate Development environment? The page will reload with development data.'}
+        confirmLabel={`Switch to ${confirmTarget==='prod'?'Production':'Development'}`}
         pending={Boolean(switching)}
-        requireTypedConfirmation="PRODUCTION"
+        requireTypedConfirmation={confirmTarget === 'prod' ? 'PRODUCTION' : undefined}
         onConfirm={(typed) => confirmTarget && performSwitch(confirmTarget, typed)}
         onCancel={() => setConfirmTarget(null)}
       />

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { invitePlatformAdmin, type InviteState } from "../_server/invite-actions";
@@ -73,7 +74,7 @@ export function InviteAdminForm({
   }, [state, toast]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ConfirmedForm confirmation="Send this platform administrator invitation?" action={formAction} className="flex flex-col gap-4">
       <fieldset disabled={pending || !canManage} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Email" required hint="If they don't have an account yet, one is created and they choose their own password.">
@@ -192,7 +193,7 @@ export function InviteAdminForm({
           ))}
         </ul>
       ) : null}
-    </form>
+    </ConfirmedForm>
   );
 }
 

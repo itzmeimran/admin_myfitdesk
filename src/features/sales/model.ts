@@ -94,7 +94,7 @@ export const isClosedStage = (stage: LeadStage): stage is ClosedStage => stage i
 export const columnOf = (stage: LeadStage): BoardColumn => (isClosedStage(stage) ? "closed" : stage);
 
 export const LOST_REASONS = ["Pricing", "Using competitor", "Not ready", "No response", "Missing feature", "Business closed", "Other"];
-export const LEAD_SOURCES = ["Website Demo", "WhatsApp", "Instagram", "Referral", "Google", "Cold call", "Field visit"];
+export const LEAD_SOURCES = ["Website Demo", "WhatsApp", "Instagram", "Referral", "Google", "Cold call", "Field visit", "Existing customer"];
 export const PLAN_OPTIONS = ["Monthly", "Quarterly", "Half-yearly", "Yearly"];
 
 // ── Lead ─────────────────────────────────────────────────────────────────────
@@ -105,6 +105,7 @@ export type DemoStatus = "Awaiting confirmation" | "Scheduled" | "Rescheduled" |
 
 export type Lead = {
   id: string;
+  organizationId?: string | null;
   gym: string;
   city: string;
   state: string;

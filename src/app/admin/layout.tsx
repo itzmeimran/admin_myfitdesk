@@ -6,6 +6,7 @@ import { getAdminChromeCounts } from "@/features/overview/queries";
 import { getSalesAttentionCount } from '@/features/sales/queries';
 import { createClient } from "@/core/db/server-client";
 import { ToastProvider } from "@/components/Toast";
+import { ActionConfirmationProvider } from '@/components/ActionConfirmationProvider';
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminChrome } from "./admin-chrome";
 import { AdminLiveRefresh } from "./admin-live-refresh";
@@ -70,6 +71,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ToastProvider>
+      <ActionConfirmationProvider>
       <AdminLiveRefresh />
       <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
         <AdminSidebar email={email} gymsCount={gymsCount} salesAttentionCount={salesAttentionCount} permissions={permissions} />
@@ -84,6 +86,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </main>
         </div>
       </div>
+      </ActionConfirmationProvider>
     </ToastProvider>
   );
 }

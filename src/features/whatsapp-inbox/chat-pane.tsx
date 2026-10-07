@@ -25,7 +25,7 @@ type Props = {
   onMarkUnread: () => void;
   onArchive: () => void;
   onBlock: () => void;
-  onSend: (text: string, templateKey?: string) => void;
+  onSend: (text: string, templateKey?: string) => Promise<boolean>;
   onRetry: (messageId: string) => void;
   canManage: boolean;
   canSend: boolean;
@@ -88,8 +88,8 @@ export function ChatPane({
   const closePopovers = () => { setMenu("closed"); setTemplatesOpen(false); };
   const submit = () => {
     if (!hasDraft || !canSend || pending || state !== 'open') return;
-    onSend(draft);
-    setDraft("");
+    const submitted=draft;
+    void onSend(submitted).then(sent=>{if(sent)setDraft(current=>current===submitted?'':current);});
   };
   const menuItem = (label: string, run: () => void, options: { arrow?: boolean; danger?: boolean; separated?: boolean } = {}) => (
     <Button
@@ -279,7 +279,7 @@ export function ChatPane({
                     variant="primary"
                     size="custom"
                     onClick={submit}
-                    disabled={!hasDraft || !canSend || pending}
+                    pending={pending} disabled={!hasDraft || !canSend || pending}
                     className="ml-auto min-h-[34px] gap-[7px] px-3.5 text-[11.5px] disabled:border-line disabled:bg-line disabled:text-mute2 lg:ml-3"
                   >
                     <SendIcon size={14} aria-hidden />Send
@@ -325,7 +325,7 @@ export function ChatPane({
                   disabled={!canSend || pending}
                   variant="control"
                   size="custom"
-                  onClick={() => { onSend(body, t.key); setTemplatesOpen(false); }}
+                  onClick={() => { void onSend(body,t.key).then(sent=>{if(sent)setTemplatesOpen(false);}); }}
                   className="w-full flex-col items-stretch gap-1 border-0 border-b border-b-sand px-3 py-2.5 text-left font-normal"
                 >
                   <span className="flex items-center gap-2">

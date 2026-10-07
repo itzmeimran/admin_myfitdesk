@@ -15,7 +15,9 @@ import type { OwnerInvitation, OwnerInvitationStatus } from "./onboarding-types"
 
 type RawOwnerInvitation = {
   id: string;
-  email: string;
+  email: string | null;
+  invitation_channel?: "email" | "whatsapp";
+  phone_verified_at?: string | null;
   status: OwnerInvitation["status"];
   effective_status: OwnerInvitationStatus;
   invited_first_name: string | null;
@@ -45,6 +47,8 @@ export async function getGymOwnerInvitation(
   return {
     id: raw.id,
     email: raw.email,
+    invitationMethod: raw.invitation_channel ?? "email",
+    phoneVerifiedAt: raw.phone_verified_at ?? null,
     status: raw.status,
     effectiveStatus: raw.effective_status,
     invitedFirstName: raw.invited_first_name,

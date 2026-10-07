@@ -2,18 +2,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/Toast';
-import { loadSales, loadSalesDetail, runSalesCommand } from '@/app/admin/sales/actions';
+import { createSalesLead, loadSales, loadSalesDetail, runSalesCommand } from '@/app/admin/sales/actions';
+import { useActionConfirmation } from '@/components/ActionConfirmationProvider';
+import { salesConfirmation } from './confirmation';
+import type { ManualLeadInput } from './manual-lead';
 import { mapDetail, scheduledIso, type SalesInitial, type SalesRequest } from './data';
 import { EMPTY_FILTERS, ROLE_CONFIG, type DemoStatus, type FollowUpType, type LeadFilters, type LeadStage, type SalesUserId, type Scope } from './model';
 export type { SalesInitial } from './data';
 export type DataState='data'|'loading'|'empty'|'error';
 export type ModalState=
- |{kind:'filters'}|{kind:'stages'}|{kind:'more';id:string}|{kind:'activity';id:string;tab:'log'|'followup'}
+ |{kind:'create'}|{kind:'filters'}|{kind:'stages'}|{kind:'more';id:string}|{kind:'activity';id:string;tab:'log'|'followup'}
  |{kind:'demo';id:string;variant:'confirm'|'suggest'|'schedule'|'reschedule'}|{kind:'reassign';id:string}|{kind:'convert';id:string}
  |{kind:'lost';id:string;outcome:'Lost'|'Not interested'|'Follow up later'}|{kind:'duplicate';id:string};
 export type DrawerTab='overview'|'activity'|'follow';
 export type DemoInput={variant:'confirm'|'suggest'|'schedule'|'reschedule';mode:'requested'|'other';date:string;time:string;note:string};
-export type ConvertInput={how:'link'|'invite';organizationId?:string;ownerName:string;plan:string;email:string};
+export type ConvertInput={how:'link'|'invite'|'paid';organizationId?:string;ownerName:string;plan:string;email:string};
 export type CloseInput={outcome:'Lost'|'Not interested'|'Follow up later';reason:string;note:string;revisit:string};
 export type DuplicateInput={mode:'separate';why:string}|{mode:'merge';picks:Partial<Record<'gym'|'contact'|'email','existing'|'new'>>};
 export type SalesCommands={
@@ -27,7 +30,7 @@ export type SalesCommands={
  togglePriority:(id:string)=>void;reopen:(id:string)=>void;
 };
 function useStore(initial:SalesInitial,attentionView:boolean) {
- const toast=useToast();const router=useRouter();const [snapshot,setSnapshot]=useState(initial);
+ const toast=useToast();const router=useRouter();const confirmAction=useActionConfirmation();const [snapshot,setSnapshot]=useState(initial);
  const [scope,setScope]=useState<Scope>(ROLE_CONFIG[initial.role].defaultScope);
  const [team,setTeam]=useState(initial.users[initial.meId]?.team??'');
  const [query,setQuery]=useState('');const [filters,setFilters]=useState<LeadFilters>(EMPTY_FILTERS);
@@ -35,7 +38,7 @@ function useStore(initial:SalesInitial,attentionView:boolean) {
  const [mobileStage,setMobileStage]=useState(3);const [openId,setOpenId]=useState<string|null>(null);
  const [drawerTab,setDrawerTab]=useState<DrawerTab>('overview');const [modal,setModal]=useState<ModalState|null>(null);
  const [detailLeads,setDetailLeads]=useState<Record<string,SalesInitial['leads'][number]>>({});
- const [busy,startTransition]=useTransition();const writing=useRef(false);
+ const [transitionPending,startTransition]=useTransition();const [mutationPending,setMutationPending]=useState(false);const busy=transitionPending||mutationPending;const writing=useRef(false);
  const [loading,setLoading]=useState(false);const [error,setError]=useState(initial.error);const [mutationError,setMutationError]=useState<string|null>(null);
  const generation=useRef(0);const detailGeneration=useRef(0);
  const request=useMemo<SalesRequest>(()=>({scope,team,filters,query,attention:attentionOnly||attentionView,period,offset:0}),[scope,team,filters,query,attentionOnly,attentionView,period]);
@@ -66,23 +69,45 @@ function useStore(initial:SalesInitial,attentionView:boolean) {
   setDetailLeads(prev=>({...prev,[id]:mapped.lead}));
   setSnapshot(prev=>({...prev,leads:prev.leads.map(l=>l.id===id?mapped.lead:l),activities:{...prev.activities,[id]:mapped.activities},followUps:{...prev.followUps,[id]:mapped.followUps},assignments:{...prev.assignments,[id]:mapped.assignments}}));
   if(mapped.lead.duplicateOf){const other=await loadSalesDetail(mapped.lead.duplicateOf);if(other.data){const matching=mapDetail(other.data,snapshot.users);setDetailLeads(prev=>({...prev,[matching.lead.id]:matching.lead}));}}
+  return mapped.lead;
  },[snapshot.users]);
  const openLead=useCallback((id:string)=>{const gen=++detailGeneration.current;startTransition(async()=>{try{await detail(id);if(gen===detailGeneration.current){setOpenId(id);setDrawerTab('overview');}}catch(e){toast.error(e instanceof Error?e.message:'Lead could not load');}});},[detail,toast]);
  const openModal=useCallback((m:ModalState)=>{setMutationError(null);if('id'in m){const gen=++detailGeneration.current;startTransition(async()=>{try{await detail(m.id);if(gen===detailGeneration.current)setModal(m);}catch(e){toast.error(e instanceof Error?e.message:'Lead could not load');}});}else setModal(m);},[detail,toast]);
  const execute=useCallback((id:string,command:string,input:unknown)=>{
-  if(writing.current)return;writing.current=true;setMutationError(null);
-  startTransition(async()=>{try{
+  const lead=getLead(id);if(writing.current||!lead)return;
+  void confirmAction(salesConfirmation(lead,command,input),async()=>{
+   if(writing.current)return;writing.current=true;setMutationPending(true);setMutationError(null);
+   try{
    const result=await runSalesCommand(id,command,input);
    if(result.error){setMutationError(result.error);toast.error(result.error);return;}
    setModal(null);await refreshRef.current();
    if(openId){try{await detail(result.leadId);setOpenId(result.leadId);}catch{setOpenId(null);}}
    toast.success('Saved');if(result.warning)toast.error(result.warning);router.refresh();
   }catch(e){const message=e instanceof Error?e.message:'Unable to save';setMutationError(message);toast.error(message);}
-  finally{writing.current=false;}});
- },[detail,openId,router,toast]);
+   finally{writing.current=false;setMutationPending(false);}
+  });
+ },[confirmAction,detail,getLead,openId,router,toast]);
+ const createLead=useCallback((requestId:string,input:ManualLeadInput,next:'lead'|'gym')=>{
+  if(writing.current)return;
+  void confirmAction({title:'Add this lead?',description:`Save ${input.gym.trim()} in CRM with source ${input.source}?${next==='gym'?' You can review gym creation details next.':''}`,confirmLabel:'Yes, add lead'},async()=>{
+   if(writing.current)return;writing.current=true;setMutationPending(true);setMutationError(null);
+   try{
+    const result=await createSalesLead(requestId,input);
+    if(result.error||!result.leadId){const message=result.error??'Unable to add lead';setMutationError(message);toast.error(message);return;}
+    const created=await detail(result.leadId);
+    setScope('my');setFilters(EMPTY_FILTERS);setQuery('');setAttentionOnly(false);
+    setOpenId(created.id);setDrawerTab('overview');setMobileStage(0);
+    setModal(next==='gym'&&!created.organizationId&&!['converted','lost','notint','later'].includes(created.stage)?{kind:'convert',id:created.id}:null);
+    await refreshRef.current();router.refresh();
+    toast.success(result.existing?'Existing lead found; opened it without changing its details':'Lead added');
+   }catch(e){const message=e instanceof Error?e.message:'Unable to add lead';setMutationError(message);toast.error(message);}
+   finally{writing.current=false;setMutationPending(false);}
+  });
+ },[confirmAction,detail,router,toast]);
  const commands=useMemo<SalesCommands>(()=>({
   moveLead(id,stage){const l=getLead(id);if(!l||l.stage===stage)return;
    if(stage==='converted')return openModal({kind:'convert',id});
+   if(stage==='trial')return openModal({kind:'convert',id});
    if(['closed','later','notint','lost'].includes(stage))return openModal({kind:'lost',id,outcome:stage==='later'?'Follow up later':stage==='notint'?'Not interested':'Lost'});
    if(stage==='demo_sched')return openModal({kind:'demo',id,variant:l.demo?'confirm':'schedule'});
    execute(id,'moveLead',{stage});},
@@ -100,7 +125,7 @@ function useStore(initial:SalesInitial,attentionView:boolean) {
   scope,setScope,team,setTeam,query,setQuery,filters,patchFilters:(p:Partial<LeadFilters>)=>setFilters(f=>({...f,...p})),
   clearFilters:()=>{setFilters(EMPTY_FILTERS);setQuery('');setAttentionOnly(false);},attentionOnly,setAttentionOnly,period,setPeriod,
   mobileStage,setMobileStage,getLead,openId,drawerTab,setDrawerTab,openLead,closeDrawer:()=>{detailGeneration.current++;setOpenId(null);},
-  modal,openModal,closeModal:()=>{if(!writing.current){detailGeneration.current++;setModal(null);}},commands,
+  modal,openModal,closeModal:()=>{if(!writing.current){detailGeneration.current++;setModal(null);}},commands,createLead,
   retry:()=>startTransition(()=>{void refreshRef.current();}),loadMore:()=>startTransition(()=>{void refreshRef.current(true);}),hasMore:snapshot.leads.length<snapshot.total};
 }
 type Store=ReturnType<typeof useStore>;

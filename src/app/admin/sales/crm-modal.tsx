@@ -56,9 +56,9 @@ export function ModalFrame({
         </div>
         {footer ? (
           <div className="flex flex-shrink-0 flex-col-reverse gap-2 border-t-[1.5px] border-ink bg-sand px-[18px] py-3 md:flex-row">
-            {secondaryLabel ? <Button type="button" variant="secondary" size="lg" onClick={onSecondary} className="md:mr-auto">{secondaryLabel}</Button> : null}
-            <Button type="button" variant="secondary" size="lg" onClick={onClose}>Cancel</Button>
-            <Button type="button" variant="primary" size="lg" disabled={crm.busy} onClick={onPrimary}>{crm.busy ? "Saving…" : primaryLabel}</Button>
+            {secondaryLabel ? <Button type="button" variant="secondary" size="lg" disabled={crm.busy} onClick={onSecondary} className="md:mr-auto">{secondaryLabel}</Button> : null}
+            <Button type="button" variant="secondary" size="lg" disabled={crm.busy} onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="primary" size="lg" pending={crm.busy} pendingLabel="Saving…" onClick={onPrimary}>{primaryLabel}</Button>
           </div>
         ) : null}
       </div>
@@ -104,7 +104,7 @@ export function SelectField({ label, value, options, onChange, help }: {
 const INPUT = "border-[1.5px] bg-paper px-3 text-[16px] text-ink outline-none placeholder:text-[#a99d91] focus:border-ink md:text-[15px]";
 
 export function TextField({ label, value, onChange, placeholder, error, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; error?: string; type?: "text" | "email" | "search";
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; error?: string; type?: "text" | "email" | "search" | "tel";
 }) {
   return (
     <Field label={label} error={error}>

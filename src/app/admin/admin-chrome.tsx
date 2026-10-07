@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
 import { ButtonLink } from "@/components/ButtonLink";
 import { useState } from "react";
@@ -207,7 +208,7 @@ export function AdminChrome({
                   <span className="truncate text-[10px] text-mute3">Platform owner</span>
                 </span>
               </div>
-              <form action={signOut}>
+              <ConfirmedForm confirmation="Sign out of the admin dashboard?" action={signOut}>
                 <SubmitButton tone="inverse" variant="ghost" size="sm"
                   icon={SignOutIcon}
                   pendingLabel="Signing out…"
@@ -215,7 +216,7 @@ export function AdminChrome({
                 >
                   Sign out
                 </SubmitButton>
-              </form>
+              </ConfirmedForm>
             </div>
           </nav>
           <Button

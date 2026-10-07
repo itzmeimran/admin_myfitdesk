@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Dropdown } from '@/components/Dropdown';
 import { ButtonLink } from "@/components/ButtonLink";
@@ -36,26 +36,18 @@ export function ContactPanel({ conversation: c, team, startCreating, onClose, on
   const [previous, setPrevious] = useState({ note: c.note, version: c.noteVersion ?? 0 });
   const [noteState, setNoteState] = useState('');
   const saving = useRef(false);
-  const saveRef = useRef<() => void>(() => {});
   if (previous.version !== c.noteVersion) {
     setPrevious({ note: c.note, version: c.noteVersion ?? 0 });
     if (note === base.note || note === c.note) { setNote(c.note); setBase({ note: c.note, version: c.noteVersion ?? 0 }); }
   }
-  useEffect(() => {
-    saveRef.current = () => {
+  const saveNote = () => {
       if (!canManage || saving.current || note === base.note) return;
-      saving.current = true; setNoteState('Saving…');
+      saving.current = true; setNoteState('Awaiting confirmation…');
       void onNote(note, base.version).then(ok => {
         if (ok) { setBase({ note, version: base.version + 1 }); setNoteState('Saved'); }
-        else setNoteState('Not saved. Your draft is preserved; reload to review the latest note.');
+        else setNoteState('Draft not saved. Your changes are preserved.');
       }).finally(() => { saving.current = false; });
-    };
-  });
-  useEffect(() => {
-    if (!canManage || note === base.note) return;
-    const timer = setTimeout(() => saveRef.current(), 600);
-    return () => clearTimeout(timer);
-  }, [note, base, canManage]);
+  };
 
   const state = windowState(c);
   const details = [
@@ -163,11 +155,11 @@ export function ContactPanel({ conversation: c, team, startCreating, onClose, on
             disabled={!canManage}
             maxLength={5000}
             onChange={(e) => setNote(e.target.value)}
-            onBlur={() => saveRef.current()}
             placeholder="Private note for the team"
             className="resize-y border-[1.5px] border-line bg-[#fbf8f3] p-2.5 text-[13px] leading-normal text-ink outline-none transition-colors placeholder:text-faint focus:border-ink"
           />
           <span role="status" className="text-[11px] text-mute2">{noteState}</span>
+          <Button variant="primary" size="sm" pending={pending} disabled={!canManage||pending||note===base.note} onClick={saveNote}>Save note</Button>
         </label>
       </div>
     </div>

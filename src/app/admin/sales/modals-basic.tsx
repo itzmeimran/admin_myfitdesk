@@ -66,7 +66,7 @@ export function MoreModal({ modal, lead }: { modal: Of<"more">; lead: Lead }) {
     { label: "Schedule follow-up", act: go({ kind: "activity", id: modal.id, tab: "followup" }) },
     ...(lead.stage === "demo_req" ? [{ label: "Confirm demo", sub: `Preferred ${lead.demo?.when}`, act: go({ kind: "demo", id: modal.id, variant: "confirm" }) }] : []),
     { label: "Reassign", sub: canReassign ? `Currently ${crm.users[lead.owner].name}` : "Only a manager or admin can reassign", act: go({ kind: "reassign", id: modal.id }), disabled: !canReassign },
-    ...(lead.stage !== "converted" ? [{ label: "Convert", sub: "Link or invite to MyFitDesk", act: () => { crm.closeModal(); crm.commands.moveLead(modal.id, "converted"); } }] : []),
+    ...(!["converted","lost","notint","later"].includes(lead.stage) ? [{ label: lead.organizationId?'Confirm paid conversion':'Create / link gym', sub: lead.organizationId?'Verify active paid subscription':'Start a trial or link an existing account', act: () => { crm.closeModal(); crm.commands.moveLead(modal.id, "converted"); } }] : []),
     ...(!["converted", "later", "notint", "lost"].includes(lead.stage) ? [{ label: "Mark lost / not interested", act: go({ kind: "lost", id: modal.id, outcome: "Lost" }) }] : []),
   ];
   return (

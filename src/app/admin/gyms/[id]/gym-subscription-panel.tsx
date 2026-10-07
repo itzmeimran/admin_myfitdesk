@@ -1,8 +1,9 @@
 "use client";
 
+import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { Button } from "@/components/Button";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GymDetail } from "@/features/gyms/detail";
 import type { AssignablePackage } from "@/features/gyms/queries";
@@ -60,7 +61,7 @@ export function GymSubscriptionPanel({
   const router = useRouter();
   const toast = useToast();
   const [panel, setPanel] = useState<Panel>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useConfirmedTransition('Resend the owner invitation for this gym?');
   const close = () => setPanel(null);
 
   const sub = gym.subscription;

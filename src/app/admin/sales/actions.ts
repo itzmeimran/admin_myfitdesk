@@ -6,12 +6,14 @@ import { getActiveAdminEnvironment } from '@/core/env/active-environment';
 import { createClient } from '@/core/db/server-client';
 import { loose } from '@/core/db/loose-client';
 import { revalidatePath } from 'next/cache';
-import { emailEnv, isEmailConfigured } from '@/core/config/email';
+import { isEmailConfigured } from '@/core/config/email';
+import { tenantAppOrigin } from '@/core/config/tenant-app';
 import { createServiceClient } from '@/core/db/service-client';
 import { getPlatformSettingsOrFallback } from '@/features/settings/platform-settings';
 import { gymOwnerInviteEmail } from '@/core/email/templates';
 import { sendSystemEmail } from '@/core/email/system-email';
 import { mapSnapshot, dateLabel, emptySales, type RawSnapshot, type RawDetail, type SalesRequest, type OrgCandidate, type SalesInitial } from '@/features/sales/data';
+import { manualLeadSchema } from '@/features/sales/manual-lead';
 
 const uuid=z.string().uuid();
 const note=z.string().trim().max(5000).default('');
@@ -24,7 +26,7 @@ const commandSchema=z.discriminatedUnion('command',[
  z.object({command:z.literal('saveDemo'),input:z.object({variant:z.enum(['confirm','suggest','schedule','reschedule']),mode:z.enum(['requested','other']),scheduledAt:instant.optional(),note})}),
  z.object({command:z.literal('setDemoStatus'),input:z.object({status:z.enum(['Completed','No show','Cancelled'])})}),
  z.object({command:z.literal('reassign'),input:z.object({to:uuid,note})}),
- z.object({command:z.literal('convert'),input:z.object({how:z.enum(['link','invite']),organizationId:uuid.optional(),ownerName:z.string().trim().min(1).max(100).optional(),email:z.email().optional(),plan:z.string().max(160)})}),
+ z.object({command:z.literal('convert'),input:z.object({how:z.enum(['link','invite','paid']),organizationId:uuid.optional(),ownerName:z.string().trim().min(1).max(100).optional(),email:z.email().optional(),plan:z.string().max(160)})}),
  z.object({command:z.literal('closeLead'),input:z.object({outcome:z.enum(['Lost','Not interested','Follow up later']),reason:z.string().max(100),note,revisit:z.enum(['2 weeks','1 month','3 months'])})}),
  z.object({command:z.literal('resolveDuplicate'),input:z.union([z.object({mode:z.literal('separate'),why:z.string().trim().min(1).max(5000)}),z.object({mode:z.literal('merge'),picks:z.object({gym:z.enum(['existing','new']).optional(),contact:z.enum(['existing','new']).optional(),email:z.enum(['existing','new']).optional()})})])}),
  z.object({command:z.literal('togglePriority'),input:z.object({})}),z.object({command:z.literal('reopen'),input:z.object({})}),
@@ -38,7 +40,8 @@ export async function loadSales(request:SalesRequest):Promise<{data:SalesInitial
  const p=parsed.data; const db=await createClient();
  const {data,error}=await loose(db).rpc('admin_sales_snapshot',{p_scope:p.scope,p_team:p.team||null,p_filters:p.filters,p_search:p.query,p_attention:p.attention,p_period:p.period,p_limit:100,p_offset:p.offset});
  if(error)return {data:null,error:error.code==='PGRST202'?'CRM database setup is pending. Apply migrations 1021 and 1022 in this environment.':error.message};
- return {data:{...mapSnapshot(data as RawSnapshot,bookDemoUrl()),environment:await getActiveAdminEnvironment(),canInviteOwner:(await getAdminAccess())?.permissions.includes('sales.manage')??false},error:null};
+ const canManageSales=(await getAdminAccess())?.permissions.includes('sales.manage')??false;
+ return {data:{...mapSnapshot(data as RawSnapshot,bookDemoUrl()),environment:await getActiveAdminEnvironment(),canInviteOwner:canManageSales,canManageSales},error:null};
 }
 export async function initialSales():Promise<SalesInitial> {
  await assertPermission('sales.view');const access=await getAdminAccess();
@@ -57,6 +60,16 @@ export async function searchSalesOrganizations(leadId:string,search:string):Prom
  if(error)return {data:[],error:error.message};
  return {data:(data as {id:string;name:string;city:string|null;created_at:string;status:OrgCandidate['status'];phone_match:boolean}[]).map(o=>({id:o.id,name:o.name,status:o.status,meta:`${o.city??''} · signed up ${dateLabel(o.created_at)}`,match:o.phone_match?'Owner phone matches this lead':''})),error:null};
 }
+export async function createSalesLead(requestId:string,input:unknown) {
+ await assertPermission('sales.manage');
+ const parsed=manualLeadSchema.safeParse(input);
+ if(!uuid.safeParse(requestId).success||!parsed.success)return {error:parsed.success?'Invalid request':parsed.error.issues[0]?.message??'Check the lead details',leadId:null,existing:false};
+ const {data,error}=await loose(await createClient()).rpc('admin_sales_create_lead',{p_id:requestId,p_input:parsed.data});
+ if(error)return {error:error.code==='PGRST202'?'Manual lead setup is pending. Apply migration 1025 in this environment.':error.message,leadId:null,existing:false};
+ revalidatePath('/admin','layout');
+ const result=data as {leadId:string;existing:boolean};
+ return {error:null,...result};
+}
 export async function runSalesCommand(id:string,command:string,input:unknown) {
  await assertPermission('sales.manage');
  if(command==='reassign')await assertPermission('sales.reassign');
@@ -69,13 +82,14 @@ export async function runSalesCommand(id:string,command:string,input:unknown) {
   // Same 1012 invitation record and /invite/accept delivery as the gyms flow.
   if(!isEmailConfigured())warning='Gym created. Email is not configured; resend the invitation from the gym page when configured.';
   else try {
+   const origin=tenantAppOrigin(await getActiveAdminEnvironment());
    const service=await createServiceClient();
    const {data:link,error:linkError}=await service.auth.admin.generateLink({type:'invite',email:result.invitation.email,
-    options:{redirectTo:`${emailEnv.MYFITDESK_ORIGIN}/auth/confirm?type=invite&next=${encodeURIComponent('/invite/accept')}`}});
+    options:{redirectTo:`${origin}/auth/confirm?type=invite&next=${encodeURIComponent('/invite/accept')}`}});
    if(linkError||!link)throw new Error(linkError?.message??'Unable to create invitation link');
    const detail=await loose(db).rpc('admin_sales_lead_detail',{p_id:result.leadId});
    const lead=(detail.data as RawDetail)?.lead;
-   const confirmationUrl=`${emailEnv.MYFITDESK_ORIGIN}/auth/confirm?token_hash=${encodeURIComponent(link.properties.hashed_token)}&type=invite&next=${encodeURIComponent('/invite/accept')}`;
+   const confirmationUrl=`${origin}/auth/confirm?token_hash=${encodeURIComponent(link.properties.hashed_token)}&type=invite&next=${encodeURIComponent('/invite/accept')}`;
    const mail=gymOwnerInviteEmail({gymName:lead?.gym??'Your gym',ownerFirstName:lead?.contact??'',confirmationUrl,branding:await getPlatformSettingsOrFallback(db)});
    const sent=await sendSystemEmail({to:result.invitation.email,subject:mail.subject,html:mail.html,text:mail.text});
    if(!sent.ok)throw new Error(sent.error);

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -9,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { inviteGymOwner, type InviteFormState } from "./invite-actions";
 import type { AssignablePackage } from "@/features/gyms/queries";
 import { InviteIcon } from "@/core/ui/icons";
+import { Dropdown } from "@/components/Dropdown";
 
 const INITIAL_STATE: InviteFormState = { error: null };
 
@@ -28,6 +30,8 @@ export function InviteGymOwnerSheet({
 }) {
   const [open, setOpen] = useState(false);
   const [billingMode, setBillingMode] = useState<"trial" | "paid" | "custom">("trial");
+  const [invitationMethod, setInvitationMethod] = useState<"email" | "whatsapp">("email");
+  const [packageId, setPackageId] = useState("");
   const [state, formAction] = useActionState(inviteGymOwner, INITIAL_STATE);
   const router = useRouter();
   const toast = useToast();
@@ -70,7 +74,9 @@ export function InviteGymOwnerSheet({
               </p>
             ) : (
               <p className="text-[12.5px] leading-relaxed text-mute">
-                An invitation email has been sent. You can track its status from the gym&apos;s own page.
+                {state.success.invitationMethod === "whatsapp"
+                  ? "A WhatsApp OTP has been sent. The owner can enter it using Continue with WhatsApp in the app to join the gym. Future logins use their phone and an OTP, with no password."
+                  : "An invitation email has been sent. You can track its status from the gym's own page."}
               </p>
             )}
             <Button
@@ -82,7 +88,8 @@ export function InviteGymOwnerSheet({
             </Button>
           </div>
         ) : (
-          <form action={formAction} className="flex flex-col gap-4">
+          <ConfirmedForm confirmation={invitationMethod === "whatsapp" ? "Create this gym and send the owner a WhatsApp OTP? Owner access starts after verification." : "Create this gym account and send the owner an email invitation?"} action={formAction} className="flex flex-col gap-4">
+            <input type="hidden" name="invitationMethod" value={invitationMethod} />
             <div className="flex flex-col gap-2 border-t border-line pt-3">
               <span className={LABEL}>Gym details</span>
               <label className="flex flex-col gap-1">
@@ -97,6 +104,11 @@ export function InviteGymOwnerSheet({
 
             <div className="flex flex-col gap-2 border-t border-line pt-3">
               <span className={LABEL}>Owner details</span>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10.5px] text-mute">Invite using</span>
+                <Dropdown value={invitationMethod} onChange={value => setInvitationMethod(value as "email" | "whatsapp")}
+                  ariaLabel="Invitation method" options={[{ value: "email", label: "Email invitation" }, { value: "whatsapp", label: "Phone · WhatsApp OTP" }]} />
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="flex flex-col gap-1">
                   <span className="text-[10.5px] text-mute">First name *</span>
@@ -107,14 +119,17 @@ export function InviteGymOwnerSheet({
                   <input name="ownerLastName" className={FIELD} />
                 </label>
               </div>
-              <label className="flex flex-col gap-1">
+              {invitationMethod === "email" ? <label className="flex flex-col gap-1">
                 <span className="text-[10.5px] text-mute">Email address *</span>
                 <input name="email" type="email" required className={FIELD} placeholder="owner@example.com" />
-              </label>
+              </label> : null}
               <label className="flex flex-col gap-1">
-                <span className="text-[10.5px] text-mute">Phone (optional)</span>
-                <input name="phone" className={FIELD} />
+                <span className="text-[10.5px] text-mute">{invitationMethod === "whatsapp" ? "WhatsApp mobile number *" : "Phone (optional)"}</span>
+                <input name="phone" type="tel" autoComplete="tel" required={invitationMethod === "whatsapp"} placeholder="98765 43210 or +91 98765 43210" className={FIELD} />
               </label>
+              {invitationMethod === "whatsapp" ? <p className="text-[12px] leading-relaxed text-mute">
+                No email or password needed. The owner receives a WhatsApp OTP and verifies it in the app to join. They can request a fresh code from Continue with WhatsApp whenever they sign in.
+              </p> : null}
             </div>
 
             <div className="flex flex-col gap-2 border-t border-line pt-3">
@@ -177,16 +192,9 @@ export function InviteGymOwnerSheet({
                 <>
                   <label className="flex flex-col gap-1">
                     <span className="text-[10.5px] text-mute">Subscription plan *</span>
-                    <select name="packageId" required defaultValue="" className={FIELD}>
-                      <option value="" disabled>
-                        Select a plan
-                      </option>
-                      {packages.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} · {p.price}
-                        </option>
-                      ))}
-                    </select>
+                    <input type="hidden" name="packageId" value={packageId} />
+                    <Dropdown value={packageId} onChange={setPackageId} ariaLabel="Subscription plan"
+                      options={[{ value: "", label: "Select a plan" }, ...packages.map(p => ({ value: p.id, label: `${p.name} · ${p.price}` }))]} />
                   </label>
                   <label className="flex flex-col gap-1">
                     <span className="text-[10.5px] text-mute">Period length override (days, optional — defaults to the plan&apos;s own cycle)</span>
@@ -211,9 +219,9 @@ export function InviteGymOwnerSheet({
             <SubmitButton variant="primary" size="lg"
               pendingLabel="Creating gym…"
             >
-              Create gym &amp; send invitation
+              {invitationMethod === "whatsapp" ? "Create gym & send OTP" : "Create gym & send invitation"}
             </SubmitButton>
-          </form>
+          </ConfirmedForm>
         )}
       </Sheet>
     </>

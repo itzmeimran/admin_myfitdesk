@@ -1,6 +1,8 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { ButtonLink } from "@/components/ButtonLink";
+import { useActionConfirmation } from '@/components/ActionConfirmationProvider';
 import { Button } from "@/components/Button";
 import { useState, useTransition, useActionState } from "react";
 import Link from "next/link";
@@ -69,26 +71,20 @@ const INPUT =
  * refreshing the Server Component tree on success. Every non-form button on
  * this screen goes through it, so none of them can silently do nothing. */
 function useMutation() {
-  const router = useRouter();
-  const toast = useToast();
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter(); const toast = useToast(); const confirmAction = useActionConfirmation();
+  const [isPending, setPending] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-
-  function run<T extends { error: string | null }>(key: string, fn: () => Promise<T>, successMessage: string) {
-    setBusyKey(key);
-    startTransition(async () => {
-      const result = await fn();
-      setBusyKey(null);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(successMessage);
-      router.refresh();
+  function run(key: string, action: () => Promise<{ error: string | null }>, successMessage: string) {
+    void confirmAction({title:'Are you sure?',description:"Apply this package change? It may affect the plans gym owners see."}, async () => {
+      setBusyKey(key); setPending(true);
+      try {
+        const result = await action();
+        if (result.error) { toast.error(result.error); return; }
+        toast.success(successMessage);  router.refresh();
+      } finally { setBusyKey(null); setPending(false); }
     });
   }
-
-  return { run, isBusy: (key: string) => isPending && busyKey === key };
+  return {run,isBusy: (key: string) => isPending && busyKey === key};
 }
 
 /** Surfaces a `useActionState` result exactly once per completed submit —
@@ -341,7 +337,7 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
   };
 
   return (
-    <form action={formAction} className={CARD}>
+    <ConfirmedForm confirmation="Save these package changes? They can affect what gym owners see." action={formAction} className={CARD}>
       <input type="hidden" name="planId" value={pkg.id} />
 
       <div className="flex flex-col gap-0.5">
@@ -462,7 +458,7 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
       </div>
 
       <TermVisibility pkg={pkg} />
-    </form>
+    </ConfirmedForm>
   );
 }
 
@@ -591,7 +587,7 @@ function DetailsSheet({ pkg, onClose }: { pkg: SimplePackage; onClose: () => voi
 
   return (
     <Sheet open onClose={onClose} eyebrow="What gym owners get" title={`Edit ${pkg.name}`}>
-      <form action={formAction} className="flex flex-col gap-3.5">
+      <ConfirmedForm confirmation="Save these package changes? They can affect what gym owners see." action={formAction} className="flex flex-col gap-3.5">
         <input type="hidden" name="planId" value={pkg.id} />
 
         <label className="flex flex-col gap-1">
@@ -647,7 +643,7 @@ function DetailsSheet({ pkg, onClose }: { pkg: SimplePackage; onClose: () => voi
             {isPending ? "Saving…" : "Save changes"}
           </Button>
         </div>
-      </form>
+      </ConfirmedForm>
     </Sheet>
   );
 }
@@ -695,7 +691,7 @@ function FeaturesCard({ pkg }: { pkg: SimplePackage }) {
 
       {/* key resets the input after each successful add without a controlled
           value — the list above is the confirmation that it landed. */}
-      <form key={pkg.features.length} action={formAction} className="flex flex-wrap gap-2 border-t border-line pt-3">
+      <ConfirmedForm confirmation="Save these package changes? They can affect what gym owners see." key={pkg.features.length} action={formAction} className="flex flex-wrap gap-2 border-t border-line pt-3">
         <input type="hidden" name="planId" value={pkg.id} />
         <input
           type="text"
@@ -709,7 +705,7 @@ function FeaturesCard({ pkg }: { pkg: SimplePackage }) {
         <Button pending={isPending} icon={AddIcon} type="submit" disabled={isPending} variant="primary" size="lg">
           {isPending ? "Adding…" : "Add"}
         </Button>
-      </form>
+      </ConfirmedForm>
     </div>
   );
 }
@@ -798,7 +794,7 @@ function SetupCard() {
   const monthlyMinor = toMinorUnits(monthly) ?? 0;
 
   return (
-    <form action={formAction} className={CARD}>
+    <ConfirmedForm confirmation="Save these package changes? They can affect what gym owners see." action={formAction} className={CARD}>
       <div className="flex flex-col gap-0.5">
         <h2 className="font-display text-[17px] tracking-[-0.02em]">New package</h2>
         <p className="text-[11.5px] text-mute">
@@ -880,6 +876,6 @@ function SetupCard() {
           {isPending ? "Creating…" : "Create package"}
         </Button>
       </div>
-    </form>
+    </ConfirmedForm>
   );
 }

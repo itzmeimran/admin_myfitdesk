@@ -2207,6 +2207,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: undefined
       }
+      admin_create_gym_owner_phone_invitation: {
+        Args: Omit<Database["public"]["Functions"]["admin_create_gym_owner_invitation"]["Args"], "p_email" | "p_phone"> & { p_phone: string }
+        Returns: Json
+      }
       admin_create_gym_owner_invitation: {
         Args: {
           p_address_line?: string

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { ButtonLink } from "@/components/ButtonLink";
 
 import { usePathname } from "next/navigation";
@@ -99,7 +100,7 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
             <span className="truncate text-[10px] text-mute3">Platform owner</span>
           </span>
         </div>
-        <form action={signOut}>
+        <ConfirmedForm confirmation="Sign out of the admin dashboard?" action={signOut}>
           <SubmitButton tone="inverse" variant="ghost" size="sm"
             icon={SignOutIcon}
             pendingLabel="Signing out…"
@@ -107,7 +108,7 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
           >
             Sign out
           </SubmitButton>
-        </form>
+        </ConfirmedForm>
       </div>
     </aside>
   );

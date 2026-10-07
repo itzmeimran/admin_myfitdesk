@@ -204,7 +204,7 @@ export async function getGymDetail(
     suspensionReason: o.suspension_reason,
     status,
     owner: raw.owner
-      ? { staffId: raw.owner.staff_id, name: raw.owner.name, email: raw.owner.email, phone: raw.owner.phone }
+      ? { staffId: raw.owner.staff_id, name: raw.owner.name, email: raw.owner.email?.endsWith("@staff.myfitdesk.internal") ? "" : raw.owner.email, phone: raw.owner.phone }
       : null,
     subscription: raw.subscription
       ? {

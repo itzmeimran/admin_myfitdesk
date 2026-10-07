@@ -1,9 +1,10 @@
 "use client";
 
+import { useActionConfirmation } from '@/components/ActionConfirmationProvider';
 import { Button } from "@/components/Button";
 import { Dropdown } from "@/components/Dropdown";
 import { CreditPackageCatalog } from "./CreditPackageCatalog";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
@@ -31,27 +32,20 @@ const INPUT =
 const LABEL = "flex flex-col gap-1 text-[10px] font-bold uppercase tracking-[0.1em] text-mute";
 
 function useMutation() {
-  const router = useRouter();
-  const toast = useToast();
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter(); const toast = useToast(); const confirmAction = useActionConfirmation();
+  const [isPending, setPending] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
-
   function run(key: string, action: () => Promise<{ error: string | null }>, success: string, after?: () => void) {
-    setBusyKey(key);
-    startTransition(async () => {
-      const result = await action();
-      setBusyKey(null);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-      toast.success(success);
-      after?.();
-      router.refresh();
+    void confirmAction({title:'Are you sure?',description:"Apply this change to WhatsApp credits, packages or cost rates? Review the entered values before continuing."}, async () => {
+      setBusyKey(key); setPending(true);
+      try {
+        const result = await action();
+        if (result.error) { toast.error(result.error); return; }
+        toast.success(success); after?.(); router.refresh();
+      } finally { setBusyKey(null); setPending(false); }
     });
   }
-
-  return { run, isPending, busyKey };
+  return {run,isPending, busyKey};
 }
 
 export function WhatsAppCreditsView({

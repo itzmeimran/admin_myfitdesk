@@ -12,6 +12,8 @@ Run `supabase/apply/1022_verify.sql` in DEV after applying. It creates temporary
 
 ## Behavior
 
+**Pending 1025 update (2026-10-04):** manual lead entry, separately confirmed trial gym creation/linking, and paid-only conversion are implemented locally. See [the implementation and activation checklist](SALES_MANUAL_LEADS_AND_CONFIRMATIONS.md). After 1025, trial creation retains follow-ups; use its verification scripts instead of the historical 1022 trial-move check.
+
 - One `admin_sales_command` transaction per write, including timeline and `app.write_admin_audit`. Server Actions validate input and permissions; SQL independently enforces ownership/team visibility, reassignment permissions and validation. Tables have forced RLS and no authenticated direct access; functions pin their search path and revoke PUBLIC/anon execution.
 - Real paginated reads, server search/filtering, loading/errors, retry and Load more. Summaries, attention badge, coverage and analytics aggregate the complete authorized scope. Analytics period and scope selectors are wired. The sidebar and phone menu include Sales with the same SQL attention rule. Reads refresh every minute and after writes.
 - Detail reads are independently scoped. Opening a duplicate outside the viewer's scope reveals no matching contact details; an owner can review it, or the salesperson can record why it should remain separate.

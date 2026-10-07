@@ -12,7 +12,8 @@ export type OwnerInvitationStatus = "invited" | "email_verified" | "expired" | "
 
 export type OwnerInvitation = {
   id: string;
-  email: string;
+  email: string | null;
+  invitationMethod: "email" | "whatsapp";
   status: "pending" | "accepted" | "revoked";
   effectiveStatus: OwnerInvitationStatus;
   invitedFirstName: string | null;
@@ -21,6 +22,7 @@ export type OwnerInvitation = {
   invitedAt: string;
   expiresAt: string;
   emailVerifiedAt: string | null;
+  phoneVerifiedAt: string | null;
   acceptedAt: string | null;
   revokedAt: string | null;
   resendCount: number;

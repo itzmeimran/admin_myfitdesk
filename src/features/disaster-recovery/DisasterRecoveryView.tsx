@@ -1,8 +1,9 @@
 "use client";
 
+import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { Button } from "@/components/Button";
 import { IST_TIME_ZONE, istDateKey } from "@/core/dates/ist";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -115,7 +116,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
   const [selected, setSelected] = useState<BackupRow | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation>(null);
   const [maintenanceReason, setMaintenanceReason] = useState("Planned maintenance");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useConfirmedTransition('Apply this backup or recovery change?', confirmation !== null);
   const production = data.environment === "production";
   const hasActiveRestore = data.restores.some((row) => !["completed", "failed"].includes(row.status));
 

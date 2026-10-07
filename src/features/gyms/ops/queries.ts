@@ -121,7 +121,16 @@ export async function getAlerts(supabase: Client, organizationId: string, includ
 export async function getAccess(supabase: Client, organizationId: string): Promise<AccessInfo> {
   const { data, error } = await supabase.rpc("admin_gym_access", { p_organization_id: organizationId });
   if (error) fail(error, "Couldn't load access details");
-  return camelize<AccessInfo>(data);
+  const result = camelize<AccessInfo>(data);
+  if (result.owner?.email?.endsWith("@staff.myfitdesk.internal")) {
+    result.owner.email = null;
+    result.owner.emailVerified = false;
+    result.owner.loginMethod = "WhatsApp OTP";
+    const { data: invitation } = await supabase.rpc("admin_get_gym_owner_invitation", { p_organization_id: organizationId });
+    const phoneInvite = invitation as { invitation_channel?: string; phone_verified_at?: string | null } | null;
+    if (phoneInvite?.invitation_channel === "whatsapp") result.owner.phoneVerified = Boolean(phoneInvite.phone_verified_at);
+  }
+  return result;
 }
 
 export async function getLocks(supabase: Client, organizationId: string): Promise<LockRow[]> {

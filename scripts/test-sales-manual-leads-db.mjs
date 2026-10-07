@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+import path from 'node:path';
+const {PGlite}=await import(process.argv[2]?pathToFileURL(path.resolve(process.argv[2])).href:'@electric-sql/pglite');
+const db=new PGlite();
+const owner='00000000-0000-4000-8000-000000000001';
+const rep='00000000-0000-4000-8000-000000000002';
+const other='00000000-0000-4000-8000-000000000003';
+const support='00000000-0000-4000-8000-000000000004';
+const existingOrg='20000000-0000-4000-8000-000000000001';
+const lead='10000000-0000-4000-8000-000000000001';
+const newLead='10000000-0000-4000-8000-000000000002';
+const deniedLead='10000000-0000-4000-8000-000000000003';
+const contact={gym:'Field Visit Gym',contact:'Gym Owner',phone:'+919876543210',email:'',city:'Kadapa',state:'Andhra Pradesh',source:'Field visit',branches:'Unknown',members:'Unknown',note:'Visited the owner'};
+async function actor(id){await db.exec(`reset role;select set_config('request.jwt.claim.sub','${id}',false);set role authenticated;`);}
+async function create(id,input=contact){return (await db.query('select public.admin_sales_create_lead($1,$2::jsonb) v',[id,JSON.stringify(input)])).rows[0].v;}
+async function command(id,input){return (await db.query("select public.admin_sales_command($1,'convert',$2::jsonb) v",[id,JSON.stringify(input)])).rows[0].v;}
+async function detail(id){return (await db.query('select public.admin_sales_lead_detail($1) v',[id])).rows[0].v;}
+try{
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
+ create schema app;create schema auth;
+ create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb default '{}');
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema public,app,auth to anon,authenticated,service_role;
+ create table public.platform_roles(role text primary key,label text,description text,sort_order integer);
+ create table public.platform_role_permissions(role text references platform_roles,permission text,primary key(role,permission));
+ create table public.platform_admins(user_id uuid primary key references auth.users,email text,role text references platform_roles,status text default 'active',revoked_at timestamptz,granted_at timestamptz default now());
+ create table public.organizations(id uuid primary key default gen_random_uuid(),name text,city text,contact_phone text,contact_email text,created_at timestamptz default now(),suspended_at timestamptz,deletion_requested_at timestamptz);
+ create table public.organization_subscriptions(organization_id uuid primary key references organizations,status text,package_id uuid,current_period_start timestamptz,current_period_end timestamptz);
+ create table public.admin_audit_log(id bigint generated always as identity,admin_id uuid,action text,detail jsonb);
+ create function app.is_platform_admin() returns boolean language sql stable security definer set search_path=public,pg_temp as $$select exists(select 1 from platform_admins where user_id=auth.uid() and status='active' and revoked_at is null)$$;
+ create function app.platform_admin_role() returns text language sql stable security definer set search_path=public,pg_temp as $$select role from platform_admins where user_id=auth.uid() and status='active' and revoked_at is null$$;
+ create function app.has_platform_permission(p text) returns boolean language sql stable security definer set search_path=public,pg_temp as $$select exists(select 1 from platform_admins a join platform_role_permissions r on r.role=a.role where a.user_id=auth.uid() and a.status='active' and a.revoked_at is null and r.permission=p)$$;
+ create function app.write_admin_audit(p_action text,p_entity_type text,p_entity_id text,p_old jsonb default null,p_new jsonb default null,p_metadata jsonb default null) returns void language sql security definer set search_path=public,pg_temp as $$insert into admin_audit_log(admin_id,action,detail) values(auth.uid(),p_action,jsonb_build_object('id',p_entity_id,'old',p_old,'new',p_new))$$;
+ insert into platform_roles values('platform_owner','Owner','',1),('support_admin','Support','',2);
+ insert into platform_role_permissions values('platform_owner','gyms.manage'),('platform_owner','admins.manage');
+ insert into auth.users(id,email) values('${owner}','owner@fixture.test'),('${rep}','rep@fixture.test'),('${other}','other@fixture.test'),('${support}','support@fixture.test');
+ insert into platform_admins(user_id,email,role) values('${owner}','owner@fixture.test','platform_owner'),('${support}','support@fixture.test','support_admin');
+ create function public.admin_create_gym_owner_invitation(p_gym_name text,p_owner_first_name text,p_owner_last_name text,p_email text,p_phone text default null,p_city text default null,p_state text default null,p_postal_code text default null,p_billing_mode text default 'trial',p_trial_days integer default 14,p_notes text default null) returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$declare o uuid:=gen_random_uuid();begin
+ if not app.has_platform_permission('gyms.manage') then raise exception 'Not authorized';end if;
+ insert into organizations(id,name,contact_email,contact_phone,city) values(o,p_gym_name,p_email,p_phone,p_city);
+ insert into organization_subscriptions values(o,'trialing',null,now(),now()+interval '14 days');
+ return jsonb_build_object('organization_id',o,'invitation_id',gen_random_uuid(),'email',p_email);end$$;
+ insert into organizations(id,name,city) values('${existingOrg}','Existing live trial','Kadapa');
+ insert into organization_subscriptions values('${existingOrg}','trialing',null,now()-interval '6 days',now()+interval '24 days');
+ `);
+ for(const name of ['1021_book_demo_foundation.sql','1022_sales_crm.sql','1025_sales_manual_leads_and_trial_flow.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+ await db.exec(`insert into platform_admins(user_id,email,role,sales_team) values('${rep}','rep@fixture.test','sales_rep','South'),('${other}','other@fixture.test','sales_rep','West');`);
+ const tenantBefore=(await db.query('select to_jsonb(o) org,to_jsonb(s) subscription from organizations o join organization_subscriptions s on s.organization_id=o.id where o.id=$1',[existingOrg])).rows[0];
+ await actor(support);await assert.rejects(()=>create(lead),/authorized/i);
+ await actor(rep);
+ assert.equal((await create(lead)).leadId,lead);
+ const fresh=await detail(lead);assert.equal(fresh.lead.owner,rep);assert.equal(fresh.lead.source,'Field visit');assert.equal(fresh.lead.email,'');assert.equal(fresh.lead.members,'Unknown');
+ assert.equal(fresh.activities.length,1);assert.equal(fresh.assignments.length,1);
+ await create(lead);assert.equal((await detail(lead)).activities.length,1);
+ assert.equal((await create(newLead)).existing,true); // No overwrite or duplicate from a second request.
+ await actor(other);await assert.rejects(()=>create(deniedLead),/scope/);await assert.rejects(()=>create(lead),/unavailable/);
+ await actor(rep);await assert.rejects(()=>create(newLead,{...contact,phone:'+919876543211',source:'Website Demo'}),/details/);
+ await assert.rejects(()=>create(newLead,{...contact,phone:'+919876543211',email:'bad'}),/details/);
+ await assert.rejects(()=>db.query("select public.admin_sales_command($1,'moveLead','{\"stage\":\"trial\"}')",[lead]),/Create or link/);
+ await db.query("select public.admin_sales_command($1,'scheduleFollowUp',jsonb_build_object('type','Call','dueAt',now()+interval '1 day'))",[lead]);
+ const trial=await command(lead,{how:'invite',ownerName:'Owner',email:'invite@fixture.test',plan:'Monthly'});
+ assert.ok(trial.invitation.organization_id);
+ const trialDetail=await detail(lead);assert.equal(trialDetail.lead.stage,'trial');assert.equal(trialDetail.lead.converted_at,null);
+ assert.equal(trialDetail.lead.email,'invite@fixture.test');
+ assert.equal(trialDetail.follow_ups[0].status,'open');
+ await assert.rejects(()=>command(lead,{how:'invite',email:'invite@fixture.test'}),/already has/);
+ await assert.rejects(()=>command(lead,{how:'paid',plan:'Monthly'}),/still on trial/);
+ await db.exec('reset role');
+ const liveTrial=(await db.query('select * from organization_subscriptions where organization_id=$1',[trial.invitation.organization_id])).rows[0];
+ assert.equal(Date.parse(trialDetail.lead.trial_started_at),new Date(liveTrial.current_period_start).getTime());
+ await actor(owner);
+ await create(newLead,{...contact,phone:'+919876543211',gym:'Existing account contact'});
+ const linked=await command(newLead,{how:'link',organizationId:existingOrg,plan:'Yearly'});
+ assert.equal(linked.invitation,null);assert.equal((await detail(newLead)).lead.stage,'trial');
+ await actor(rep);await assert.rejects(()=>db.query('select * from public.platform_sales_leads'),/permission denied/);
+ await db.exec('reset role');
+ const tenantAfter=(await db.query('select to_jsonb(o) org,to_jsonb(s) subscription from organizations o join organization_subscriptions s on s.organization_id=o.id where o.id=$1',[existingOrg])).rows[0];
+ assert.deepEqual(tenantAfter,tenantBefore);
+ await db.query("update organization_subscriptions set status='active',package_id=gen_random_uuid() where organization_id=$1",[trial.invitation.organization_id]);
+ await actor(rep);await command(lead,{how:'paid',plan:'Monthly'});
+ const paid=await detail(lead);assert.equal(paid.lead.stage,'converted');assert.ok(paid.lead.converted_at);assert.equal(paid.follow_ups[0].status,'stopped');
+ assert.equal(paid.lead.organization_id,trial.invitation.organization_id);
+ await db.exec('reset role');
+ assert.equal((await db.query("select count(*)::int n from admin_audit_log where action='sales.createLead'")).rows[0].n,2);
+ assert.equal((await db.query("select has_function_privilege('anon','public.admin_sales_create_lead(uuid,jsonb)','EXECUTE') allowed")).rows[0].allowed,false);
+ assert.equal((await db.query("select count(*)::int n from platform_sales_leads")).rows[0].n,2);
+ await db.exec(await readFile(new URL('../supabase/apply/1025_verify.sql',import.meta.url),'utf8'));
+ await db.exec("create table public.disaster_recovery_config(environment text);insert into disaster_recovery_config values('development');");
+ await db.exec(await readFile(new URL('../supabase/apply/1025_runtime_verify.sql',import.meta.url),'utf8'));
+ assert.equal((await db.query("select count(*)::int n from platform_sales_leads")).rows[0].n,2);
+ console.log('Manual CRM SQL checks passed: permissions, idempotency, duplicate scope, trial creation/linking, follow-up retention, paid verification, and unchanged existing customer. Fixtures only.');
+}finally{await db.close();}

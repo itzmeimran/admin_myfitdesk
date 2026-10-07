@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
 import { useActionState, useEffect, useRef } from "react";
 import { useToast } from "@/components/Toast";
@@ -54,7 +55,7 @@ export function SettingsForm<S extends BaseState>({
   }, [state, toast]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <ConfirmedForm confirmation="Save these platform settings?" action={formAction} className="flex flex-col gap-4">
       <fieldset disabled={pending || disabled} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0">
         {children}
       </fieldset>
@@ -68,6 +69,6 @@ export function SettingsForm<S extends BaseState>({
         )}
         {footerExtra}
       </div>
-    </form>
+    </ConfirmedForm>
   );
 }

@@ -294,7 +294,7 @@ export async function listGymsPage(
         organizationId: row.organization_id,
         name: gym.name,
         ownerName: gym.owner,
-        ownerEmail: row.owner_email ?? "—",
+        ownerEmail: row.owner_email?.endsWith("@staff.myfitdesk.internal") ? "Phone login" : row.owner_email ?? "—",
         city: gym.city,
         packageId: row.package_id,
         packageName: gym.package,

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
 import { useState } from "react";
 import { useActionState } from "react";
@@ -37,7 +38,7 @@ export function GymProfileForm({ gym }: { gym: GymDetail }) {
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3.5">
+    <ConfirmedForm confirmation="Save these changes to the gym profile?" action={formAction} className="flex flex-col gap-3.5">
       <input type="hidden" name="organizationId" value={gym.id} />
       <div className="flex flex-wrap gap-3">
         <Field label="Gym name" name="name" defaultValue={gym.name} required basis={260} />
@@ -66,7 +67,7 @@ export function GymProfileForm({ gym }: { gym: GymDetail }) {
       >
         {isPending ? "Saving…" : "Save changes"}
       </Button>
-    </form>
+    </ConfirmedForm>
   );
 }
 

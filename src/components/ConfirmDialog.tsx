@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/Button";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AlertIcon } from "@/core/ui/icons";
 
 /**
@@ -52,6 +52,28 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const inputId = useId();
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const latest = useRef({pending,onCancel});
+  useEffect(()=>{latest.current={pending,onCancel};},[pending,onCancel]);
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.activeElement as HTMLElement | null;
+    cancelRef.current?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); if (!latest.current.pending) latest.current.onCancel(); }
+      if (event.key !== 'Tab') return;
+      const elements = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)') ?? []);
+      if (!elements.length) { event.preventDefault(); return; }
+      const first = elements[0], last = elements[elements.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', key, true);
+    return () => { document.removeEventListener('keydown', key, true); if (previous?.isConnected) previous.focus(); };
+  }, [open]);
   const [typedValue, setTypedValue] = useState("");
 
   // Reset the typed value whenever the dialog opens — otherwise a leftover
@@ -71,17 +93,20 @@ export function ConfirmDialog({
     !requireTypedConfirmation || typedValue.trim().toLowerCase() === requireTypedConfirmation.trim().toLowerCase();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <Button
         type="button"
         aria-label="Dismiss"
-        onClick={onCancel}
+        onClick={pending ? undefined : onCancel}
+        disabled={pending}
         variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/50"
       />
       <div
+        ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         className="relative flex w-full max-w-sm flex-col gap-4 border-[1.5px] border-ink bg-paper p-5"
       >
         <div className="flex items-start gap-3">
@@ -94,10 +119,10 @@ export function ConfirmDialog({
             </div>
           ) : null}
           <div className="flex flex-col gap-1.5">
-            <h2 id="confirm-dialog-title" className="font-display text-[16.5px] tracking-[-0.015em] text-ink">
+            <h2 id={titleId} className="font-display text-[16.5px] tracking-[-0.015em] text-ink">
               {title}
             </h2>
-            <p className="text-[12.5px] leading-relaxed text-mute">{description}</p>
+            <p id={descriptionId} className="text-[12.5px] leading-relaxed text-mute">{description}</p>
           </div>
         </div>
         {requireTypedConfirmation ? (
@@ -120,6 +145,7 @@ export function ConfirmDialog({
         ) : null}
         <div className="flex gap-2">
           <Button
+            ref={cancelRef}
             type="button"
             onClick={onCancel}
             disabled={pending}

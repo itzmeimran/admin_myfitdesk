@@ -28,6 +28,7 @@ export type RawSnapshot = {
 export type SalesInitial = { users: Record<string,SalesUser>; leads: Lead[]; role: SalesRole; meId: string;
  environment?: string;
  canInviteOwner?: boolean;
+ canManageSales?: boolean;
  total: number; summary: SalesSummary; attentionCount: number; coverage: CoverageNode; analytics: Analytics;
  activities: Record<string,Activity[]>; followUps: Record<string,FollowUp[]>; assignments: Record<string,AssignmentEntry[]>;
  bookDemoUrl: string; error: string | null };
@@ -42,14 +43,14 @@ export function dueState(at: string, now = new Date()): 'overdue'|'today'|'upcom
 }
 export function mapLead(l: RawLead,users: Record<string,SalesUser>,now=new Date()): Lead {
  const days=istDayDifference(new Date(l.last_contacted_at??l.created_at),now);
- return { id:l.id,gym:l.gym,contact:l.contact,phone:l.phone,email:l.email,city:l.city,state:l.state,area:l.area,pin:l.pin,
+ return { id:l.id,organizationId:l.organization_id,gym:l.gym,contact:l.contact,phone:l.phone,email:l.email,city:l.city,state:l.state,area:l.area,pin:l.pin,
   branches:l.branches,members:l.members,software:l.software,source:l.source,stage:l.stage,owner:l.owner??'unassigned',priority:l.priority,
   createdOn:dateLabel(l.created_at),ageDays:istDayDifference(new Date(l.created_at),now),lastContacted:l.last_contacted_at?(days===0?'Today':`${days} days ago`):'Not yet',lastContactedDays:days,
   next:l.next_follow_up?{label:whenLabel(l.next_follow_up.due_at),due:dueState(l.next_follow_up.due_at,now),type:l.next_follow_up.type}:null,
   demo:l.demo_status&&l.preferred_at?{status:l.demo_status,when:whenLabel(l.preferred_at),scheduledAt:l.preferred_at,suggested:l.demo_suggested}:null,
   trial:l.trial_started_at&&l.trial_ends_at?{start:dateLabel(l.trial_started_at),end:dateLabel(l.trial_ends_at),endsInDays:istDayDifference(now,new Date(l.trial_ends_at))}:null,
   conversion:l.conversion&&l.converted_at?{date:dateLabel(l.converted_at),plan:l.conversion.plan,org:l.conversion.org,account:l.conversion.account,
-   subscription:l.conversion.invitationId?'Starts when the owner accepts':'Linked account',by:users[l.converted_by??'']?.name??'Platform admin'}:null,
+   subscription:'Active paid account',by:users[l.converted_by??'']?.name??'Platform admin'}:null,
   lostReason:l.lost_reason,note:l.note,duplicateOf:l.duplicate_of,possibleDuplicate:l.possible_existing_lead,expectedPlan:l.expected_plan };
 }
 export function mapDetail(d: RawDetail,users: Record<string,SalesUser>) {

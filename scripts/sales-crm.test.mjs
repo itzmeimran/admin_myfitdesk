@@ -24,6 +24,26 @@ function load(file) {
   return loadedModule.exports;
 }
 const { scheduledIso, dueState, revisitLabel, mapSnapshot } = load(path.join(scriptDirectory, '../src/features/sales/data.ts'));
+const { manualLeadSchema } = load(path.join(scriptDirectory, '../src/features/sales/manual-lead.ts'));
+const { salesConfirmation } = load(path.join(scriptDirectory, '../src/features/sales/confirmation.ts'));
+test('field leads allow unknown size and missing email while normalizing Indian phones', () => {
+  const input = { gym: ' Field Gym ', contact: ' Owner ', phone: '98765 43210', email: '', city: 'Kadapa', state: 'Andhra Pradesh', source: 'Field visit' };
+  const parsed = manualLeadSchema.parse(input);
+  assert.equal(parsed.phone, '+919876543210');
+  assert.equal(parsed.gym, 'Field Gym');
+  assert.equal(parsed.members, 'Unknown');
+  assert.equal(parsed.email, '');
+  for (const override of [{phone:'123'}, {email:'invalid'}, {source:'Website Demo'}, {state:''}]) {
+    assert.equal(manualLeadSchema.safeParse({...input, ...override}).success, false);
+  }
+});
+test('priority and conversion confirmations describe the requested effect', () => {
+  const lead = { gym: 'Field Gym', priority: 'normal' };
+  assert.match(salesConfirmation(lead, 'togglePriority', {}).description, /high priority.*Field Gym/);
+  assert.match(salesConfirmation({...lead,priority:'high'}, 'togglePriority', {}).description, /Remove high priority/);
+  assert.match(salesConfirmation(lead,'convert',{how:'invite'}).description, /trial.*invitation.*follow-ups remain open/);
+  assert.match(salesConfirmation(lead,'convert',{how:'paid'}).description, /active on a paid plan.*follow-ups will stop/);
+});
 test('IST schedule values preserve noon, midnight and calendar days across device zones', () => {
   assert.equal(scheduledIso('2026-10-06', '4:00 PM'), '2026-10-06T10:30:00.000Z');
   assert.equal(scheduledIso('2026-10-06', '12:00 AM'), '2026-10-05T18:30:00.000Z');

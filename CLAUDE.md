@@ -1,5 +1,7 @@
 # AdminMyFitdesk — Project Notes
 
+**Local update pending activation (2026-10-04):** manual Sales CRM lead entry and Save & create gym are implemented with migration `1025_sales_manual_leads_and_trial_flow.sql`. Trial creation/linking retains follow-ups and copies subscription dates; paid conversion requires an active paid package. Shared admin action confirmations cover persisted writes, keyboard form submission and pending feedback; inbox notes now require an explicit Save. Local typecheck, touched-file lint, focused CRM/SQL fixture checks and actual-component mock browser checks pass. DEV runtime verification, verified backups, 1025 installation and UI deployment remain pending rollout approval. [Details and activation checks](docs/SALES_MANUAL_LEADS_AND_CONFIRMATIONS.md). Oxygen Gym's separate production CRM import is completed; its live account was unchanged ([record](docs/OXYGEN_GYM_CRM_BACKFILL.md)).
+
 Platform back-office (admin dashboard) for **MyFitDesk**, a multi-tenant gym-management SaaS. This is a **separate Next.js app and repo** from the tenant-facing product — deployed separately on Vercel, sharing only the Supabase project. Code is copied from the main app where useful; nothing from this repo goes into the main app's repo, and vice versa, without explicit sign-off.
 
 Reference app (read-only source of truth for conventions/schema, do not edit): `C:\Users\user\Documents\my vault\FitDeskApp` (local clone of `myfitdesk`, branch `main`, audited at HEAD `ec83af3`).

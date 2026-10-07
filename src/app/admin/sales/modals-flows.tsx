@@ -36,7 +36,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function ConvertModal({ lead }: { lead: Lead }) {
   const crm = useSalesCrm();
-  const [how, setHow] = useState<"link" | "invite">("link");
+  const [how, setHow] = useState<"link" | "invite" | "paid">(lead.organizationId?'paid':crm.canInviteOwner?'invite':'link');
   const [search, setSearch] = useState("");
   const [orgId, setOrgId] = useState("");
   const [plan, setPlan] = useState(PLAN_OPTIONS[0]);
@@ -57,12 +57,14 @@ export function ConvertModal({ lead }: { lead: Lead }) {
   }
 
   return (
-    <ModalFrame title="Convert lead" sub={`${lead.gym} · we won’t create a duplicate gym`} onClose={crm.closeModal}
-      primaryLabel={how === "link" ? "Link & convert" : "Send invite & convert"} onPrimary={submit}
-      note="Converting stops sales follow-up reminders. All CRM activity stays on this lead.">
+    <ModalFrame title={lead.organizationId?'Confirm paid conversion':'Create / link gym'} sub={lead.gym} onClose={crm.closeModal}
+      primaryLabel={how === 'paid'?'Confirm paid conversion':how === "link" ? "Link gym" : "Create trial gym & invite"} onPrimary={submit}
+      note={how==='paid'?'The linked subscription must be active on a paid plan. Only paid conversion stops sales follow-ups.':'A trial account keeps this lead in Trial started, with its follow-ups and history preserved.'}>
       <RadioCards label="How does this gym join MyFitDesk?" value={how} onChange={setHow} options={[
-        { value: "link", label: "Link existing gym", sub: "The gym already has a MyFitDesk account" },
-        ...(crm.canInviteOwner ? [{ value: "invite" as const, label: "Create / invite gym owner", sub: "No account yet. We’ll email the owner an invite." }] : []),
+        ...(lead.organizationId?[{value:'paid' as const,label:'Confirm linked gym is paid',sub:'Verify the existing subscription; no gym or billing data is changed.'}]:[
+          { value: "link" as const, label: "Link existing gym", sub: "The gym already has a MyFitDesk account" },
+          ...(crm.canInviteOwner ? [{ value: "invite" as const, label: "Create / invite gym owner", sub: "Create a trial account and email the owner an invite." }] : []),
+        ]),
       ]} />
       {how === "link" ? (
         <>
@@ -88,12 +90,12 @@ export function ConvertModal({ lead }: { lead: Lead }) {
             })}
           </div>
         </>
-      ) : (
+      ) : how==='invite'? (
         <>
-          <TextField label="Owner name" value={owner} onChange={setOwner} />
+          <TextField label="Owner name" value={owner} onChange={setOwner} error={tried && !owner.trim() ? 'Enter the owner name' : undefined} />
           <TextField label="Owner email" type="email" value={email} onChange={setEmail} error={tried && emailBad ? "Enter a valid email for the invite" : undefined} />
         </>
-      )}
+      ) : <InfoField label="Linked gym" value={lead.gym} info="Only CRM status changes after the paid subscription check succeeds." />}
       <SelectField label="Expected plan" value={plan} onChange={setPlan} options={PLAN_OPTIONS} help={how === 'invite' ? 'Creates a trial account. The owner selects a paid plan after joining.' : 'Records sales intent; the existing subscription remains in effect.'} />
     </ModalFrame>
   );

@@ -1,7 +1,8 @@
 "use client";
 
+import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { Button } from "@/components/Button";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -18,10 +19,11 @@ import { exactTime } from "@/features/gyms/ops/timeline-format";
 export function NotesPanel({ organizationId, notes, timeZone }: { organizationId: string; notes: NoteRow[]; timeZone: string }) {
   const router = useRouter();
   const toast = useToast();
-  const [isPending, startTransition] = useTransition();
+
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [toDelete, setToDelete] = useState<NoteRow | null>(null);
+  const [isPending, startTransition] = useConfirmedTransition('Save these changes to the private gym note?', toDelete !== null);
 
   function save(note: NoteRow) {
     startTransition(async () => {

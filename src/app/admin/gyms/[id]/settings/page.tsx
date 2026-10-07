@@ -31,7 +31,7 @@ export default async function GymSettingsPage({ params }: { params: Promise<{ id
       <section className="flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4">
         <h2 className="mfd-micro-label">Account</h2>
         <dl className="flex flex-col gap-2 text-[12.5px]">
-          <Row k="Owner" v={gym.owner ? `${gym.owner.name} (${gym.owner.email})` : "No owner on record"} />
+          <Row k="Owner" v={gym.owner ? `${gym.owner.name} (${gym.owner.email || gym.owner.phone || "Phone login"})` : "No owner on record"} />
           <Row k="Account status">
             <span className={PILL_CLASS} style={pillTone(gym.status)}>
               {gym.status}

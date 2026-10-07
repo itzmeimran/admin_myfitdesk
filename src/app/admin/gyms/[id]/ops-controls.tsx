@@ -1,8 +1,9 @@
 "use client";
 
+import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { Button } from "@/components/Button";
 import { istDateKey } from "@/core/dates/ist";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminActionDialog } from "@/components/AdminActionDialog";
 import { Sheet } from "@/components/Sheet";
@@ -130,7 +131,7 @@ export function FlagRowControl({ organizationId, flag }: { organizationId: strin
 export function AlertControls({ organizationId, alert }: { organizationId: string; alert: OpsAlert }) {
   const router = useRouter();
   const toast = useToast();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useConfirmedTransition('Apply this alert change for this gym?');
   const [resolving, setResolving] = useState(false);
 
   if (alert.status === "resolved") return null;
@@ -165,7 +166,7 @@ export function AlertControls({ organizationId, alert }: { organizationId: strin
 export function RefreshAlertsButton({ organizationId }: { organizationId: string }) {
   const router = useRouter();
   const toast = useToast();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useConfirmedTransition('Recalculate and update operational alerts for this gym?');
   return (
     <Button pending={isPending}
       type="button"

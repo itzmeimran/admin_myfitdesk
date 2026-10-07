@@ -11,6 +11,7 @@ import { inviteGymOwner, type InviteFormState } from "./invite-actions";
 import type { AssignablePackage } from "@/features/gyms/queries";
 import { InviteIcon } from "@/core/ui/icons";
 import { Dropdown } from "@/components/Dropdown";
+import { ConfirmIcon } from '@/core/ui/icons';
 
 const INITIAL_STATE: InviteFormState = { error: null };
 
@@ -79,7 +80,7 @@ export function InviteGymOwnerSheet({
                   : "An invitation email has been sent. You can track its status from the gym's own page."}
               </p>
             )}
-            <Button
+            <Button icon={ConfirmIcon}
               type="button"
               onClick={() => setOpen(false)}
               variant="primary" size="md"
@@ -216,7 +217,7 @@ export function InviteGymOwnerSheet({
               </label>
             </div>
 
-            <SubmitButton variant="primary" size="lg"
+            <SubmitButton icon={InviteIcon} variant="primary" size="lg"
               pendingLabel="Creating gym…"
             >
               {invitationMethod === "whatsapp" ? "Create gym & send OTP" : "Create gym & send invitation"}

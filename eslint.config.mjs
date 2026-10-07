@@ -1,6 +1,7 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import buttonIcon from './scripts/eslint-rules/button-icon.mjs';
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -8,7 +9,9 @@ const eslintConfig = defineConfig([
   {
     files: ["src/**/*.tsx"],
     ignores: ["src/components/Button.tsx"],
+    plugins: { 'mfd-ui': { rules: { 'button-icon': buttonIcon } } },
     rules: {
+      'mfd-ui/button-icon': 'error',
       "no-restricted-syntax": ["error", {
         selector: "JSXOpeningElement[name.name='button']",
         message: "Use the shared Button component from @/components/Button so styles and interaction states stay consistent.",

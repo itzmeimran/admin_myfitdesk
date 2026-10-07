@@ -10,6 +10,8 @@ import { Dropdown } from "@/components/Dropdown";
 import { CLOSED_LABEL, STAGE_LABEL, STAGE_OPTIONS, formatPhone, isClosedStage, type ActivityKind, type DemoStatus, type Lead } from "@/features/sales/model";
 import { useSalesCrm, type DrawerTab } from "@/features/sales/use-sales-crm";
 import { Chip, OwnerBadge } from "./crm-ui";
+import { CalendarIcon, ConfirmIcon, DetailsIcon, MoreIcon, RestoreIcon } from '@/core/ui/icons';
+import { iconForAction } from '@/core/ui/action-icons';
 
 const KIND_ICON: Record<ActivityKind, IconType> = {
   created: LuPlus, assign: LuUser, call: LuPhone, whatsapp: LuMessageCircle, email: LuMail, meeting: LuUsers, note: LuStickyNote,
@@ -117,13 +119,13 @@ function Drawer({ lead: l }: { lead: Lead }) {
                 <span className="text-[13px] font-bold">Possible existing lead</span>
                 <span className="text-[12px] text-mute">{existing ? `Phone or email matches ${existing.gym} · ${STAGE_LABEL[existing.stage]} since ${existing.createdOn} · ${crm.users[existing.owner]?.name ?? 'Previous salesperson'}` : 'Possible phone or email match. A platform owner can review matches outside your scope.'}</span>
               </span>
-              <Button type="button" variant="primary" size="sm" onClick={open({ kind: "duplicate", id: l.id })}>Review match</Button>
+              <Button icon={DetailsIcon} type="button" variant="primary" size="sm" onClick={open({ kind: "duplicate", id: l.id })}>Review match</Button>
             </div>
           ) : null}
 
           <div className="hidden flex-col gap-3 md:flex">
             <div className="flex flex-wrap items-center gap-1.5">
-              {actions.map((a) => <Button key={a.label} type="button" variant={a.primary ? "primary" : "secondary"} size="sm" onClick={a.act} className="border-ink">{a.label}</Button>)}
+              {actions.map((a) => <Button icon={iconForAction(a.label)} key={a.label} type="button" variant={a.primary ? "primary" : "secondary"} size="sm" onClick={a.act} className="border-ink">{a.label}</Button>)}
               <div className="ml-auto w-[170px]">
                 <Dropdown ariaLabel="Move to stage" size="sm" value={l.stage} onChange={(v) => commands.moveLead(l.id, v as Lead["stage"])} options={STAGE_OPTIONS} />
               </div>
@@ -140,7 +142,7 @@ function Drawer({ lead: l }: { lead: Lead }) {
             {DRAWER_TABS.map((t) => {
               const on = crm.drawerTab === t.key;
               return (
-                <Button key={t.key} type="button" variant="control" size="custom" role="tab" aria-selected={on} onClick={() => crm.setDrawerTab(t.key)}
+                <Button icon={iconForAction(t.label)} key={t.key} type="button" variant="control" size="custom" role="tab" aria-selected={on} onClick={() => crm.setDrawerTab(t.key)}
                   className={`min-h-[42px] border-b-[3px] border-b-transparent text-[13px] ${on ? "!border-b-ink font-bold" : "font-medium"}`}>{t.label}</Button>
               );
             })}
@@ -154,8 +156,8 @@ function Drawer({ lead: l }: { lead: Lead }) {
         </div>
 
         <div className="flex flex-shrink-0 gap-2 border-t-[1.5px] border-ink bg-paper px-4 py-2.5 md:hidden">
-          <Button type="button" variant="primary" size="lg" onClick={primary.act} className="min-h-[48px] flex-1">{primary.label}</Button>
-          <Button type="button" variant="secondary" size="lg" aria-haspopup="dialog" onClick={open({ kind: "more", id: l.id })} className="min-h-[48px] border-ink px-[18px]">More</Button>
+          <Button icon={iconForAction(primary.label)} type="button" variant="primary" size="lg" onClick={primary.act} className="min-h-[48px] flex-1">{primary.label}</Button>
+          <Button icon={MoreIcon} type="button" variant="secondary" size="lg" aria-haspopup="dialog" onClick={open({ kind: "more", id: l.id })} className="min-h-[48px] border-ink px-[18px]">More</Button>
         </div>
       </aside>
     </>
@@ -223,7 +225,7 @@ function OverviewTab({ lead: l, owner, canReassign }: { lead: Lead; owner: strin
           <span className="text-[12px] text-mute">{demoNote[d.status]}</span>
           {demoActs.length ? (
             <div className="flex flex-wrap gap-1.5">
-              {demoActs.map((a) => <Button key={a.label} type="button" variant={a.primary ? "primary" : "secondary"} size="sm" onClick={a.act} className="border-ink">{a.label}</Button>)}
+              {demoActs.map((a) => <Button icon={iconForAction(a.label)} key={a.label} type="button" variant={a.primary ? "primary" : "secondary"} size="sm" onClick={a.act} className="border-ink">{a.label}</Button>)}
             </div>
           ) : null}
         </section>
@@ -250,7 +252,7 @@ function OverviewTab({ lead: l, owner, canReassign }: { lead: Lead; owner: strin
             <span className="text-[13px] font-bold">{CLOSED_LABEL[l.stage as keyof typeof CLOSED_LABEL]}{l.lostReason ? ` · ${l.lostReason}` : ""}</span>
             <span className="text-[12px] text-mute">{l.stage === "later" && l.next ? `Revisit on ${l.next.label}.${l.note ? ` ${l.note}` : ""}` : l.note || "No notes added."}</span>
           </span>
-          <Button type="button" variant="secondary" size="sm" onClick={() => commands.reopen(l.id)} className="border-ink">Reopen lead</Button>
+          <Button icon={RestoreIcon} type="button" variant="secondary" size="sm" onClick={() => commands.reopen(l.id)} className="border-ink">Reopen lead</Button>
         </section>
       ) : null}
 
@@ -282,9 +284,9 @@ function ActivityTab({ lead: l }: { lead: Lead }) {
   const items = crm.activities[l.id] ?? [];
   return (
     <div className="flex flex-col gap-3.5">
-      <Button type="button" variant="control" size="custom" onClick={() => crm.openModal({ kind: "activity", id: l.id, tab: "log" })}
+      <Button icon={LuPlus} type="button" variant="control" size="custom" onClick={() => crm.openModal({ kind: "activity", id: l.id, tab: "log" })}
         className="min-h-[46px] justify-start gap-2.5 border-[1.5px] border-dashed border-mute3 px-3.5 text-[13px] font-normal text-mute hover:bg-sand">
-        <LuPlus size={16} aria-hidden />Log a call, WhatsApp, email or note
+        Log a call, WhatsApp, email or note
       </Button>
       <ol className="flex flex-col">
         {items.map((a) => {
@@ -319,7 +321,7 @@ function FollowUpTab({ lead: l }: { lead: Lead }) {
           {converted ? "Follow-up reminders stopped when this lead converted." : "This lead is closed, so no reminders are sent. Reopen it to schedule follow-ups."}
         </div>
       ) : (
-        <Button type="button" variant="primary" size="lg" onClick={() => crm.openModal({ kind: "activity", id: l.id, tab: "followup" })}>Schedule follow-up</Button>
+        <Button icon={CalendarIcon} type="button" variant="primary" size="lg" onClick={() => crm.openModal({ kind: "activity", id: l.id, tab: "followup" })}>Schedule follow-up</Button>
       )}
       {items.length === 0 ? <div className="border-[1.5px] border-dashed border-line p-5 text-center text-[12.5px] text-mute2">No follow-ups yet.</div> : null}
       {items.map((f) => {
@@ -334,7 +336,7 @@ function FollowUpTab({ lead: l }: { lead: Lead }) {
               </span>
               {f.note ? <span className="text-[12px] text-mute">{f.note}</span> : null}
             </span>
-            {!inactive ? <Button type="button" variant="secondary" size="sm" onClick={() => crm.commands.completeFollowUp(l.id, f.id)} className="flex-shrink-0 border-ink">Mark done</Button> : null}
+            {!inactive ? <Button icon={ConfirmIcon} type="button" variant="secondary" size="sm" onClick={() => crm.commands.completeFollowUp(l.id, f.id)} className="flex-shrink-0 border-ink">Mark done</Button> : null}
           </div>
         );
       })}

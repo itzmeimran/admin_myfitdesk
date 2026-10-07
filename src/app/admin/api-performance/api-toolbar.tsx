@@ -8,6 +8,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Dropdown } from "@/components/Dropdown";
 import { requestRefresh } from "@/core/realtime/refresh-scheduler";
 import { ENVIRONMENTS, RANGES } from "@/features/api-performance/params";
+import { ApiPerformanceIcon } from '@/core/ui/icons';
 
 const BASE = "/admin/api-performance";
 const TABS = [
@@ -131,7 +132,7 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
           />
         </div>
 
-        <Button
+        <Button icon={ApiPerformanceIcon}
           type="button"
           role="switch"
           aria-checked={live}

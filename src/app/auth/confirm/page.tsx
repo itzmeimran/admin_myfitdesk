@@ -4,6 +4,7 @@ import { BrandLockup } from "@/core/brand/BrandLockup";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ADMIN_ENVIRONMENT_LABEL, isAdminEnvironment } from "@/core/config/environments";
 import { acceptInvitation, continueToSignIn } from "./actions";
+import { ConfirmIcon, SignInIcon } from '@/core/ui/icons';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -54,7 +55,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Sear
         <input type="hidden" name="env" value={environment} />
         <input type="hidden" name="token_hash" value={tokenHash} />
         <input type="hidden" name="type" value={type} />
-        <SubmitButton variant="primary" size="lg"
+        <SubmitButton icon={ConfirmIcon} variant="primary" size="lg"
           pendingLabel="Checking…"
           className="w-full"
         >
@@ -68,7 +69,7 @@ export default async function ConfirmPage({ searchParams }: { searchParams: Sear
     content = (
       <form action={continueToSignIn} className="flex flex-col gap-3">
         <input type="hidden" name="env" value={environment} />
-        <SubmitButton variant="primary" size="lg"
+        <SubmitButton icon={SignInIcon} variant="primary" size="lg"
           pendingLabel="Opening…"
           className="w-full"
         >

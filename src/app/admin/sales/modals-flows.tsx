@@ -8,6 +8,7 @@ import { LOST_REASONS, PLAN_OPTIONS, STAGE_LABEL, isClosedStage, type Lead } fro
 import { useSalesCrm, type ModalState } from "@/features/sales/use-sales-crm";
 import { Segmented } from "./crm-ui";
 import { AreaField, Field, InfoField, ModalFrame, RadioCards, SelectField, TextField } from "./crm-modal";
+import { ConfirmIcon, GymsIcon } from '@/core/ui/icons';
 
 type Of<K extends ModalState["kind"]> = Extract<ModalState, { kind: K }>;
 
@@ -76,7 +77,7 @@ export function ConvertModal({ lead }: { lead: Lead }) {
             {orgs.map((o) => {
               const on = o.id === orgId;
               return (
-                <Button key={o.id} type="button" role="radio" aria-checked={on} variant="surface" onClick={() => setOrgId(o.id)}
+                <Button icon={GymsIcon} key={o.id} type="button" role="radio" aria-checked={on} variant="surface" onClick={() => setOrgId(o.id)}
                   className={`min-h-[56px] items-center gap-3 border-[1.5px] px-3 py-2.5 text-left text-ink ${on ? "border-ink bg-sand" : "border-line bg-paper hover:border-ink"}`}>
                   <span aria-hidden className="flex h-4 w-4 flex-shrink-0 items-center justify-center border-[1.5px] border-ink"><span className={`h-2 w-2 ${on ? "bg-ink" : "bg-transparent"}`} /></span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -186,7 +187,7 @@ export function DuplicateModal({ lead }: { lead: Lead }) {
               const cell = (side: Side, text: string) => {
                 const on = !same && r.key && picks[r.key] === side;
                 return (
-                  <Button type="button" variant="control" size="custom" disabled={same} aria-pressed={!!on}
+                  <Button icon={ConfirmIcon} type="button" variant="control" size="custom" disabled={same} aria-pressed={!!on}
                     onClick={() => r.key && setPicks({ ...picks, [r.key]: side })}
                     className={`min-h-[36px] justify-start border-[1.5px] px-2 py-1 text-left text-[13px] [overflow-wrap:anywhere] disabled:opacity-100 ${on ? "border-ink font-bold" : same ? "border-transparent font-bold" : "border-line font-medium"}`}>
                     {text}

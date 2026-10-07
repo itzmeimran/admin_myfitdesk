@@ -18,6 +18,7 @@ import { useAdminEnvironment } from "@/core/env/context";
 import { RestoreIcon, RevokeIcon, SuspendIcon, InviteIcon } from "@/core/ui/icons";
 import { HINT_CLASS, LABEL_CLASS, StatusPill, formatWhen, timeAgo } from "../_components/ui";
 import { EnvAccessSummary } from "./env-access-cell";
+import { ManageIcon } from '@/core/ui/icons';
 
 type Pending =
   | { kind: 'team'; team: string }
@@ -257,7 +258,7 @@ export function AdminDrawer({
                       <input value={newTeam} onChange={e=>setNewTeam(e.target.value)} maxLength={80} disabled={isPending||loading}
                         placeholder="e.g. South" className="border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] outline-none focus:border-ink" />
                     </label>
-                    <Button variant="secondary" size="sm" disabled={isPending||loading||newTeam.trim()===(detail?.salesTeam??'')}
+                    <Button icon={ManageIcon} variant="secondary" size="sm" disabled={isPending||loading||newTeam.trim()===(detail?.salesTeam??'')}
                       onClick={()=>setPendingAction({kind:'team',team:newTeam.trim()})}>Change team</Button>
                   </div>
                 ):null}
@@ -275,7 +276,7 @@ export function AdminDrawer({
                         disabled={isPending}
                       />
                     </div>
-                    <Button
+                    <Button icon={ManageIcon}
                       type="button"
                       disabled={isPending || !newRole || newRole === admin.role}
                       onClick={() => setPendingAction({ kind: "role", role: newRole })}

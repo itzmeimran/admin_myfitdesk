@@ -1,10 +1,11 @@
 "use client";
 
 import { Button } from "@/components/Button";
-import { SearchIcon, InboxIcon, ConfirmIcon } from "@/core/ui/icons";
+import { SearchIcon, InboxIcon, ConfirmIcon, ConversationIcon } from "@/core/ui/icons";
 import type { IconType } from "@/core/ui/icons";
 import { FILTERS, WINDOW_DOT, WINDOW_LABEL, initials, lastTextMessage, windowState } from "./model";
 import type { Conversation, InboxFilter, TeamMember } from "./types";
+import { iconForAction } from '@/core/ui/action-icons';
 
 type Props = {
   /** Conversations after search + tab filtering. */
@@ -61,7 +62,7 @@ export function ConversationList({
           const on = filter === f.key;
           const count = f.key === "unread" && unreadCount ? unreadCount : 0;
           return (
-            <Button
+            <Button icon={iconForAction(f.label)}
               key={f.key}
               role="tab"
               aria-selected={on}
@@ -87,7 +88,7 @@ export function ConversationList({
             </span>
             <span className="text-[14.5px] font-bold">{empty.title}</span>
             <p className="max-w-[260px] text-pretty text-[12.5px] leading-relaxed text-mute">{empty.body}</p>
-            {empty.cta ? <Button variant="secondary" size="sm" onClick={empty.act}>{empty.cta}</Button> : null}
+            {empty.cta ? <Button icon={iconForAction(empty.cta)} variant="secondary" size="sm" onClick={empty.act}>{empty.cta}</Button> : null}
           </div>
         ) : null}
 
@@ -114,6 +115,7 @@ export function ConversationList({
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
                     <span className="flex items-baseline gap-2">
+                      <ConversationIcon size={13} className="flex-shrink-0 self-center text-mute2" aria-hidden />
                       <span className={`min-w-0 flex-1 truncate text-[13.5px] ${unread ? "font-bold" : "font-medium"}`}>{c.name ?? c.phone}</span>
                       <span className={`flex-shrink-0 text-[11px] ${unread ? "font-bold text-accent" : "text-mute2"}`}>{c.time}</span>
                     </span>

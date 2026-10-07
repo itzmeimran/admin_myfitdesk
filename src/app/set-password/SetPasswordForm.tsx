@@ -41,14 +41,12 @@ export function SetPasswordForm({ environmentLabel, email }: { environmentLabel:
                   className={FIELD}
                 />
                 {name === "password" ? (
-                  <Button
+                  <Button icon={show ? HideIcon : RevealIcon}
                     type="button"
                     aria-label={show ? "Hide passwords" : "Show passwords"}
                     onClick={() => setShow((v) => !v)}
                     variant="ghost" size="md" iconOnly className="absolute right-0 top-0 h-full"
-                  >
-                    {show ? <HideIcon size={16} aria-hidden /> : <RevealIcon size={16} aria-hidden />}
-                  </Button>
+                   />
                 ) : null}
               </span>
             </label>

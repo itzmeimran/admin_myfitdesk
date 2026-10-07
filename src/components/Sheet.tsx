@@ -53,14 +53,12 @@ export function Sheet({
             </span>
             <span className="font-display text-[19px] tracking-[-0.025em]">{title}</span>
           </span>
-          <Button tone="inverse"
+          <Button icon={CancelIcon} tone="inverse"
             type="button"
             aria-label="Close"
             onClick={onClose}
             variant="ghost" size="md" iconOnly className="-mr-2 -mt-2 flex-shrink-0 md:text-mute md:hover:bg-sand md:hover:text-ink"
-          >
-            <CancelIcon size={18} aria-hidden />
-          </Button>
+           />
         </div>
         {children}
       </div>
@@ -82,7 +80,7 @@ export function SheetRow({
 }: {
   label: string;
   hint?: string;
-  icon?: IconType;
+  icon: IconType;
   showChevron?: boolean;
   right?: React.ReactNode;
   active?: boolean;
@@ -95,7 +93,7 @@ export function SheetRow({
       variant="surface"
       className={`min-h-[52px] items-center gap-3 px-3.5 py-2.5 text-left ${active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-ink hover:border-ink hover:bg-sand"}`}
     >
-      {Icon ? <Icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden /> : null}
+      <Icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-[13px] font-bold">{label}</span>
         {hint ? (

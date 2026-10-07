@@ -7,6 +7,7 @@ import { ButtonLink } from "@/components/ButtonLink";
 import { AddIcon, CancelIcon, LinkIcon, NextPageIcon, PrevPageIcon } from "@/core/ui/icons";
 import { WINDOW_LABEL, initials, windowState } from "./model";
 import type { Conversation, TeamMember } from "./types";
+import { ConfirmIcon } from '@/core/ui/icons';
 
 type Props = {
   conversation: Conversation;
@@ -60,13 +61,9 @@ export function ContactPanel({ conversation: c, team, startCreating, onClose, on
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-[62px] flex-shrink-0 items-center gap-2 border-b border-line pl-4 pr-3">
-        <Button variant="ghost" size="custom" iconOnly onClick={onClose} aria-label="Back to chat" className="-ml-2.5 h-11 w-10 border-0 lg:hidden">
-          <PrevPageIcon size={20} aria-hidden />
-        </Button>
+        <Button icon={PrevPageIcon} variant="ghost" size="custom" iconOnly onClick={onClose} aria-label="Back to chat" className="-ml-2.5 h-11 w-10 border-0 lg:hidden" />
         <span className="flex-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mute">Contact details</span>
-        <Button variant="ghost" size="custom" iconOnly onClick={onClose} aria-label="Close details" className="hidden h-8 w-8 border-0 lg:inline-flex">
-          <CancelIcon size={15} aria-hidden />
-        </Button>
+        <Button icon={CancelIcon} variant="ghost" size="custom" iconOnly onClick={onClose} aria-label="Close details" className="hidden h-8 w-8 border-0 lg:inline-flex" />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pb-6 pt-[18px]">
@@ -112,8 +109,8 @@ export function ContactPanel({ conversation: c, team, startCreating, onClose, on
                 </label>
                 <span className="text-[11.5px] leading-snug text-mute2">Stage: New lead · Source: WhatsApp. Nothing is added to the CRM until you confirm.</span>
                 <div className="flex gap-2">
-                  <Button type="submit" variant="primary" size="sm" disabled={!canCreateLead || pending} pending={pending} className="flex-1">Create lead</Button>
-                  <Button variant="secondary" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
+                  <Button icon={AddIcon} type="submit" variant="primary" size="sm" disabled={!canCreateLead || pending} pending={pending} className="flex-1">Create lead</Button>
+                  <Button icon={CancelIcon} variant="secondary" size="sm" onClick={() => setCreating(false)}>Cancel</Button>
                 </div>
               </form>
             ) : (
@@ -159,7 +156,7 @@ export function ContactPanel({ conversation: c, team, startCreating, onClose, on
             className="resize-y border-[1.5px] border-line bg-[#fbf8f3] p-2.5 text-[13px] leading-normal text-ink outline-none transition-colors placeholder:text-faint focus:border-ink"
           />
           <span role="status" className="text-[11px] text-mute2">{noteState}</span>
-          <Button variant="primary" size="sm" pending={pending} disabled={!canManage||pending||note===base.note} onClick={saveNote}>Save note</Button>
+          <Button icon={ConfirmIcon} variant="primary" size="sm" pending={pending} disabled={!canManage||pending||note===base.note} onClick={saveNote}>Save note</Button>
         </label>
       </div>
     </div>

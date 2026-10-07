@@ -11,6 +11,7 @@ import { Dropdown } from "@/components/Dropdown";
 import { useToast } from "@/components/Toast";
 import { InviteIcon } from "@/core/ui/icons";
 import { Field, INPUT_CLASS, HINT_CLASS, Notice } from "../_components/ui";
+import { CopyIcon } from '@/core/ui/icons';
 
 type Scope = "dev" | "prod" | "both";
 
@@ -206,7 +207,7 @@ function ManualLink({ link }: { link: string }) {
       </span>
       <div className="flex gap-2">
         <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} className={`${INPUT_CLASS} font-mono text-[11px]`} />
-        <Button
+        <Button icon={CopyIcon}
           type="button"
           variant="secondary" size="sm"
           onClick={async () => {

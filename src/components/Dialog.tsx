@@ -43,14 +43,12 @@ export function Dialog({
             <span className="text-[9.5px] font-bold uppercase tracking-[0.14em] text-mute">{eyebrow}</span>
             <span className="font-display text-[17px] tracking-[-0.02em]">{title}</span>
           </span>
-          <Button
+          <Button icon={CancelIcon}
             type="button"
             aria-label="Close"
             onClick={onClose}
             variant="ghost" size="sm" iconOnly className="-mr-1.5 -mt-1.5 flex-shrink-0"
-          >
-            <CancelIcon size={17} aria-hidden />
-          </Button>
+           />
         </div>
         {children}
       </div>

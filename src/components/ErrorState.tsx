@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/Button";
 import { ButtonLink } from "@/components/ButtonLink";
+import { RetryIcon } from '@/core/ui/icons';
+
 /**
  * The shared body of every error boundary in this app — copied from
  * FitDeskApp/src/components/ErrorState.tsx (see that file's docblock for
@@ -47,7 +49,7 @@ export function ErrorState({
 
       <div className="flex w-full max-w-[260px] flex-col gap-2">
         {onRetry ? (
-          <Button
+          <Button icon={RetryIcon}
             type="button"
             onClick={onRetry}
             variant="primary" size="lg"

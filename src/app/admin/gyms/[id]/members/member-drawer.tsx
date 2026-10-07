@@ -13,6 +13,7 @@ import { loadMemberDetail, type MemberDetailWithAvatar } from "./actions";
 import { MemberAvatar } from "./member-avatar";
 import { ActorLine } from "./actor-line";
 import type { MemberActor } from "@/features/gyms/member-actors";
+import { CopyIcon, RetryIcon } from '@/core/ui/icons';
 
 const STATE_LABEL: Record<MembershipState, string> = {
   active: "Active",
@@ -78,7 +79,7 @@ export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { o
           <div className="flex flex-col items-center gap-3 border-[1.5px] border-accent bg-accent/5 px-4 py-10 text-center">
             <span className="font-display text-[17px] text-ink">Member details unavailable</span>
             <p className="text-[12px] text-mute">{error}</p>
-            <Button type="button" onClick={() => void fetchDetail()} variant="danger" size="md">
+            <Button icon={RetryIcon} type="button" onClick={() => void fetchDetail()} variant="danger" size="md">
               Retry
             </Button>
           </div>
@@ -270,7 +271,7 @@ function TechnicalId({ label, value }: { label: string; value: string }) {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1_500);
   }
-  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-line px-3 py-2"><span className="min-w-0 flex-1"><dt className="mfd-micro-label">{label}</dt><dd className="truncate font-mono text-[10.5px] text-mute" title={value}>{value}</dd></span><Button type="button" onClick={() => void copy()} variant="secondary" size="md">{copied ? "Copied" : "Copy"}</Button></div>;
+  return <div className="flex min-w-0 items-center gap-2 border-b border-r border-line px-3 py-2"><span className="min-w-0 flex-1"><dt className="mfd-micro-label">{label}</dt><dd className="truncate font-mono text-[10.5px] text-mute" title={value}>{value}</dd></span><Button icon={CopyIcon} type="button" onClick={() => void copy()} variant="secondary" size="md">{copied ? "Copied" : "Copy"}</Button></div>;
 }
 
 function TechnicalFact({ label, value }: { label: string; value: string }) {

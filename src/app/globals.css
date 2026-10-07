@@ -191,8 +191,8 @@ html[data-admin-env="prod"] body::before {
     touch-action: manipulation;
   }
   .mfd-button:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 3px;
+    outline: none;
+    border-color: var(--accent);
   }
   .mfd-button:is(:disabled, [aria-disabled="true"]) {
     cursor: not-allowed;
@@ -229,14 +229,14 @@ html[data-admin-env="prod"] body::before {
   .mfd-button--inverse-tone { color: var(--paper); }
   .mfd-button--overlay { border: 0; padding: 0; }
   .mfd-button--primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
-    background: var(--hi); color: var(--ink);
+    background: var(--ink2); color: var(--hi);
   }
   .mfd-button--secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible),
   .mfd-button--control:not(:disabled):not([aria-disabled="true"]):hover {
-    border-color: var(--ink); background: var(--sand);
+    border-color: var(--accent); background: var(--sand);
   }
   .mfd-button--danger:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
-    background: var(--ink); border-color: var(--ink);
+    background: color-mix(in srgb, var(--accent) 88%, var(--ink)); border-color: var(--accent);
   }
   .mfd-button--danger-secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     background: var(--accent); color: var(--paper);
@@ -251,8 +251,7 @@ html[data-admin-env="prod"] body::before {
     .mfd-button:not(.mfd-button--overlay) {
       transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, opacity 160ms ease-out, transform 120ms ease-out;
     }
-    .mfd-button:not(.mfd-button--overlay):not(.mfd-button--control):not(.mfd-button--surface):not(:disabled):not([aria-disabled="true"]):hover { transform: translateY(-1px); }
-    .mfd-button:not(.mfd-button--overlay):not(.mfd-button--control):not(.mfd-button--surface):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.97); }
+    .mfd-button:is(.mfd-button--primary, .mfd-button--secondary, .mfd-button--danger, .mfd-button--danger-secondary):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.985); }
   }
 }
 
@@ -355,10 +354,32 @@ html[data-admin-env="prod"] body::before {
   }
 }
 
-/* A consistent keyboard focus treatment was missing from several custom
-   buttons and links. It also gives touch/keyboard interactions a clearer
-   sense of state without changing the visual language. */
-:where(a, button, input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+/* Focus colors the control's own edge, without an outside ring or layout shift.
+   Unlayered rules also cover field utilities and selected widget borders. */
+:is(input, select, textarea):focus,
+.mfd-button:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: none;
+}
+
+/* Search fields put their visible border on a wrapper rather than the input. */
+:where(form, label, div):has(> :is(input, textarea, select):focus) {
+  border-color: var(--accent) !important;
+}
+
+/* Borderless controls and text links still need a visible keyboard indicator.
+   The inset edge sits within their existing bounds. */
+.mfd-button:is(.mfd-button--link, [class~="border-0"]):focus-visible {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+:where(a:not(.mfd-button), summary, [tabindex]):focus-visible {
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1.5px;
+}
+
+@media (hover: hover) {
+  .mfd-button--surface:not(:disabled):not([aria-disabled="true"]):hover {
+    background-color: color-mix(in srgb, var(--sand) 65%, var(--paper));
+  }
 }

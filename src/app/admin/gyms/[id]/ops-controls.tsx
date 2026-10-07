@@ -2,6 +2,7 @@
 
 import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { Button } from "@/components/Button";
+import { DetailsIcon } from '@/core/ui/icons';
 import { istDateKey } from "@/core/dates/ist";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,8 @@ import { SuspendSheet, ReactivateConfirm } from "../gym-row-actions";
 import { formatMinor } from "@/core/money/format";
 import { exactTime, relativeTime } from "@/features/gyms/ops/timeline-format";
 import { StatusPill } from "./ops-ui";
+import { ConfirmIcon, ExportIcon, ManageIcon, RestoreIcon, RetryIcon, SignOutIcon, SuspendIcon, ToggleOffIcon, ToggleOnIcon } from '@/core/ui/icons';
+import { iconForAction } from '@/core/ui/action-icons';
 
 /* ---------------------------------------------------------------- WhatsApp */
 
@@ -40,13 +43,13 @@ export function WhatsAppControls({
   const close = () => setPanel(null);
   return (
     <div className="flex flex-wrap gap-2">
-      <Button type="button" variant="primary" size="sm" onClick={() => setPanel("credits")}>
+      <Button icon={ManageIcon} type="button" variant="primary" size="sm" onClick={() => setPanel("credits")}>
         Add / remove credits
       </Button>
-      <Button type="button" variant={paused ? "primary" : "danger-secondary"} size="sm"  onClick={() => setPanel("pause")}>
+      <Button icon={paused ? RestoreIcon : SuspendIcon} type="button" variant={paused ? "primary" : "danger-secondary"} size="sm"  onClick={() => setPanel("pause")}>
         {paused ? "Resume sending" : "Pause sending"}
       </Button>
-      <Button
+      <Button icon={RetryIcon}
         type="button"
         variant="secondary" size="sm"
         disabled={retryEligible === 0}
@@ -66,7 +69,7 @@ export function RetryButton({ organizationId, eligible, label }: { organizationI
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button
+      <Button icon={RetryIcon}
         type="button"
         variant="secondary" size="sm"
         disabled={!eligible}
@@ -97,7 +100,7 @@ export function LockRowControl({
   const active = Boolean(state?.isActive);
   return (
     <>
-      <Button type="button" variant={active ? "secondary" : "danger-secondary"} size="sm"  onClick={() => setOpen(true)}>
+      <Button icon={active ? RestoreIcon : SuspendIcon} type="button" variant={active ? "secondary" : "danger-secondary"} size="sm"  onClick={() => setOpen(true)}>
         {active ? "Lift" : "Enable"}
       </Button>
       <LockDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} gymName={gymName} lockType={lockType} enable={!active} />
@@ -111,16 +114,14 @@ export function FlagRowControl({ organizationId, flag }: { organizationId: strin
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button
+      <Button icon={flag.isEnabled ? ToggleOnIcon : ToggleOffIcon}
         type="button"
         role="switch"
         aria-checked={flag.isEnabled}
         aria-label={`${flag.label}: ${flag.isEnabled ? "enabled" : "disabled"}`}
         onClick={() => setOpen(true)}
-        variant="control" size="custom" iconOnly className={`relative h-6 w-11 flex-shrink-0 border-[1.5px] border-ink ${flag.isEnabled ? "bg-ink" : "bg-paper"} `}
-      >
-        <span className={`absolute top-[2px] h-4 w-4 transition-all ${flag.isEnabled ? "left-[22px] bg-hi" : "left-[2px] bg-mute3"}`} />
-      </Button>
+        variant="control" size="custom" iconOnly className={`h-8 w-10 flex-shrink-0 border-[1.5px] border-ink ${flag.isEnabled ? "bg-ink text-hi" : "bg-paper text-mute"}`}
+      />
       <FlagDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} flag={flag} />
     </>
   );
@@ -151,11 +152,11 @@ export function AlertControls({ organizationId, alert }: { organizationId: strin
   return (
     <div className="flex flex-wrap gap-2">
       {alert.status === "open" ? (
-        <Button type="button" variant="secondary" size="sm" disabled={isPending} onClick={acknowledge}>
+        <Button icon={ConfirmIcon} type="button" variant="secondary" size="sm" disabled={isPending} onClick={acknowledge}>
           Acknowledge
         </Button>
       ) : null}
-      <Button type="button" variant="primary" size="sm" onClick={() => setResolving(true)}>
+      <Button icon={ConfirmIcon} type="button" variant="primary" size="sm" onClick={() => setResolving(true)}>
         Resolve
       </Button>
       <ResolveAlertDialog open={resolving} onClose={() => setResolving(false)} organizationId={organizationId} alert={alert} />
@@ -168,7 +169,7 @@ export function RefreshAlertsButton({ organizationId }: { organizationId: string
   const toast = useToast();
   const [isPending, startTransition] = useConfirmedTransition('Recalculate and update operational alerts for this gym?');
   return (
-    <Button pending={isPending}
+    <Button icon={RetryIcon} pending={isPending}
       type="button"
       variant="secondary" size="sm"
       disabled={isPending}
@@ -194,10 +195,10 @@ export function AccessControls({ organizationId, gymName }: { organizationId: st
   const [scope, setScope] = useState<"owner" | "all" | null>(null);
   return (
     <div className="flex flex-wrap gap-2">
-      <Button type="button" variant="secondary" size="sm" onClick={() => setScope("owner")}>
+      <Button icon={SignOutIcon} type="button" variant="secondary" size="sm" onClick={() => setScope("owner")}>
         Force logout owner
       </Button>
-      <Button type="button" variant="danger-secondary" size="sm" onClick={() => setScope("all")}>
+      <Button icon={SignOutIcon} type="button" variant="danger-secondary" size="sm" onClick={() => setScope("all")}>
         Force logout all users
       </Button>
       <SessionsDialog open={scope !== null} onClose={() => setScope(null)} organizationId={organizationId} gymName={gymName} scope={scope ?? "owner"} />
@@ -222,7 +223,7 @@ export function WebhookEventList({ events, timeZone }: { events: WebhookEvent[];
               variant="surface" className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-3 py-2.5 text-left hover:bg-sand sm:grid-cols-[1.2fr_1fr_auto]"
             >
               <span className="flex min-w-0 flex-col">
-                <span className="truncate text-[12.5px] font-bold text-ink">{e.eventType}</span>
+                <span className="flex items-center gap-2 text-[12.5px] font-bold text-ink"><DetailsIcon size={15} className="flex-shrink-0" aria-hidden /><span className="truncate">{e.eventType}</span></span>
                 <span className="truncate font-mono text-[10.5px] text-mute3">{e.paymentId ?? e.orderId ?? e.id}</span>
               </span>
               <span className="hidden text-[11px] text-mute sm:block">{relativeTime(e.receivedAt)}</span>
@@ -314,7 +315,7 @@ export function ExportPanel({ organizationId }: { organizationId: string }) {
           ))}
         </select>
       </label>
-      <Button type="button" variant="primary" size="sm" onClick={() => setOpen(true)}>
+      <Button icon={ExportIcon} type="button" variant="primary" size="sm" onClick={() => setOpen(true)}>
         Export CSV…
       </Button>
       <AdminActionDialog
@@ -370,7 +371,7 @@ export function DangerZone({
             <strong className="text-[13px] text-ink">{row.title}</strong>
             <span className="text-[11.5px] leading-relaxed text-mute">{row.text}</span>
           </div>
-          <Button
+          <Button icon={iconForAction(row.label)}
             type="button"
             disabled={row.disabled}
             title={row.hint}

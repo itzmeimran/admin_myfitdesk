@@ -3,6 +3,7 @@
 import { Button } from "@/components/Button";
 import { useEffect, useId, useRef, useState } from "react";
 import { AlertIcon } from "@/core/ui/icons";
+import { CancelIcon, ConfirmIcon } from '@/core/ui/icons';
 
 /**
  * Shared confirmation modal for dangerous admin actions (suspend a gym,
@@ -144,7 +145,7 @@ export function ConfirmDialog({
           </label>
         ) : null}
         <div className="flex gap-2">
-          <Button
+          <Button icon={CancelIcon}
             ref={cancelRef}
             type="button"
             onClick={onCancel}
@@ -153,7 +154,7 @@ export function ConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button
+          <Button icon={ConfirmIcon}
             type="button"
             onClick={() => onConfirm(typedValue.trim())}
             pending={pending}

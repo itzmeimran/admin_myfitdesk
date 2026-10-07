@@ -9,6 +9,7 @@ import { ManageSubscriptionSheet, type SubscriptionSheetGym } from "@/features/g
 import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon } from "@/core/ui/icons";
 import { formatMinorWhole } from "@/core/money/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
+import { iconForAction } from '@/core/ui/action-icons';
 
 /**
  * "Admin actions" card row, matching the design's three-card layout
@@ -113,7 +114,7 @@ function ActionCard({
         {title}
       </span>
       <span className="text-[11.5px] leading-relaxed text-ink2">{body}</span>
-      <Button
+      <Button icon={iconForAction(cta)}
         type="button"
         onClick={onClick}
         variant={danger ? "danger" : "secondary"} size="sm" className="mt-auto"

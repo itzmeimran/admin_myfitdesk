@@ -5,6 +5,8 @@ import { Button } from "@/components/Button";
 import { Dropdown } from "@/components/Dropdown";
 import { useSalesCrm } from "@/features/sales/use-sales-crm";
 import { LuX } from "react-icons/lu";
+import { CancelIcon, ConfirmIcon } from '@/core/ui/icons';
+import { iconForAction } from '@/core/ui/action-icons';
 
 /**
  * Modal frame + form fields for every Sales CRM flow. A bottom sheet on phones,
@@ -45,9 +47,7 @@ export function ModalFrame({
             <h2 id={titleId} className="font-display text-[18px] tracking-[-0.015em]">{title}</h2>
             {sub ? <span className="text-[12.5px] text-mute">{sub}</span> : null}
           </span>
-          <Button type="button" variant="ghost" size="md" iconOnly aria-label="Close" onClick={onClose} className="-mr-2.5 -mt-2">
-            <LuX size={18} aria-hidden />
-          </Button>
+          <Button icon={LuX} type="button" variant="ghost" size="md" iconOnly aria-label="Close" onClick={onClose} className="-mr-2.5 -mt-2" />
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-[18px] py-4">
           {children}
@@ -56,9 +56,9 @@ export function ModalFrame({
         </div>
         {footer ? (
           <div className="flex flex-shrink-0 flex-col-reverse gap-2 border-t-[1.5px] border-ink bg-sand px-[18px] py-3 md:flex-row">
-            {secondaryLabel ? <Button type="button" variant="secondary" size="lg" disabled={crm.busy} onClick={onSecondary} className="md:mr-auto">{secondaryLabel}</Button> : null}
-            <Button type="button" variant="secondary" size="lg" disabled={crm.busy} onClick={onClose}>Cancel</Button>
-            <Button type="button" variant="primary" size="lg" pending={crm.busy} pendingLabel="Saving…" onClick={onPrimary}>{primaryLabel}</Button>
+            {secondaryLabel ? <Button icon={iconForAction(secondaryLabel)} type="button" variant="secondary" size="lg" disabled={crm.busy} onClick={onSecondary} className="md:mr-auto">{secondaryLabel}</Button> : null}
+            <Button icon={CancelIcon} type="button" variant="secondary" size="lg" disabled={crm.busy} onClick={onClose}>Cancel</Button>
+            <Button icon={iconForAction(primaryLabel)} type="button" variant="primary" size="lg" pending={crm.busy} pendingLabel="Saving…" onClick={onPrimary}>{primaryLabel}</Button>
           </div>
         ) : null}
       </div>
@@ -103,13 +103,16 @@ export function SelectField({ label, value, options, onChange, help }: {
 
 const INPUT = "border-[1.5px] bg-paper px-3 text-[16px] text-ink outline-none placeholder:text-[#a99d91] focus:border-ink md:text-[15px]";
 
-export function TextField({ label, value, onChange, placeholder, error, type = "text" }: {
-  label: string; value: string; onChange: (v: string) => void; placeholder?: string; error?: string; type?: "text" | "email" | "search" | "tel";
+export function TextField({ label, value, onChange, placeholder, error, help, inputMode, maxLength, type = "text" }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; error?: string; help?: string;
+  inputMode?: React.ComponentProps<'input'>['inputMode']; maxLength?: number; type?: "text" | "email" | "search" | "tel";
 }) {
+  const helpId = useId();
   return (
     <Field label={label} error={error}>
-      <input type={type} aria-label={label} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+      <input type={type} aria-label={label} aria-describedby={help ? helpId : undefined} value={value} placeholder={placeholder} inputMode={inputMode} maxLength={maxLength} onChange={(e) => onChange(e.target.value)}
         className={`min-h-[46px] ${INPUT} ${error ? "border-accent" : "border-line"}`} />
+      {help ? <span id={helpId} role="status" className="text-[12px] text-mute2">{help}</span> : null}
     </Field>
   );
 }
@@ -136,7 +139,7 @@ export function RadioCards<T extends string>({ label, value, onChange, options, 
         {options.map((o) => {
           const on = o.value === value;
           return (
-            <Button key={o.value} type="button" role="radio" aria-checked={on} variant="surface" onClick={() => onChange(o.value)}
+            <Button icon={ConfirmIcon} key={o.value} type="button" role="radio" aria-checked={on} variant="surface" onClick={() => onChange(o.value)}
               className={`min-h-[46px] items-start gap-3 border-[1.5px] px-3 py-[11px] text-left ${on ? "border-ink bg-sand" : "border-line bg-paper hover:border-ink"} text-ink`}>
               <span aria-hidden className="mt-px flex h-4 w-4 flex-shrink-0 items-center justify-center border-[1.5px] border-ink">
                 <span className={`h-2 w-2 ${on ? "bg-ink" : "bg-transparent"}`} />

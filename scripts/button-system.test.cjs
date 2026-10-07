@@ -138,3 +138,45 @@ test("imperative async actions reject same-tick duplicates and unlock when settl
   assert.equal(calls, 2);
   assert.deepEqual(states, [true, false, true, false]);
 });
+
+test("icon rule protects all action buttons while exempting links and backdrops", async () => {
+  const { Linter } = require('eslint');
+  const rule = (await import('./eslint-rules/button-icon.mjs')).default;
+  const linter = new Linter();
+  const check = source => linter.verify(source, [{
+    languageOptions: { ecmaVersion: 'latest', sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } } },
+    plugins: { ui: { rules: { icon: rule } } }, rules: { 'ui/icon': 'error' },
+  }]);
+  for (const source of [
+    '<Button>Save</Button>;', '<Button pending>Save</Button>;',
+    '<SubmitButton>Save</SubmitButton>;', '<AsyncButton>Retry</AsyncButton>;',
+    '<Button>{selected ? <ConfirmIcon /> : null}Assign</Button>;',
+    '<article role="button"><DetailsIcon />Open</article>;',
+  ]) assert.equal(check(source).length, 1, source);
+  for (const source of [
+    '<Button icon={ConfirmIcon}>Save</Button>;', '<Button icon={ConfirmIcon} />;',
+    '<Button><CancelIcon /></Button>;', '<Button><span><DetailsIcon />Details</span></Button>;',
+    '<Button>{shown ? <HideIcon /> : <RevealIcon />}</Button>;',
+    '<Button variant="link">Open</Button>;', '<ButtonLink href="/admin">Open</ButtonLink>;',
+    '<Button variant="overlay" aria-label="Dismiss" />;',
+  ]) assert.deepEqual(check(source), [], source);
+});
+
+test("button icons stay direct flex children and loading renders one glyph", () => {
+  const markup = html(Button, { icon: ConfirmIcon, children: React.createElement('span', { className: 'flex-1' }, 'Save') });
+  assert.match(markup, /<button[^>]*><svg/);
+  assert.match(markup, /<\/svg><span class="flex-1">Save<\/span><\/button>/);
+  const link = html(ButtonLink, { href: '/admin', children: 'Open' });
+  assert.doesNotMatch(link, /<svg/);
+});
+
+test("dynamic action labels use the same icons as fixed action buttons", () => {
+  const { iconForAction } = load('src/core/ui/action-icons.ts');
+  const icons = load('src/core/ui/icons.ts');
+  for (const [label, name] of [
+    ['Save lead', 'ConfirmIcon'], ['Confirm demo', 'ConfirmIcon'], ['Save package', 'ConfirmIcon'],
+    ['Add lead', 'AddIcon'], ['Create / link gym', 'AddIcon'], ['Cancel', 'CancelIcon'],
+    ['Load more leads', 'LoadMoreIcon'], ['More', 'MoreIcon'], ['Copy demo link', 'CopyIcon'],
+    ['Send template', 'SendIcon'], ['Review match', 'DetailsIcon'], ['Cancel subscription', 'ArchiveIcon'],
+  ]) assert.equal(iconForAction(label), icons[name], label);
+});

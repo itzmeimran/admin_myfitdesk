@@ -21,3 +21,7 @@ User confirmed 2026-10-04: all user-triggered admin mutations require an explici
 ## Git delivery
 
 The user confirmed on 2026-10-01 that admin changes go directly into `main`; do not create a `dev` branch here unless explicitly requested. The separate FitDeskApp web repository uses `dev` for development delivery.
+
+## Reusable button and focus styling
+
+User confirmed 2026-10-07: every visible action button must have an icon; link buttons are exempt. Use Button, SubmitButton or AsyncButton and the shared Lucide icon vocabulary. Custom card/control layouts may embed an always-visible icon; invisible dismiss backdrops are not visible action buttons. Keep hover and press feedback in the shared styles, subtle, and respectful of reduced-motion settings. Focus should turn the control's own border rust rather than draw an outside ring. Show the environment badge once in the header.

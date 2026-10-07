@@ -26,6 +26,8 @@ import {
   type RecoveryActionResult,
 } from "./actions";
 import type { BackupRow, DisasterRecoveryData, ScheduleHealth } from "./types";
+import { ConfirmIcon, ManageIcon } from '@/core/ui/icons';
+import { iconForAction } from '@/core/ui/action-icons';
 
 const TABS = ["Backups", "Restore History", "Audit Logs", "Deleted Records", "System Health"] as const;
 type Tab = (typeof TABS)[number];
@@ -183,7 +185,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
       <div className="overflow-x-auto border-b-[1.5px] border-ink">
         <div className="flex min-w-max gap-1">
           {TABS.map((item) => (
-            <Button key={item} type="button" onClick={() => setTab(item)}
+            <Button icon={iconForAction(item)} key={item} type="button" onClick={() => setTab(item)}
               variant="control" size="custom" className={`min-h-[42px] border-b-[3px] px-3 text-[11.5px] font-bold ${tab === item ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}>
               {item}
               {item === "System Health" && data.health.openCriticalAlerts ? ` (${data.health.openCriticalAlerts})` : ""}
@@ -321,13 +323,13 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
               <h2 className="font-display text-[16px]">Maintenance mode</h2>
               <p className="mt-2 text-[12px] leading-relaxed text-mute">{data.health.maintenanceMode ? data.health.maintenanceReason || "Maintenance mode is active." : "Normal application access is enabled."}</p>
               <label className="mt-3 flex flex-col gap-1"><span className="mfd-micro-label">Reason</span><input value={maintenanceReason} onChange={(event) => setMaintenanceReason(event.target.value)} maxLength={500} className="min-h-[38px] border-[1.5px] border-line bg-paper px-2.5 text-[12px]" /></label>
-              <Button type="button" disabled={isPending || !data.health.configured} onClick={() => setConfirmation({ kind: "maintenance", enabled: !data.health.maintenanceMode })} variant={data.health.maintenanceMode ? "danger" : "primary"} size="sm" className="mt-3">{data.health.maintenanceMode ? "Disable maintenance" : "Enable maintenance"}</Button>
+              <Button icon={ManageIcon} type="button" disabled={isPending || !data.health.configured} onClick={() => setConfirmation({ kind: "maintenance", enabled: !data.health.maintenanceMode })} variant={data.health.maintenanceMode ? "danger" : "primary"} size="sm" className="mt-3">{data.health.maintenanceMode ? "Disable maintenance" : "Enable maintenance"}</Button>
             </div>
           </div>
 
           <div className="border-[1.5px] border-ink bg-paper">
             <div className="border-b-[1.5px] border-ink px-4 py-3"><h2 className="font-display text-[16px]">System alerts</h2></div>
-            {data.alerts.filter((alert) => !alert.resolved_at).map((alert) => <div key={alert.id} className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70"><AlertIcon size={16} className={alert.severity === "critical" ? "text-accent" : "text-mute"} aria-hidden /><span className="mr-auto min-w-0 flex-1"><strong className="block text-[12.5px]">{alert.message}</strong><span className="text-[10.5px] text-mute">{label(alert.type)} · {formatDate(alert.created_at)}</span></span><Button disabled={isPending} onClick={() => run(() => resolveAlert(alert.id), false)} variant="secondary" size="md">Resolve</Button></div>)}
+            {data.alerts.filter((alert) => !alert.resolved_at).map((alert) => <div key={alert.id} className="flex flex-wrap items-start gap-3 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70"><AlertIcon size={16} className={alert.severity === "critical" ? "text-accent" : "text-mute"} aria-hidden /><span className="mr-auto min-w-0 flex-1"><strong className="block text-[12.5px]">{alert.message}</strong><span className="text-[10.5px] text-mute">{label(alert.type)} · {formatDate(alert.created_at)}</span></span><Button icon={ConfirmIcon} disabled={isPending} onClick={() => run(() => resolveAlert(alert.id), false)} variant="secondary" size="md">Resolve</Button></div>)}
             {!data.alerts.some((alert) => !alert.resolved_at) ? <Empty message="No open system alerts." /> : null}
           </div>
         </section>

@@ -26,6 +26,8 @@ import type {
   WhatsAppMetaCategory,
   WhatsAppProfitability,
 } from "./queries";
+import { ConfirmIcon } from '@/core/ui/icons';
+
 
 const INPUT =
   "w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink disabled:bg-sand disabled:text-mute";
@@ -365,7 +367,7 @@ function PackageSheet({
         <label className={LABEL}>Sort order<input type="number" min="0" step="1" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: e.target.value })} className={INPUT} /></label>
       </div>
       <p className="text-[10.5px] leading-relaxed text-mute3">Existing purchases keep their snapshotted credits and price. Editing this package changes only future checkouts.</p>
-      <Button type="button" disabled={mutation.isPending} pending={mutation.busyKey === "save-package"} pendingLabel="Saving…" onClick={save} variant="primary" size="lg" className="w-full">
+      <Button icon={ConfirmIcon} type="button" disabled={mutation.isPending} pending={mutation.busyKey === "save-package"} pendingLabel="Saving…" onClick={save} variant="primary" size="lg" className="w-full">
         {pkg ? "Save package" : "Create package"}
       </Button>
     </Sheet>
@@ -466,7 +468,7 @@ function MetaRatesSheet({
           Use the per-message amount from Meta&apos;s current India rate card or your invoice allocation. Taxes and
           foreign-exchange differences may make the final invoice vary from this estimate.
         </p>
-        <Button type="button" disabled={mutation.isPending || !effectiveDate} pending={mutation.busyKey === "save-rates"} pendingLabel="Saving rates…" onClick={save} variant="primary" size="lg" className="w-full">
+        <Button icon={ConfirmIcon} type="button" disabled={mutation.isPending || !effectiveDate} pending={mutation.busyKey === "save-rates"} pendingLabel="Saving rates…" onClick={save} variant="primary" size="lg" className="w-full">
           Save effective rates
         </Button>
       </div>

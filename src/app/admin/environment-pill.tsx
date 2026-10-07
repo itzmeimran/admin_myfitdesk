@@ -5,8 +5,8 @@ import { ADMIN_ENVIRONMENT_LABEL } from "@/core/config/environments";
 
 /**
  * Persistent, app-wide "which project am I looking at" tell — rendered in
- * both admin-chrome.tsx (mobile header) and admin-sidebar.tsx (desktop
- * rail), so it's visible on every admin screen, not just Settings. Task
+ * admin-chrome.tsx's shared header at every breakpoint, so it's visible
+ * once on every admin screen, not just Settings. Task
  * requirement §5: make PROD impossible to miss. Pairs with the full-page
  * accent border in globals.css (`html[data-admin-env="prod"]`) — this pill
  * names it, the border makes it ambient.

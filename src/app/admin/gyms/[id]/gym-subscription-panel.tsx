@@ -32,13 +32,13 @@ import { formatMinorWhole } from "@/core/money/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { formatZonedDate } from "@/core/dates/format";
 import type { SubscriptionPanelView } from "./subscription-view";
+import { ConfirmIcon } from '@/core/ui/icons';
 
 type Panel = null | "subscription" | "suspend" | "reactivate" | "credits" | "retry" | "sessions-owner" | "sessions-all" | "impersonate" | "resend";
 
 /** Warn tone: the accent at 8% over the paper, solid so the meter's tick gaps can match it exactly. */
 const WARN_BG = "#f3e3d9";
 const CALM_BG = "var(--sand)";
-
 
 /**
  * The header's right-hand panel: the subscription at a glance (days left, a
@@ -216,15 +216,13 @@ export function GymSubscriptionPanel({
             <span className="truncate">Manage subscription</span>
           </Button>
         )}
-        <Button
+        <Button icon={RevealIcon}
           type="button"
           onClick={() => setPanel("impersonate")}
           aria-label="View as owner"
           title="View as owner"
           variant="secondary" size="md" iconOnly
-        >
-          <RevealIcon size={15} aria-hidden />
-        </Button>
+         />
         <ActionMenu items={menuItems} ariaLabel="More actions" size="md" menuWidth={248} />
       </div>
 
@@ -266,7 +264,7 @@ export function GymSubscriptionPanel({
           </ul>
           <p>Until then, use the Members, Billing and Operations tabs here, which read the same data through audited, read-only views.</p>
           <div className="flex justify-end">
-            <Button
+            <Button icon={ConfirmIcon}
               type="button"
               onClick={close}
               variant="primary" size="sm"

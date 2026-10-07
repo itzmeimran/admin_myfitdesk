@@ -9,7 +9,6 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { SignOutIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 import { NAV_ITEMS, visibleNavItems } from "./nav-items";
-import { EnvironmentPill } from "./environment-pill";
 
 /**
  * Persistent nav rail for tablet + desktop (≥768px) — adapted from
@@ -54,10 +53,6 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
             </span>
           </span>
         </span>
-
-        <div className="px-1.5">
-          <EnvironmentPill />
-        </div>
 
         <nav className="flex flex-col gap-0.5" aria-label="Platform sections">
           {visibleNavItems(NAV_ITEMS, permissions).map((item) => {

@@ -39,6 +39,7 @@ import {
   ToggleOnIcon,
   ToggleOffIcon,
 } from "@/core/ui/icons";
+import { CancelIcon } from '@/core/ui/icons';
 
 /**
  * Every package, one screen. A row of cards picks which package is under
@@ -248,7 +249,7 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
           <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute3">Live</span>
           <span className="text-[12.5px]">Gym owners see the packages below on their subscription screen.</span>
         </span>
-        <Button
+        <Button icon={RestoreIcon}
           type="button"
           disabled={isBusy("model")}
           onClick={() => setConfirmRevert(true)}
@@ -525,7 +526,7 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
           <Button icon={EditIcon} type="button" onClick={() => setOpen(true)} variant="secondary" size="sm">
             Edit
           </Button>
-          <Button
+          <Button icon={archived ? RestoreIcon : ArchiveIcon}
             type="button"
             disabled={isBusy("status")}
             onClick={() =>
@@ -535,7 +536,7 @@ function DetailsCard({ pkg }: { pkg: SimplePackage }) {
             }
             variant="secondary" size="sm"
           >
-            {archived ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
+
             {archived ? "Restore" : "Archive"}
           </Button>
         </div>
@@ -632,7 +633,7 @@ function DetailsSheet({ pkg, onClose }: { pkg: SimplePackage; onClose: () => voi
         </div>
 
         <div className="flex gap-2 border-t border-line pt-3">
-          <Button
+          <Button icon={CancelIcon}
             type="button"
             onClick={onClose}
             variant="secondary" size="lg" className="flex-1"
@@ -673,15 +674,13 @@ function FeaturesCard({ pkg }: { pkg: SimplePackage }) {
               className="flex items-center gap-2 border-b border-line py-2 text-[12.5px] last:border-0"
             >
               <span className="min-w-0 flex-1">{feature.name}</span>
-              <Button
+              <Button icon={DeleteIcon}
                 type="button"
                 aria-label={`Remove ${feature.name}`}
                 disabled={isBusy(feature.id)}
                 onClick={() => run(feature.id, () => removeFeature(feature.id), `${feature.name} removed.`)}
                 variant="ghost" size="sm" iconOnly className="flex-shrink-0"
-              >
-                <DeleteIcon size={14} aria-hidden />
-              </Button>
+               />
             </li>
           ))}
         </ul>

@@ -13,6 +13,7 @@ import {
   setAlertStatus,
 } from "@/features/gyms/ops/actions";
 import { LOCK_CATALOG, type FlagRow, type LockType, type OpsAlert } from "@/features/gyms/ops/types";
+import { AddIcon, CancelIcon } from '@/core/ui/icons';
 
 /**
  * Every privileged-action dialog for the Gym Command Center, in one place so
@@ -49,7 +50,7 @@ export function CreditsDialog({ open, onClose, organizationId, gymName }: Base) 
       <div className="flex flex-col gap-2">
         <div className="flex" role="group" aria-label="Add or remove">
           {(["add", "remove"] as const).map((m) => (
-            <Button
+            <Button icon={m === "add" ? AddIcon : CancelIcon}
               key={m}
               type="button"
               aria-pressed={mode === m}

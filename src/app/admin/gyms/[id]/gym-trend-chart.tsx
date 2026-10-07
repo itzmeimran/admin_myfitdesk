@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { RevealIcon, HideIcon } from '@/core/ui/icons';
 import { Dropdown } from "@/components/Dropdown";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
 import type { GymTrend, TrendPoint } from "@/features/gyms/trend-types";
@@ -227,6 +228,7 @@ export function GymTrendChart({ trend, currency }: { trend: GymTrend; currency: 
             className={`min-w-0 flex-col gap-[5px] border-0 bg-transparent p-0 text-left text-ink ${s.on ? "" : "opacity-40"}`}
           >
             <span className="flex w-full min-w-0 items-center gap-2">
+              {s.on ? <RevealIcon size={15} className="flex-shrink-0 text-mute" aria-hidden /> : <HideIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />}
               <span aria-hidden className="h-2 w-2 flex-shrink-0" style={{ background: s.swatch }} />
               <span className="truncate text-[12px] font-medium text-mute">{s.label}</span>
             </span>

@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { AddIcon, CalendarIcon, CalendarRangeIcon, EditIcon, ArchiveIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
+import { CancelIcon } from '@/core/ui/icons';
 
 const INK = "var(--ink)";
 const PAPER = "var(--paper)";
@@ -218,14 +219,14 @@ export function PackagesView({
                 >
                   Edit
                 </Button>
-                <Button
+                <Button icon={pkg.secondary === "Restore" ? RestoreIcon : ArchiveIcon}
                   type="button"
                   disabled={isArchivingThis}
                   onClick={() => handleToggleArchive(pkg)}
                   variant="secondary" size="sm" className="flex-1"
                   style={{ borderColor: s.rule }}
                 >
-                  {pkg.secondary === "Restore" ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
+
                   {isArchivingThis ? "Working…" : pkg.secondary}
                 </Button>
               </div>
@@ -500,7 +501,7 @@ function PackageSheet({
         </p>
 
         <div className="flex gap-2">
-          <Button
+          <Button icon={CancelIcon}
             type="button"
             onClick={onClose}
             variant="secondary" size="lg" className="flex-1"

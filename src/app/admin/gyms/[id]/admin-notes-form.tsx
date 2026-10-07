@@ -4,6 +4,7 @@ import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { useActionState, useEffect, useRef } from "react";
 import { SubmitButton } from "@/components/SubmitButton";
 import { addGymNote, type AddGymNoteState } from "@/features/gyms/overview-actions";
+import { AddIcon } from '@/core/ui/icons';
 
 const INITIAL: AddGymNoteState = { error: null };
 
@@ -32,7 +33,7 @@ export function AdminNotesForm({ organizationId }: { organizationId: string }) {
           placeholder="Add a private note for platform admins…"
           className="min-h-[38px] border-[1.5px] border-line bg-paper px-3 text-[12px] outline-none focus:border-ink"
         />
-        <SubmitButton variant="primary" size="sm"
+        <SubmitButton icon={AddIcon} variant="primary" size="sm"
           pendingLabel="Adding…"
         >
           Add note

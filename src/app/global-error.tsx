@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/Button";
 import { useEffect } from "react";
+import { RetryIcon } from '@/core/ui/icons';
+
 /**
  * Last-resort boundary: this only renders when the *root layout itself*
  * fails, which means it replaces `layout.tsx` entirely and must supply its
@@ -70,7 +72,7 @@ export default function GlobalError({
             in a moment.
           </p>
 
-          <Button variant="ghost" size="md"
+          <Button icon={RetryIcon} variant="ghost" size="md"
             type="button"
             onClick={reset}
             style={{

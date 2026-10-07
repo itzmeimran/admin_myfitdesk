@@ -8,6 +8,7 @@ import { LuChevronRight } from "react-icons/lu";
 import { COVERAGE_FILTER_KEYS, COVERAGE_LEVELS, EMPTY_FILTERS, type CoverageCounts, type CoverageNode } from "@/features/sales/model";
 import { useSalesCrm } from "@/features/sales/use-sales-crm";
 import { TileStrip } from "./crm-ui";
+import { DetailsIcon, ManageIcon } from '@/core/ui/icons';
 
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "0%");
 const sum = (kids: CoverageNode[]): CoverageCounts =>
@@ -56,7 +57,7 @@ export function CoverageView({ root }: { root: CoverageNode }) {
           const last = i === nodes.length - 1;
           return (
             <span key={n.name} className="flex items-center gap-1">
-              <Button type="button" variant="control" size="custom" aria-current={last ? "page" : undefined} onClick={() => setPath(path.slice(0, i))}
+              <Button icon={ManageIcon} type="button" variant="control" size="custom" aria-current={last ? "page" : undefined} onClick={() => setPath(path.slice(0, i))}
                 className={`min-h-[36px] px-2 text-[13px] font-bold ${last ? "text-ink" : "text-accent"}`}>
                 {n.name}
               </Button>
@@ -92,9 +93,9 @@ export function CoverageView({ root }: { root: CoverageNode }) {
             <div key={k.name} role="row" className="grid grid-cols-4 items-center gap-2.5 border-b border-line px-3.5 py-3 last:border-b-0 md:grid-cols-[minmax(0,1.4fr)_repeat(4,84px)_minmax(0,1.6fr)_110px]">
               <span role="cell" className="col-span-4 flex items-center gap-2 md:col-span-1">
                 {k.kids ? (
-                  <Button type="button" variant="control" size="custom" onClick={() => setPath([...path, k.name])}
+                  <Button icon={LuChevronRight} type="button" variant="control" size="custom" onClick={() => setPath([...path, k.name])}
                     className="min-h-[36px] justify-start gap-1.5 px-0 text-left text-[14px] font-bold hover:bg-transparent">
-                    {k.name}<LuChevronRight size={14} aria-hidden />
+                    {k.name}
                   </Button>
                 ) : <span className="text-[14px] font-bold">{k.name}</span>}
               </span>
@@ -112,7 +113,7 @@ export function CoverageView({ root }: { root: CoverageNode }) {
                 </span>
                 <span className="min-w-16 text-right text-[12px] font-bold">{pct(ct, id)} contacted</span>
               </span>
-              <Button type="button" variant="secondary" size="sm" onClick={() => viewLeads(k)} className="col-span-4 justify-self-start md:col-span-1 md:justify-self-end">
+              <Button icon={DetailsIcon} type="button" variant="secondary" size="sm" onClick={() => viewLeads(k)} className="col-span-4 justify-self-start md:col-span-1 md:justify-self-end">
                 View leads
               </Button>
             </div>

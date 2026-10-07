@@ -7,6 +7,7 @@ import { Dialog } from "@/components/Dialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { AlertIcon } from "@/core/ui/icons";
+import { CancelIcon, ConfirmIcon } from '@/core/ui/icons';
 
 /**
  * The one confirmation pattern for privileged Gym Command Center actions.
@@ -146,7 +147,7 @@ export function AdminActionDialog({
         ) : null}
 
         <div className="flex justify-end gap-2">
-          <Button
+          <Button icon={CancelIcon}
             type="button"
             onClick={onClose}
             disabled={isPending}
@@ -154,7 +155,7 @@ export function AdminActionDialog({
           >
             Cancel
           </Button>
-          <Button
+          <Button icon={ConfirmIcon}
             type="button"
             onClick={submit}
             pending={isPending}

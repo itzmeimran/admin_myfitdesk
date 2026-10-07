@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/Button";
+import { DetailsIcon } from '@/core/ui/icons';
 import { useState } from "react";
 import type { PlatformAdminRow, PlatformRole } from "@/features/settings/admins";
 import type { OtherEnvironmentAccess } from "../_server/env-access";
@@ -79,7 +80,8 @@ export function AdminsView({
                           variant="surface" size="custom" className="flex max-w-[260px] flex-col text-left"
                           aria-label={`Open details for ${admin.email}`}
                         >
-                          <span className="truncate font-medium text-ink underline-offset-2 hover:underline">
+                          <span className="flex items-center gap-2 font-medium text-ink underline-offset-2 hover:underline">
+                            <DetailsIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />
                             {admin.displayName || admin.email}
                             {admin.isSelf ? <span className="ml-1.5 text-[10.5px] font-normal text-mute3">(you)</span> : null}
                           </span>
@@ -124,6 +126,7 @@ export function AdminsView({
                     variant="surface" size="custom" className="flex w-full flex-col gap-2.5 border-[1.5px] border-line bg-paper p-3.5 text-left hover:border-ink"
                   >
                     <span className="flex items-start justify-between gap-2">
+                      <DetailsIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate text-[13.5px] font-bold text-ink">
                           {admin.displayName || admin.email}

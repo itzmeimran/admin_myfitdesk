@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/Button";
+import { DetailsIcon } from '@/core/ui/icons';
 import { istDateKey } from "@/core/dates/ist";
 import { useState } from "react";
 import { Sheet } from "@/components/Sheet";
@@ -56,6 +57,7 @@ export function TimelineFeed({
               variant="surface" size="custom" className={`flex w-full flex-col gap-1 border-[1.5px] border-l-[5px] border-line bg-paper p-3.5 text-left hover:border-ink ${STATUS_BORDER[e.status]} `}
             >
               <span className="flex flex-wrap items-center gap-2">
+                <DetailsIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />
                 <strong className="text-[13.5px] text-ink">{eventTitle(e)}</strong>
                 {e.status !== "success" ? <StatusPill tone={STATUS_TONE[e.status]}>{STATUS_LABEL[e.status]}</StatusPill> : null}
                 <span className="ml-auto text-[11px] text-mute3">{relativeTime(e.occurredAt)}</span>

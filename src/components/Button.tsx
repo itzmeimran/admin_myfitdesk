@@ -11,8 +11,9 @@ export type ButtonProps = ComponentProps<"button"> & ButtonStyleProps & {
   pendingLabel?: React.ReactNode;
 };
 
-/** Native button semantics, refs and form props are preserved. Actions default
- * to type=button; form submissions opt into type=submit explicitly. */
+/** Native button semantics, refs and form props are preserved. Visible actions
+ * require an icon (enforced by mfd-ui/button-icon); link variants and invisible
+ * backdrops are exempt. Actions default to type=button; submissions opt in. */
 export function Button({
   variant = "secondary", size, iconOnly, selected, tone, icon, pending = false,
   pendingLabel, className, children, disabled, type = "button", ...props

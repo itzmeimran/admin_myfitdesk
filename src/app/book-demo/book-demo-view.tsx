@@ -14,6 +14,7 @@ import {
   BRANCH_RANGES, EMPTY_DEMO_FORM, FIELD_ORDER, INDIAN_STATES, MEMBER_RANGES, normalizeDemoPhone, validateDemoRequest,
   type DemoFormValues,
 } from "@/features/demo-requests/validation";
+import { ClockIcon, GymsIcon, RetryIcon } from '@/core/ui/icons';
 
 export type PreviewState = "errors" | "sending" | "success" | "returning";
 
@@ -278,7 +279,7 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                         {BRANCH_RANGES.map((b, i) => {
                           const on = values.branches === b;
                           return (
-                            <Button
+                            <Button icon={GymsIcon}
                               key={b} variant="surface" size="custom" role="radio" aria-checked={on} onClick={() => set("branches", b)}
                               tabIndex={on || (!values.branches && i === 0) ? 0 : -1}
                               className={`min-h-[45px] items-center justify-center border-0 text-[15px] font-bold ${i < BRANCH_RANGES.length - 1 ? "border-r border-line" : ""} ${on ? "bg-ink text-hi" : "bg-paper text-ink hover:bg-sand"}`}
@@ -324,9 +325,9 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                     <div className="flex items-center gap-2">
                       <span className={`${LABEL} mr-auto`}>Preferred date</span>
                       <div className="flex items-center gap-1.5">
-                        <MonthStep label="Previous month" disabled={monthIdx === 0} onClick={() => setMonthIdx(monthIdx - 1)}><PrevPageIcon size={16} /></MonthStep>
+                        <MonthStep label="Previous month" disabled={monthIdx === 0} onClick={() => setMonthIdx(monthIdx - 1)} />
                         <span aria-live="polite" className="min-w-[104px] text-center text-sm font-bold">{month.label}</span>
-                        <MonthStep label="Next month" disabled={monthIdx >= months.length - 1} onClick={() => setMonthIdx(monthIdx + 1)}><NextPageIcon size={16} /></MonthStep>
+                        <MonthStep label="Next month" disabled={monthIdx >= months.length - 1} onClick={() => setMonthIdx(monthIdx + 1)} />
                       </div>
                     </div>
 
@@ -368,7 +369,7 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                     ) : slotError ? (
                       <div role="alert" className="flex flex-col gap-3 border border-line p-4 text-[13.5px] text-mute">
                         <span>{slotError}</span>
-                        <Button variant="secondary" onClick={() => void pickDate(date)}>Try again</Button>
+                        <Button icon={RetryIcon} variant="secondary" onClick={() => void pickDate(date)}>Try again</Button>
                       </div>
                     ) : !slotsOpen ? (
                       <p role="status" className="border border-line p-4 text-[13.5px] text-mute">No times are available on this date. Please choose another date.</p>
@@ -378,7 +379,7 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                           const open = openSlots.includes(t.index);
                           const on = time === t.index;
                           return (
-                            <Button
+                            <Button icon={ClockIcon}
                               key={t.index} variant="surface" size="custom" role="radio" aria-checked={on} disabled={!open} onClick={() => setTime(t.index)}
                               tabIndex={on || (time === null && t.index === openSlots[0]) ? 0 : -1}
                               aria-label={t.label + (open ? "" : ", unavailable")}
@@ -470,14 +471,12 @@ function TextField({ id, label, value, error, onChange, type = "text", placehold
   );
 }
 
-function MonthStep({ label, disabled, onClick, children }: { label: string; disabled: boolean; onClick: () => void; children: ReactNode }) {
+function MonthStep({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
   return (
-    <Button
+    <Button icon={label === 'Previous month' ? PrevPageIcon : NextPageIcon}
       variant="surface" size="custom" aria-label={label} disabled={disabled} onClick={onClick}
       className={`h-11 w-11 items-center justify-center border-line bg-transparent disabled:opacity-100 ${disabled ? "text-mute3/70" : "text-ink hover:border-ink"}`}
-    >
-      {children}
-    </Button>
+     />
   );
 }
 
@@ -492,7 +491,7 @@ function DayCell({ dayKey, status, selected, today, onPick }: { dayKey: string; 
         ? "border-transparent bg-transparent font-medium text-mute3/70"
         : "border-sand bg-sand font-medium text-mute3 line-through";
   return (
-    <Button
+    <Button icon={CalendarIcon}
       variant="surface" size="custom" disabled={status !== "open"} aria-pressed={selected} onClick={onPick}
       aria-label={`${formatDemoDate(dayKey)}, ${selected ? "selected" : STATUS_WORD[status]}`}
       className={`relative h-11 items-center justify-center p-0 text-[15px] disabled:opacity-100 sm:h-[46px] ${style}`}

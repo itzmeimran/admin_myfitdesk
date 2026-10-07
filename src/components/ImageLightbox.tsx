@@ -3,7 +3,7 @@
 import { Button } from "@/components/Button";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CancelIcon } from "@/core/ui/icons";
+import { CancelIcon, RevealIcon } from "@/core/ui/icons";
 
 /**
  * Wraps a small picture (a gym logo, a member photo) in a button that opens
@@ -63,10 +63,11 @@ export function ImageLightbox({
         aria-label={`View ${title} picture full size`}
         aria-haspopup="dialog"
         title="Click to enlarge"
-        variant="surface" size="custom" className={` ${className} group overflow-hidden`}
+        variant="surface" size="custom" className={` ${className} group relative overflow-hidden`}
         style={{ cursor: "zoom-in" }}
       >
         <span className="block h-full w-full transition-transform duration-200 ease-out group-hover:scale-110">{children}</span>
+        <span className="absolute bottom-0 right-0 bg-paper/90 p-0.5 text-ink"><RevealIcon size={12} aria-hidden /></span>
       </Button>
 
       {open
@@ -86,15 +87,13 @@ export function ImageLightbox({
                     <span className="truncate font-display text-[15px] tracking-[-0.02em]">{title}</span>
                     {subtitle ? <span className="truncate text-[10.5px] text-mute3">{subtitle}</span> : null}
                   </figcaption>
-                  <Button tone="inverse"
+                  <Button icon={CancelIcon} tone="inverse"
                     ref={closeRef}
                     type="button"
                     aria-label="Close"
                     onClick={close}
                     variant="ghost" size="sm" iconOnly className="-mr-2 flex-shrink-0"
-                  >
-                    <CancelIcon size={17} aria-hidden />
-                  </Button>
+                   />
                 </div>
                 <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-sand p-3">
                   {failed ? (

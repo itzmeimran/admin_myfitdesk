@@ -88,7 +88,7 @@ export function EnvironmentSwitcher() {
           const active = env === environment;
           const isProd = env === "prod";
           return (
-            <Button
+            <Button icon={DatabaseIcon}
               pending={switching === env}
               key={env}
               type="button"

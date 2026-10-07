@@ -29,14 +29,12 @@ export function CopyButton({ value, label }: { value: string; label: string }) {
   }
 
   return (
-    <Button
+    <Button icon={copied ? ConfirmIcon : CopyIcon}
       type="button"
       onClick={copy}
       aria-label={`Copy ${label.toLowerCase()}`}
       title={`Copy ${label.toLowerCase()}`}
       variant="secondary" size="xs" iconOnly className={copied ? "text-live" : undefined}
-    >
-      {copied ? <ConfirmIcon size={13} aria-hidden /> : <CopyIcon size={13} aria-hidden />}
-    </Button>
+     />
   );
 }

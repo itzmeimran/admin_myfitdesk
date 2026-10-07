@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { PackagesIcon, RestoreIcon, AlertIcon, UsageIcon, NextPageIcon } from "@/core/ui/icons";
+import { CancelIcon } from '@/core/ui/icons';
 
 /**
  * Section 11 of the task brief: "the existing Manage button should not
@@ -157,7 +158,7 @@ export function SuspendSheet({
           </label>
         ) : null}
         <div className="flex gap-2">
-          <Button
+          <Button icon={CancelIcon}
             type="button"
             onClick={onClose}
             variant="secondary" size="md" className="flex-1"

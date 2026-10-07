@@ -19,6 +19,7 @@ import { ActivityModal, DemoModal, FiltersModal, MoreModal, StagesModal } from "
 import { ConvertModal, DuplicateModal, LostModal, ReassignModal } from "./modals-flows";
 import { CreateLeadModal } from './create-lead-modal';
 import { PipelineView } from "./pipeline-view";
+import { AddIcon, CancelIcon, CopyIcon, LoadMoreIcon, RetryIcon } from '@/core/ui/icons';
 
 export type SalesView = "board" | "attn" | "cov" | "ana";
 
@@ -60,7 +61,6 @@ function Screen({ view }: { view: SalesView }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
 
-
       <nav aria-label="Sales views" className="-mx-4 flex overflow-x-auto border-b-[1.5px] border-ink px-4 md:mx-0 md:px-0">
         {tabs.map((t) => {
           const on = t.key === view;
@@ -92,7 +92,7 @@ function Screen({ view }: { view: SalesView }) {
             <LuLock size={14} aria-hidden /><b className="text-ink">My leads</b> · only leads assigned to you
           </span>
         ) : null}
-        {crm.canManageSales?<Button variant="primary" disabled={crm.busy} onClick={()=>crm.openModal({kind:'create'})}>Add lead</Button>:null}
+        {crm.canManageSales?<Button icon={AddIcon} variant="primary" disabled={crm.busy} onClick={()=>crm.openModal({kind:'create'})}>Add lead</Button>:null}
       </div>
 
       {crm.dataState === "loading" ? <BoardSkeleton /> : null}
@@ -103,7 +103,7 @@ function Screen({ view }: { view: SalesView }) {
       {view === "cov" && crm.dataState !== "error" && crm.dataState !== "loading" ? <CoverageView root={crm.coverage} /> : null}
       {view === "ana" && crm.dataState !== "error" && crm.dataState !== "loading" ? <AnalyticsView data={crm.analytics} /> : null}
 
-      {leadView && crm.hasMore ? <Button disabled={crm.busy} onClick={crm.loadMore} variant="secondary">Load more leads ({crm.leads.length} of {crm.total})</Button> : null}
+      {leadView && crm.hasMore ? <Button icon={LoadMoreIcon} disabled={crm.busy} onClick={crm.loadMore} variant="secondary">Load more leads ({crm.leads.length} of {crm.total})</Button> : null}
       <LeadDrawer />
       <ModalHost />
     </div>
@@ -135,8 +135,8 @@ function EmptyLeads() {
       <span className="font-display text-[19px]">{crm.summary.total ? 'No matching leads' : 'No leads yet'}</span>
       <p className="max-w-[430px] text-[13.5px] leading-relaxed text-mute">{crm.summary.total ? 'Adjust the search or filters to see more leads.' : 'Add a lead from a field visit, call or referral. Website demo requests also appear here.'}</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <Button type="button" variant="primary" size="lg" onClick={() => void navigator.clipboard?.writeText(crm.bookDemoUrl)}>Copy Book a Demo link</Button>
-        {crm.summary.total ? <Button variant="secondary" onClick={crm.clearFilters}>Clear filters</Button> : null}
+        <Button icon={CopyIcon} type="button" variant="primary" size="lg" onClick={() => void navigator.clipboard?.writeText(crm.bookDemoUrl)}>Copy Book a Demo link</Button>
+        {crm.summary.total ? <Button icon={CancelIcon} variant="secondary" onClick={crm.clearFilters}>Clear filters</Button> : null}
       </div>
     </div>
   );
@@ -149,7 +149,7 @@ function LoadError({ onRetry }: { onRetry: () => void }) {
       <span aria-hidden className="flex h-12 w-12 items-center justify-center border-[1.5px] border-accent text-[22px] font-bold text-accent">!</span>
       <h2 className="font-display text-[19px]">Leads couldn&apos;t load</h2>
       <p className="max-w-[400px] text-[13.5px] leading-relaxed text-mute">{crm.error ?? "Check your connection and try again."}</p>
-      <Button type="button" variant="primary" size="lg" onClick={onRetry}>Try again</Button>
+      <Button icon={RetryIcon} type="button" variant="primary" size="lg" onClick={onRetry}>Try again</Button>
     </div>
   );
 }

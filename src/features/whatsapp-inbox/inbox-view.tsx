@@ -15,6 +15,7 @@ import { ConversationList } from './conversation-list';
 import { mapConversation, mapItems, type RawItem } from './data';
 import { nowIst, windowRemaining } from './model';
 import type { Conversation, Cursor, InboxFilter, InboxInitial, OutboundMessage } from './types';
+import { LoadMoreIcon, RetryIcon } from '@/core/ui/icons';
 
 /** Reconcile via curated RPCs without remounting the open thread or its draft. */
 export function InboxView({ initial }: { initial: InboxInitial }) {
@@ -184,11 +185,11 @@ export function InboxView({ initial }: { initial: InboxInitial }) {
  return (
   <div className="flex h-[calc(100dvh-12.25rem)] min-h-[520px] flex-col overflow-hidden border-[1.5px] border-ink bg-paper md:h-[calc(100dvh-9rem)]">
    {error || initial.templateError || !initial.configured ? <div role="alert" className="border-b border-line bg-sand px-4 py-2 text-[12.5px]">{error ?? initial.templateError ?? 'Managed WhatsApp sending is not configured for this environment.'}<Button variant="link" size="xs" onClick={refresh}>Reload</Button></div> : null}
-   {live !== 'live' ? <div role="status" className="flex items-center gap-3 border-b border-line px-4 py-2 text-[12.5px]"><b>{live === 'offline' ? 'Offline' : 'Reconnecting…'}</b><span className="flex-1 text-mute">Messages will refresh when the connection returns.</span><Button variant="secondary" size="xs" onClick={refresh}>Retry</Button></div> : null}
+   {live !== 'live' ? <div role="status" className="flex items-center gap-3 border-b border-line px-4 py-2 text-[12.5px]"><b>{live === 'offline' ? 'Offline' : 'Reconnecting…'}</b><span className="flex-1 text-mute">Messages will refresh when the connection returns.</span><Button icon={RetryIcon} variant="secondary" size="xs" onClick={refresh}>Retry</Button></div> : null}
    <div className="relative flex min-h-0 flex-1">
     <div className={`${selectedId ? 'hidden lg:flex' : 'flex'} w-full flex-shrink-0 flex-col border-line lg:w-[288px] lg:border-r xl:w-[340px]`}>
      <ConversationList rows={rows} totalCount={counts.total} openCount={counts.open} unreadCount={counts.unread} team={team} selectedId={selectedId} filter={filter} query={query} loading={listLoading} onSelect={select} onFilter={setFilter} onQuery={setQuery} />
-     {hasMore ? <Button variant="secondary" size="sm" disabled={listLoading} onClick={() => { setListLoading(true); startTransition(() => { void fetchList(true); }); }}>Load more conversations</Button> : null}
+     {hasMore ? <Button icon={LoadMoreIcon} variant="secondary" size="sm" disabled={listLoading} onClick={() => { setListLoading(true); startTransition(() => { void fetchList(true); }); }}>Load more conversations</Button> : null}
      {canManage ? <ButtonLink href="/admin/whatsapp/hidden" variant="link" size="xs">Archived &amp; blocked</ButtonLink> : null}
     </div>
     <section aria-label="Conversation" className={`${selectedId ? 'flex' : 'hidden lg:flex'} min-h-0 min-w-0 flex-1 flex-col`}>

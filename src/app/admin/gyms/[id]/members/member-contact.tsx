@@ -24,16 +24,14 @@ export function MemberContact({ phone, email }: { phone: string | null; email: s
         <span className="block truncate font-mono text-[11.5px]">{shown ? phone ?? "—" : maskedPhone}</span>
         <span className="block truncate text-[11px] text-mute">{shown ? email ?? "—" : maskedEmail}</span>
       </span>
-      <Button
+      <Button icon={shown ? HideIcon : RevealIcon}
         type="button"
         onClick={() => setShown((s) => !s)}
         aria-pressed={shown}
         aria-label={shown ? "Hide contact details" : "Reveal contact details"}
         title={shown ? "Hide contact details" : "Reveal contact details"}
         variant="secondary" size="xs" iconOnly
-      >
-        {shown ? <HideIcon size={14} aria-hidden /> : <RevealIcon size={14} aria-hidden />}
-      </Button>
+       />
     </span>
   );
 }

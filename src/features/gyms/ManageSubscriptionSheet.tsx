@@ -27,6 +27,7 @@ import { toMinorUnits } from "@/core/money/format";
 import { ExtendIcon, PackagesIcon, ArchiveIcon, RestoreIcon, CalendarIcon } from "@/core/ui/icons";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { formatShortDate } from "@/core/dates/format";
+import { CancelIcon } from '@/core/ui/icons';
 
 /** Normalized view of "a gym you can manage the subscription of" — the
  * Gyms list row and the Gym Detail header describe a gym with different
@@ -221,7 +222,7 @@ export function ManageSubscriptionSheet({
           {gym.isTrialing ? (
             <div className="flex flex-wrap gap-1.5" aria-label="Common trial extensions">
               {[7, 14, 30].map((value) => (
-                <Button
+                <Button icon={CalendarIcon}
                   key={value}
                   type="button"
                   onClick={() => setDays(String(value))}
@@ -335,7 +336,7 @@ export function ManageSubscriptionSheet({
               <p className="text-[10.5px] text-mute3">
                 Queued automatically — nothing else to do. Runs through {formatShortDate(new Date(scheduled.periodEnd))}.
               </p>
-              <Button pending={busy === "clear-schedule"}
+              <Button icon={CancelIcon} pending={busy === "clear-schedule"}
                 type="button"
                 disabled={isPending}
                 onClick={() => run("clear-schedule", () => clearScheduledPackage(gym.organizationId))}
@@ -384,7 +385,7 @@ export function ManageSubscriptionSheet({
               ? "Restores billing status without changing the renewal date — Extend separately if they should get access back today."
               : "Ends auto-renew immediately. The gym keeps whatever access its dates already say (grace/read-only rules still apply)."}
           </p>
-          <Button
+          <Button icon={gym.isCancelled ? RestoreIcon : ArchiveIcon}
             type="button"
             disabled={isPending}
             onClick={() =>
@@ -394,7 +395,7 @@ export function ManageSubscriptionSheet({
             }
             variant="secondary" size="sm"
           >
-            {gym.isCancelled ? <RestoreIcon size={13} aria-hidden /> : <ArchiveIcon size={13} aria-hidden />}
+
             {busy === "lifecycle" ? "Working…" : gym.isCancelled ? "Restore subscription" : "Cancel subscription"}
           </Button>
         </div>

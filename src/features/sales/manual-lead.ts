@@ -12,7 +12,7 @@ export const manualLeadSchema = z.object({
   city: z.string().trim().min(1, 'Enter the city').max(120),
   state: z.enum(INDIAN_STATES, { error: 'Choose a state' }),
   area: z.string().trim().max(160).default(''),
-  pin: z.string().trim().regex(/^(\d{6})?$/, 'Enter a 6-digit PIN code').default(''),
+  pin: z.string().trim().regex(/^([1-9]\d{5})?$/, 'Enter a valid 6-digit PIN code').default(''),
   branches: z.enum(['Unknown', ...BRANCH_RANGES]).default('Unknown'),
   members: z.enum(['Unknown', ...MEMBER_RANGES]).default('Unknown'),
   source: z.enum(MANUAL_LEAD_SOURCES),

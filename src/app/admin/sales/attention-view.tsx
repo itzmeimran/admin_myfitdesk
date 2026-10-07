@@ -1,10 +1,12 @@
 "use client";
 
 import { Button } from "@/components/Button";
+import { CrmIcon } from '@/core/ui/icons';
 import { attentionGroups, attentionRow } from "@/features/sales/derive";
 import { STAGE_LABEL, type AttentionReason, type Lead } from "@/features/sales/model";
 import { useSalesCrm } from "@/features/sales/use-sales-crm";
 import { useVisibleLeads } from "@/features/sales/use-visible-leads";
+import { iconForAction } from '@/core/ui/action-icons';
 
 export function AttentionView() {
   const crm = useSalesCrm();
@@ -46,12 +48,12 @@ export function AttentionView() {
                   className="min-h-[44px] min-w-0 flex-1 basis-[240px] justify-start gap-3 px-0 text-left hover:bg-transparent">
                   <span title={owner.name} className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink text-[10px] font-bold">{owner.initials}</span>
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-[14px] font-bold">{l.gym}</span>
+                  <span className="flex items-center gap-2 text-[14px] font-bold"><CrmIcon size={15} className="flex-shrink-0" aria-hidden />{l.gym}</span>
                     <span className="text-[12px] font-normal text-mute">{l.city} · {STAGE_LABEL[l.stage]}</span>
                   </span>
                 </Button>
                 <span className={`flex-1 basis-[180px] text-[12.5px] font-bold ${row.urgent ? "text-accent" : "text-ink"}`}>{row.detail}</span>
-                <Button type="button" variant="secondary" size="md" onClick={() => act(l, g.reason)} className="flex-none max-sm:flex-[1_1_100%]">
+                <Button icon={iconForAction(row.cta)} type="button" variant="secondary" size="md" onClick={() => act(l, g.reason)} className="flex-none max-sm:flex-[1_1_100%]">
                   {row.cta}
                 </Button>
               </div>

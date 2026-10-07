@@ -9,6 +9,8 @@ import {
 import type { IconType } from "@/core/ui/icons";
 import { WINDOW_DOT, initials, lastOutboundIndex, windowState } from "./model";
 import type { Conversation, Message, MessageStatus, MessageTemplate, TeamMember } from "./types";
+import { InviteIcon, LoadMoreIcon, RestoreIcon } from '@/core/ui/icons';
+import { iconForAction } from '@/core/ui/action-icons';
 
 type Props = {
   conversation: Conversation;
@@ -92,7 +94,7 @@ export function ChatPane({
     void onSend(submitted).then(sent=>{if(sent)setDraft(current=>current===submitted?'':current);});
   };
   const menuItem = (label: string, run: () => void, options: { arrow?: boolean; danger?: boolean; separated?: boolean } = {}) => (
-    <Button
+    <Button icon={iconForAction(label)}
       key={label}
       role="menuitem"
       disabled={!canManage || pending}
@@ -110,8 +112,8 @@ export function ChatPane({
     <div className="relative flex min-h-0 flex-1 flex-col">
       {/* Header */}
       <div className="flex min-h-[62px] flex-shrink-0 items-center gap-3 border-b border-line px-3.5 py-2.5 lg:px-6">
-        <Button variant="control" size="custom" onClick={onBack} aria-label="Back to Inbox" className="-ml-2 min-h-11 gap-0.5 border-0 pr-1.5 text-[13px] font-bold lg:hidden">
-          <PrevPageIcon size={20} aria-hidden />Inbox
+        <Button icon={PrevPageIcon} variant="control" size="custom" onClick={onBack} aria-label="Back to Inbox" className="-ml-2 min-h-11 gap-0.5 border-0 pr-1.5 text-[13px] font-bold lg:hidden">
+          Inbox
         </Button>
         <span aria-hidden="true" className="flex h-9 w-9 flex-shrink-0 items-center justify-center bg-sand text-[11.5px] font-bold">{initials(c.name)}</span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -126,16 +128,16 @@ export function ChatPane({
         </div>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Button
+          <Button icon={CrmIcon}
             variant="control"
             size="custom"
             onClick={() => onOpenPanel()}
             className={`min-h-8 gap-[7px] whitespace-nowrap border-[1.5px] px-2.5 text-[11.5px] font-bold ${c.crm ? "border-line" : "border-dashed border-[#c9bcab]"}`}
           >
-            <CrmIcon size={13} aria-hidden />
+
             {c.crm ? `CRM · ${c.crm.stage}` : "Not in CRM"}
           </Button>
-          <Button
+          <Button icon={InviteIcon}
             variant="control"
             size="custom"
             onClick={() => setMenu("assign")}
@@ -146,7 +148,7 @@ export function ChatPane({
             <span className={`flex h-[22px] w-[22px] items-center justify-center text-[9px] font-bold ${assignee ? "bg-sand text-ink" : "text-mute2"}`}>{assignee ? assignee.ini : "+"}</span>
             <span className="hidden xl:inline">{assignee ? assignee.short : "Assign"}</span>
           </Button>
-          <Button
+          <Button icon={DetailsPanelIcon}
             variant="control"
             size="custom"
             iconOnly
@@ -154,13 +156,11 @@ export function ChatPane({
             aria-label="Contact details"
             aria-pressed={panelOpen}
             className={`h-[34px] w-[34px] border-[1.5px] ${panelOpen ? "border-ink bg-ink text-paper hover:bg-ink" : "border-line"}`}
-          >
-            <DetailsPanelIcon size={16} aria-hidden />
-          </Button>
+           />
         </div>
 
         <div className="relative">
-          <Button
+          <Button icon={MoreIcon}
             variant="control"
             size="custom"
             iconOnly
@@ -169,25 +169,23 @@ export function ChatPane({
             aria-haspopup="menu"
             aria-expanded={menu !== "closed"}
             className="h-[34px] w-[34px] border-[1.5px] border-line"
-          >
-            <MoreIcon size={16} aria-hidden />
-          </Button>
+           />
           {menu !== "closed" ? (
             <div role="menu" className="absolute right-0 top-[42px] z-30 w-[230px] border-[1.5px] border-ink bg-paper py-1">
               {menu === "assign" ? (
                 <div>
-                  <Button
+                  <Button icon={PrevPageIcon}
                     variant="control"
                     size="custom"
                     onClick={() => setMenu("main")}
                     className="min-h-9 w-full justify-start gap-1.5 border-0 border-b border-b-line px-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mute2"
                   >
-                    <PrevPageIcon size={13} aria-hidden />Assign to
+                    Assign to
                   </Button>
                   {[...team.map((t) => ({ id: t.id as string | null, ini: t.ini, name: t.name + (t.id === currentUserId ? " (you)" : "") })), { id: null, ini: "—", name: "Unassigned" }].map((o) => {
                     const on = (c.assigneeId ?? null) === o.id;
                     return (
-                      <Button
+                <Button icon={InviteIcon}
                         key={o.id ?? "none"}
                         role="menuitemradio"
                         disabled={!canManage || pending}
@@ -232,7 +230,7 @@ export function ChatPane({
           </div>
         </div>
       )}
-      {newMessages ? <Button variant="secondary" size="xs" className="self-center" onClick={() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; nearBottom.current = true; setNewMessages(false); }}>New messages</Button> : null}
+      {newMessages ? <Button icon={LoadMoreIcon} variant="secondary" size="xs" className="self-center" onClick={() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; nearBottom.current = true; setNewMessages(false); }}>New messages</Button> : null}
 
       {/* Composer */}
       <div className="relative flex-shrink-0 border-t border-line px-3.5 pb-3.5 pt-2.5 lg:px-6">
@@ -261,10 +259,8 @@ export function ChatPane({
                 />
                 <div className="flex items-center gap-1 px-1.5 pb-1.5 pt-1">
                   {/* Media upload is a follow-up; inbound media has a safe placeholder. */}
-                  <Button variant="ghost" size="custom" iconOnly aria-label="Attach file" disabled title="Attachments aren't available yet" className="h-[34px] w-[34px] border-0">
-                    <AttachIcon size={17} aria-hidden />
-                  </Button>
-                  <Button
+                  <Button icon={AttachIcon} variant="ghost" size="custom" iconOnly aria-label="Attach file" disabled title="Attachments aren't available yet" className="h-[34px] w-[34px] border-0" />
+                  <Button icon={TemplateIcon}
                     variant="ghost"
                     size="custom"
                     onClick={() => { setTemplatesOpen((o) => !o); setMenu("closed"); }}
@@ -272,17 +268,17 @@ export function ChatPane({
                     aria-expanded={templatesOpen}
                     className="min-h-[34px] gap-1.5 border-0 px-2 text-[12px] font-bold normal-case tracking-normal"
                   >
-                    <TemplateIcon size={16} aria-hidden />Template
+                    Template
                   </Button>
                   <span className="ml-auto hidden text-[11px] text-faint lg:inline">Enter to send · Shift + Enter for new line</span>
-                  <Button
+                  <Button icon={SendIcon}
                     variant="primary"
                     size="custom"
                     onClick={submit}
                     pending={pending} disabled={!hasDraft || !canSend || pending}
                     className="ml-auto min-h-[34px] gap-[7px] px-3.5 text-[11.5px] disabled:border-line disabled:bg-line disabled:text-mute2 lg:ml-3"
                   >
-                    <SendIcon size={14} aria-hidden />Send
+                    Send
                   </Button>
                 </div>
               </div>
@@ -304,7 +300,7 @@ export function ChatPane({
           {state === "closed" && !loading ? (
             <div className="flex flex-wrap items-center gap-3 border-[1.5px] border-dashed border-line px-4 py-3">
               <p className="min-w-[180px] flex-1 text-[13px] text-mute">This conversation is closed.</p>
-              <Button variant="secondary" size="sm" disabled={!canManage || pending} onClick={onToggleClosed}>Reopen</Button>
+              <Button icon={RestoreIcon} variant="secondary" size="sm" disabled={!canManage || pending} onClick={onToggleClosed}>Reopen</Button>
             </div>
           ) : null}
         </div>
@@ -313,9 +309,7 @@ export function ChatPane({
           <div role="dialog" aria-label="Approved templates" className="absolute inset-x-3.5 bottom-[calc(100%-4px)] z-30 max-w-[420px] border-[1.5px] border-ink bg-paper lg:left-6 lg:right-6">
             <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
               <span className="flex-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mute">Approved templates</span>
-              <Button variant="ghost" size="custom" iconOnly onClick={() => setTemplatesOpen(false)} aria-label="Close templates" className="h-7 w-7 border-0">
-                <CancelIcon size={14} aria-hidden />
-              </Button>
+              <Button icon={CancelIcon} variant="ghost" size="custom" iconOnly onClick={() => setTemplatesOpen(false)} aria-label="Close templates" className="h-7 w-7 border-0" />
             </div>
             {templates.map((t) => {
               const body = t.body.replace("{n}", firstName);
@@ -329,6 +323,7 @@ export function ChatPane({
                   className="w-full flex-col items-stretch gap-1 border-0 border-b border-b-sand px-3 py-2.5 text-left font-normal"
                 >
                   <span className="flex items-center gap-2">
+                    <TemplateIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />
                     <span className="flex-1 font-mono text-[12px] font-bold">{t.key}</span>
                     <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-mute2">{t.category}</span>
                   </span>

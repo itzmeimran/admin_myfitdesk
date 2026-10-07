@@ -50,14 +50,12 @@ export function AdminChrome({
 
   return (
     <>
-      <Button
+      <Button icon={MenuIcon}
         type="button"
         aria-label="Open menu"
         onClick={() => setMenuOpen(true)}
         variant="ghost" size="lg" iconOnly className="-ml-2 flex-shrink-0 md:hidden"
-      >
-        <MenuIcon size={20} aria-hidden />
-      </Button>
+       />
 
       <div className="mr-auto flex min-w-0 items-center gap-2.5">
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -157,14 +155,12 @@ export function AdminChrome({
                     <span className="text-[10px] uppercase tracking-[0.1em] text-mute3">Platform admin</span>
                   </span>
                 </span>
-                <Button tone="inverse"
+                <Button icon={CancelIcon} tone="inverse"
                   type="button"
                   aria-label="Close menu"
                   onClick={() => setMenuOpen(false)}
                   variant="ghost" size="lg" iconOnly className="-mr-2 flex-shrink-0"
-                >
-                  <CancelIcon size={18} aria-hidden />
-                </Button>
+                 />
               </div>
 
               <div className="flex flex-col gap-0.5">

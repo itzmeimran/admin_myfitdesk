@@ -8,7 +8,8 @@ export const INDIAN_STATES = [
   "Haryana", "Himachal Pradesh", "Jammu & Kashmir", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
   "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab",
   "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand",
-  "West Bengal", "Chandigarh", "Ladakh",
+  "West Bengal", "Chandigarh", "Ladakh", "Andaman and Nicobar Islands",
+  "Dadra and Nagar Haveli and Daman and Diu", "Lakshadweep",
 ] as const;
 
 export const MEMBER_RANGES = ["Under 100", "100–300", "300–600", "600–1,000", "1,000+"] as const;

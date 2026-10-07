@@ -7,6 +7,8 @@ import { LEAD_SOURCES, BOARD_COLUMNS, STAGE_OPTIONS, type FollowUpType, type Lea
 import { useSalesCrm, type ModalState } from "@/features/sales/use-sales-crm";
 import { Segmented } from "./crm-ui";
 import { AreaField, Field, InfoField, ModalFrame, RadioCards, SelectField, TextField } from "./crm-modal";
+import { CrmIcon } from '@/core/ui/icons';
+import { iconForAction } from '@/core/ui/action-icons';
 
 type Of<K extends ModalState["kind"]> = Extract<ModalState, { kind: K }>;
 
@@ -47,7 +49,7 @@ export function StagesModal() {
     <ModalFrame title="Choose stage" onClose={crm.closeModal} footer={false}>
       <div className="flex flex-col border-[1.5px] border-line">
         {BOARD_COLUMNS.map((c, i) => (
-          <Button key={c.key} type="button" variant="surface" onClick={() => { crm.setMobileStage(i); crm.closeModal(); }}
+          <Button icon={CrmIcon} key={c.key} type="button" variant="surface" onClick={() => { crm.setMobileStage(i); crm.closeModal(); }}
             className={`min-h-[52px] items-center border-b border-line px-3.5 text-left text-[14.5px] font-bold text-ink last:border-b-0 ${crm.mobileStage === i ? "bg-sand" : "bg-paper"}`}>
             {c.label}
           </Button>
@@ -72,13 +74,16 @@ export function MoreModal({ modal, lead }: { modal: Of<"more">; lead: Lead }) {
   return (
     <ModalFrame title={lead.gym} sub="Lead actions" onClose={crm.closeModal} footer={false}>
       <div className="flex flex-col border-[1.5px] border-line">
-        {items.map((i) => (
+        {items.map((i) => {
+          const ActionIcon=iconForAction(i.label);
+          return (
           <Button key={i.label} type="button" variant="surface" disabled={i.disabled} onClick={i.act}
             className="min-h-[52px] flex-col items-start justify-center gap-0.5 border-b border-line bg-paper px-3.5 text-left text-ink last:border-b-0">
-            <span className="text-[14.5px] font-bold">{i.label}</span>
+            <span className="flex items-center gap-2 text-[14.5px] font-bold"><ActionIcon size={15} className="flex-shrink-0" aria-hidden />{i.label}</span>
             {i.sub ? <span className="text-[12px] font-normal text-mute2">{i.sub}</span> : null}
           </Button>
-        ))}
+          );
+        })}
       </div>
     </ModalFrame>
   );

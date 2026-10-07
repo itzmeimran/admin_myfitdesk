@@ -10,6 +10,7 @@ import { deleteNote, updateNote } from "@/features/gyms/ops/actions";
 import type { NoteRow } from "@/features/gyms/ops/types";
 import { AdminNotesForm } from "./admin-notes-form";
 import { exactTime } from "@/features/gyms/ops/timeline-format";
+import { CancelIcon, ConfirmIcon } from '@/core/ui/icons';
 
 /**
  * Private admin notes. Visible only to platform admins (the table has an
@@ -81,10 +82,10 @@ export function NotesPanel({ organizationId, notes, timeZone }: { organizationId
                     className="w-full resize-none border-[1.5px] border-line bg-paper px-2.5 py-2 text-[12.5px] outline-none focus:border-ink"
                   />
                   <div className="flex gap-2">
-                    <Button type="button" pending={isPending} disabled={!draft.trim()} onClick={() => save(note)} variant="primary" size="sm">
+                    <Button icon={ConfirmIcon} type="button" pending={isPending} disabled={!draft.trim()} onClick={() => save(note)} variant="primary" size="sm">
                       Save
                     </Button>
-                    <Button type="button" onClick={() => setEditing(null)} variant="secondary" size="sm">
+                    <Button icon={CancelIcon} type="button" onClick={() => setEditing(null)} variant="secondary" size="sm">
                       Cancel
                     </Button>
                   </div>

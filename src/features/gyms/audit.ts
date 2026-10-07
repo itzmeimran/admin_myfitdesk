@@ -47,6 +47,8 @@ export const AUDIT_ACTION_LABEL: Record<string, string> = {
   "subscription.restore": "Subscription restored",
   "organization.suspend": "Gym suspended",
   "organization.reactivate": "Gym reactivated",
+  "organization.deletion_requested": "Gym deletion scheduled",
+  "organization.deletion_restored": "Gym deletion cancelled",
   "organization.update_profile": "Profile updated",
   "package.create": "Package created",
   "package.update": "Package updated",

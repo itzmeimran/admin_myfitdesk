@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createReadStream, createWriteStream } from "node:fs";
-import { mkdtemp, rm, stat } from "node:fs/promises";
+import { mkdtemp, rm, stat, readFile } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -30,6 +30,8 @@ import {
 } from "./lib/disaster-recovery-policy.mjs";
 
 const CONTROL_PLANE_TABLES = [
+  "public.gym_deletion_config",
+  "public.gym_deletion_jobs",
   "public.disaster_recovery_config",
   "public.database_backups",
   "public.database_restore_history",
@@ -406,6 +408,10 @@ async function restoreDatabase(restoreId) {
       "--clean", "--if-exists", "--exit-on-error", "--single-transaction",
       "--no-owner", "--no-acl", "--schema=public", "--schema=app", dumpPath,
     ]);
+    // Reinstall current isolation/restore guards before leaving maintenance.
+    // Old backups predate these policies; completion tombstones are excluded
+    // from backups and stay in this database's recovery control plane.
+    await sql(await readFile(new URL("../supabase/migrations/1027_gym_deletion_lifecycle.sql", import.meta.url), "utf8"));
 
     await updateRestore(id, "verifying");
     const counts = {};

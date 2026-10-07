@@ -33,6 +33,8 @@ import {
   WhatsAppControls,
 } from "../ops-controls";
 import { DatabaseIcon } from "@/core/ui/icons";
+import { loose } from "@/core/db/loose-client";
+import { GymDeletionControl, type GymDeletionStatus } from "@/features/gyms/GymDeletionControl";
 
 type Client = SupabaseClient<Database>;
 type Ctx = { supabase: Client; gym: GymDetail; tz: string };
@@ -573,11 +575,14 @@ export function DataSection({ supabase, gym, tz }: Ctx) {
 
 /* ------------------------------------------------------------- Danger zone */
 
-export function DangerSection({ supabase, gym }: Ctx) {
+export async function DangerSection({ supabase, gym }: Ctx) {
+  const deletion = await loose(supabase).rpc("gym_deletion_status", { p_organization_id: gym.id });
   return (
+    <div className="flex flex-col gap-4">
+      {deletion.error ? <p className="border border-line p-4 text-[12px] text-mute">Gym deletion is unavailable until its database update is installed.</p> : <GymDeletionControl organizationId={gym.id} name={gym.name} status={deletion.data as GymDeletionStatus | null} legacyRequested={Boolean(gym.deletionRequestedAt)} />}
     <Guard title="Danger zone" load={() => getLocks(supabase, gym.id)}>
       {(locks) => (
-        <SectionCard title="Danger zone" description="Every action here explains its impact, needs a reason and explicit confirmation, and is audited. Permanent deletion is not offered.">
+        <SectionCard title="Danger zone" description="Access controls and restrictions are audited. Scheduled deletion is managed above.">
           <DangerZone
             organizationId={gym.id}
             gymName={gym.name}
@@ -587,5 +592,6 @@ export function DangerSection({ supabase, gym }: Ctx) {
         </SectionCard>
       )}
     </Guard>
+    </div>
   );
 }

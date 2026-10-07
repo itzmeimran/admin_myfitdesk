@@ -14,6 +14,8 @@ The user confirmed on 2026-10-01 that MyFitDesk repositories use serial migratio
 
 `1026_gym_owner_phone_otp.sql` is assigned to gym-owner phone invitations and WhatsApp OTP enrollment (2026-10-04). This shared-database migration also supplies FitDeskApp's phone enrollment RPCs; do not allocate a competing web migration for it.
 
+`1027_gym_deletion_lifecycle.sql` is assigned to gym isolation, 3–7 day restoration windows and automatic tenant cleanup (2026-10-07). This is a shared-database migration; do not create a competing FitDeskApp migration. Automatic cleanup requires explicit worker/scheduler activation. Existing historical deletion requests are not automatically enrolled.
+
 ## Admin action confirmation
 
 User confirmed 2026-10-04: all user-triggered admin mutations require an explicit "Are you sure?" decision before the write, visible pending feedback, and duplicate-click prevention. Use the existing ConfirmDialog or ActionConfirmationProvider; mutation forms use ConfirmedForm. Preserve stronger typed confirmations for destructive/production actions. Navigation, search, filters, opening forms, and read-only refreshes do not need confirmation. Do not autosave editable CRM/inbox notes without an explicit confirmed Save.

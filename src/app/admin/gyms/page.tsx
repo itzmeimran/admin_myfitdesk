@@ -157,6 +157,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
             sortDir,
           }}
         />
+        <ButtonLink href="/admin/gyms/deletions" variant="secondary" size="sm">Gym deletions</ButtonLink>
         <InviteGymOwnerSheet
           packages={assignablePackages}
           defaults={{ trialDays: platformDefaults.trialDays, country: platformDefaults.country }}

@@ -12,7 +12,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
 import { PackagesIcon, RestoreIcon, AlertIcon, UsageIcon, NextPageIcon } from "@/core/ui/icons";
-import { CancelIcon } from '@/core/ui/icons';
+import { CancelIcon, DeleteIcon } from '@/core/ui/icons';
 
 /**
  * Section 11 of the task brief: "the existing Manage button should not
@@ -61,6 +61,7 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
     isSuspended
       ? { key: "reactivate", label: "Reactivate gym", icon: RestoreIcon, separated: true, onSelect: () => setConfirmReactivate(true) }
       : { key: "suspend", label: "Suspend gym", icon: AlertIcon, danger: true, separated: true, onSelect: () => setSuspendSheetOpen(true) },
+    { key: "deletion", label: "Manage gym deletion", icon: DeleteIcon, danger: true, onSelect: () => router.push(`/admin/gyms/${gym.organizationId}/operations?section=danger`) },
   ];
 
   return (

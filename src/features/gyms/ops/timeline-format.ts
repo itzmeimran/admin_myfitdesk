@@ -17,6 +17,8 @@ const ACTION_LABEL: Record<string, string> = {
   "subscription.clear_scheduled_package": "Scheduled package cleared",
   "organization.suspend": "Gym suspended",
   "organization.reactivate": "Gym reactivated",
+  "organization.deletion_requested": "Gym deletion scheduled",
+  "organization.deletion_restored": "Gym deletion cancelled",
   "organization.update_profile": "Gym profile updated",
   "organization.update_logo": "Gym logo updated",
   "gym.created": "Gym created",

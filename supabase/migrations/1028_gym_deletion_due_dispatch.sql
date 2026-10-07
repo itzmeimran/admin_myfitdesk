@@ -1,0 +1,190 @@
+-- Shared database. Requires 1027. Preserve existing enabled/deadline state.
+-- Deadline-driven app calls; an hourly DB-only recovery job repairs timers.
+begin;
+create extension if not exists pg_cron with schema extensions;
+create extension if not exists pg_net with schema extensions;
+
+create table if not exists app.gym_deletion_dispatch (
+  singleton boolean primary key default true check(singleton),
+  request_id bigint,
+  requested_at timestamptz,
+  wake_at timestamptz,
+  retry_not_before timestamptz,
+  failures integer not null default 0 check(failures>=0),
+  last_status integer,
+  last_error text,
+  check((request_id is null)=(requested_at is null))
+);
+alter table app.gym_deletion_dispatch enable row level security;
+alter table app.gym_deletion_dispatch force row level security;
+revoke all on app.gym_deletion_dispatch from public,anon,authenticated,service_role;
+insert into app.gym_deletion_dispatch(singleton) values(true) on conflict do nothing;
+create index if not exists gym_deletion_lease_due on public.gym_deletion_jobs(lease_until,purge_after) where state='purging';
+
+-- Same eligibility as claim_gym_deletion, including a completed gym restored
+-- by an old backup. Never lock tenant/job rows while holding the journal lock.
+create or replace function app.gym_deletion_next_due() returns timestamptz
+language sql volatile security definer set search_path='' as $$
+  select min(due_at) from (
+    select greatest(purge_after,coalesce(lease_until,purge_after)) due_at
+      from public.gym_deletion_jobs where state='quarantined'
+    union all
+    select greatest(purge_after,coalesce(lease_until,purge_after))
+      from public.gym_deletion_jobs where state='purging'
+    union all
+    select greatest(j.purge_after,coalesce(j.lease_until,j.purge_after))
+      from public.gym_deletion_jobs j join public.organizations o on o.id=j.organization_id
+      where j.state='completed'
+  ) due;
+$$;
+
+create or replace function app.schedule_gym_deletion_wake(p_at timestamptz) returns void
+language plpgsql security definer set search_path='' as $$
+declare timer_job_id bigint; at_minute timestamptz; local_minute timestamp; expression text;
+begin
+  select jobid into timer_job_id from cron.job where jobname='purge-expired-gyms' and username=current_user;
+  if timer_job_id is null then
+    timer_job_id:=cron.schedule('purge-expired-gyms','0 0 1 1 *','select app.dispatch_gym_deletion_worker();');
+  end if;
+  if p_at is null then
+    update app.gym_deletion_dispatch set wake_at=null where singleton and wake_at is not null;
+    perform cron.alter_job(timer_job_id,active:=false);
+    return;
+  end if;
+  -- Cron has minute precision and no year field. Retain the absolute instant
+  -- and always recheck eligibility; an early calendar wake cannot purge early.
+  at_minute:=greatest(date_trunc('minute',p_at)
+    + case when p_at>date_trunc('minute',p_at) then interval '1 minute' else interval '0' end,
+    date_trunc('minute',clock_timestamp())+interval '1 minute');
+  local_minute:=at_minute at time zone coalesce(nullif(current_setting('cron.timezone',true),''),'GMT');
+  expression:=format('%s %s %s %s *',extract(minute from local_minute)::integer,
+    extract(hour from local_minute)::integer,extract(day from local_minute)::integer,
+    extract(month from local_minute)::integer);
+  if exists(select 1 from app.gym_deletion_dispatch where singleton and wake_at=at_minute)
+    and exists(select 1 from cron.job where jobid=timer_job_id and active and schedule=expression
+      and command='select app.dispatch_gym_deletion_worker();') then return; end if;
+  update app.gym_deletion_dispatch set wake_at=at_minute where singleton;
+  perform cron.alter_job(timer_job_id,schedule:=expression,command:='select app.dispatch_gym_deletion_worker();',active:=true);
+end $$;
+
+-- Row changes only adjust the timer. They never perform an HTTP call or
+-- make restoring/claiming a gym wait for a worker response.
+create or replace function app.refresh_gym_deletion_schedule() returns void
+language plpgsql security definer set search_path='' as $$
+declare journal app.gym_deletion_dispatch; due_at timestamptz;
+begin
+  select * into strict journal from app.gym_deletion_dispatch where singleton for update;
+  if not coalesce((select enabled from public.gym_deletion_config where singleton),false) then
+    perform app.schedule_gym_deletion_wake(null); return;
+  end if;
+  if journal.request_id is not null then
+    perform app.schedule_gym_deletion_wake(clock_timestamp()); return;
+  end if;
+  due_at:=app.gym_deletion_next_due();
+  perform app.schedule_gym_deletion_wake(case when due_at is null then null
+    else greatest(due_at,journal.retry_not_before) end);
+end $$;
+
+create or replace function app.dispatch_gym_deletion_worker() returns void
+language plpgsql security definer set search_path='' as $$
+declare journal app.gym_deletion_dispatch; response net._http_response;
+  due_at timestamptz; worker_url text; worker_secret text; bypass text; expected_mode text;
+  headers jsonb; request bigint; failed boolean;
+begin
+  select * into strict journal from app.gym_deletion_dispatch where singleton for update;
+  if not coalesce((select enabled from public.gym_deletion_config where singleton),false) then
+    perform app.schedule_gym_deletion_wake(null); return;
+  end if;
+  if journal.request_id is not null then
+    select * into response from net._http_response where id=journal.request_id;
+    if not found and journal.requested_at+interval '6 minutes'>clock_timestamp() then
+      perform app.schedule_gym_deletion_wake(clock_timestamp()); return;
+    end if;
+    failed:=response.status_code is null or response.status_code<>200
+      or coalesce(response.timed_out,false) or response.error_msg is not null;
+    journal.failures:=case when failed then least(journal.failures+1,16) else 0 end;
+    journal.retry_not_before:=case when failed then clock_timestamp()
+      +make_interval(mins=>least(60,5*power(2,least(journal.failures-1,4))::integer)) else null end;
+    update app.gym_deletion_dispatch set request_id=null,requested_at=null,
+      failures=journal.failures,retry_not_before=journal.retry_not_before,last_status=response.status_code,
+      last_error=case when failed then 'Worker response failed or was not received.' else null end where singleton;
+  end if;
+  due_at:=app.gym_deletion_next_due();
+  if due_at is null then
+    update app.gym_deletion_dispatch set failures=0,retry_not_before=null,last_error=null where singleton
+      and (failures<>0 or retry_not_before is not null or last_error is not null);
+    perform app.schedule_gym_deletion_wake(null); return;
+  end if;
+  if greatest(due_at,journal.retry_not_before)>clock_timestamp() then
+    perform app.schedule_gym_deletion_wake(greatest(due_at,journal.retry_not_before)); return;
+  end if;
+  select decrypted_secret into worker_url from vault.decrypted_secrets where name='gym_deletion_worker_url';
+  select decrypted_secret into worker_secret from vault.decrypted_secrets where name='gym_deletion_cron_secret';
+  select decrypted_secret into bypass from vault.decrypted_secrets where name='vercel_protection_bypass';
+  select case environment when 'development' then 'dev' when 'production' then 'prod' end
+    into expected_mode from public.disaster_recovery_config where singleton;
+  if worker_url is null or worker_url !~ '^https://[^/]+/api/cron/gym-deletions\?environment=(dev|prod)$'
+    or length(coalesce(worker_secret,''))<32 or expected_mode is null
+    or worker_url not like '%?environment='||expected_mode then
+    update app.gym_deletion_dispatch set last_error='Deletion worker Vault configuration is incomplete or points to another environment.',
+      retry_not_before=clock_timestamp()+interval '1 hour' where singleton;
+    perform app.schedule_gym_deletion_wake(clock_timestamp()+interval '1 hour'); return;
+  end if;
+  headers:=jsonb_build_object('Authorization','Bearer '||worker_secret,'Content-Type','application/json');
+  if nullif(bypass,'') is not null then headers:=headers||jsonb_build_object('x-vercel-protection-bypass',bypass); end if;
+  begin
+    request:=net.http_post(url:=worker_url,headers:=headers,body:='{}'::jsonb,timeout_milliseconds:=300000);
+  exception when others then
+    journal.failures:=least(journal.failures+1,16);
+    journal.retry_not_before:=clock_timestamp()
+      +make_interval(mins=>least(60,5*power(2,least(journal.failures-1,4))::integer));
+    update app.gym_deletion_dispatch set last_error='Worker enqueue failed: '||sqlstate,
+      failures=journal.failures,retry_not_before=journal.retry_not_before where singleton;
+    perform app.schedule_gym_deletion_wake(journal.retry_not_before); return;
+  end;
+  update app.gym_deletion_dispatch set request_id=request,requested_at=clock_timestamp(),
+    retry_not_before=null,last_error=null where singleton;
+  perform app.schedule_gym_deletion_wake(clock_timestamp());
+end $$;
+
+-- Scheduler state is platform control data, not tenant data. Preserve the
+-- installed purge implementation while excluding its journal from table
+-- locks and rejecting any future ownership path reaching that journal.
+do $$ declare definition text; revised text; begin
+  definition:=pg_get_functiondef('public.purge_gym_database(uuid,uuid)'::regprocedure);
+  revised:=replace(definition,
+    'c.relname not in (''gym_deletion_jobs'',''gym_deletion_config'')',
+    'c.relname not in (''gym_deletion_jobs'',''gym_deletion_config'',''gym_deletion_dispatch'')');
+  revised:=replace(revised,
+    '(''platform_admins'',''gym_deletion_jobs'',''gym_deletion_config'',''database_backups''',
+    '(''platform_admins'',''gym_deletion_jobs'',''gym_deletion_config'',''gym_deletion_dispatch'',''database_backups''');
+  if revised=definition and position('''gym_deletion_dispatch''' in definition)=0 then
+    raise exception 'Review the installed purge function before adding scheduler control state';
+  end if;
+  if revised<>definition then execute revised; end if;
+end $$;
+
+create or replace function app.gym_deletion_schedule_changed() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin perform app.refresh_gym_deletion_schedule(); return null; end $$;
+drop trigger if exists gym_deletion_schedule_changed on public.gym_deletion_jobs;
+create trigger gym_deletion_schedule_changed after insert or update or delete on public.gym_deletion_jobs
+  for each statement execute function app.gym_deletion_schedule_changed();
+drop trigger if exists gym_deletion_enabled_changed on public.gym_deletion_config;
+create trigger gym_deletion_enabled_changed after update of enabled on public.gym_deletion_config
+  for each statement execute function app.gym_deletion_schedule_changed();
+drop trigger if exists gym_deletion_backup_reintroduced on public.organizations;
+create trigger gym_deletion_backup_reintroduced after insert or delete on public.organizations
+  for each statement execute function app.gym_deletion_schedule_changed();
+revoke all on function app.gym_deletion_next_due(),app.schedule_gym_deletion_wake(timestamptz),
+  app.refresh_gym_deletion_schedule(),app.dispatch_gym_deletion_worker(),app.gym_deletion_schedule_changed()
+  from public,anon,authenticated,service_role;
+
+-- Replace the former 15-minute app polling command. No HTTP calls here.
+do $$ declare job bigint; begin
+  select jobid into job from cron.job where jobname='purge-expired-gyms' and username=current_user;
+  if job is not null then perform cron.alter_job(job,command:='select app.dispatch_gym_deletion_worker();',active:=false); end if;
+  perform cron.schedule('recover-gym-deletion-dispatch','7 * * * *','select app.dispatch_gym_deletion_worker();');
+  perform app.refresh_gym_deletion_schedule();
+end $$;
+commit;

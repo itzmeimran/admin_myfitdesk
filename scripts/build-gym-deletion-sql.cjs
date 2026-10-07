@@ -4,8 +4,10 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n');
 const migration = read('supabase/migrations/1027_gym_deletion_lifecycle.sql');
+const scheduler = read('supabase/migrations/1028_gym_deletion_due_dispatch.sql');
 const activation = read('supabase/apply/1027_activate.sql');
 const verification = read('supabase/apply/1027_verify.sql');
+const schedulerVerification = read('supabase/apply/1028_verify.sql');
 
 for (const [mode, environment, project] of [
   ['dev', 'development', 'pgedlnxuuelmtpmbkdwm'],
@@ -32,8 +34,13 @@ end $environment_check$;
   const install = header + `-- STEP 1: installation. No placeholders; new installations stay disabled.
 -- Prerequisite: existing admin migrations through 1026 and a verified platform backup.
 -- Re-running preserves any already enabled configuration and existing deletion jobs.
-` + migration.replace('begin;\n', () => 'begin;\n' + guard) + '\n' + verification;
+` + migration.replace('begin;\n', () => 'begin;\n' + guard) + '\n'
+    + scheduler.replace('begin;\n', () => 'begin;\n' + guard) + '\n' + verification + '\n' + schedulerVerification;
   fs.writeFileSync(path.join(root, `docs/COPY_PASTE_GYM_DELETION_${label}_INSTALL.sql`), install);
+  const upgrade = header + `-- Already installed 1027? Run this scheduler upgrade instead of INSTALL.
+-- Preserves existing requests, recovery deadlines and enabled state. Does not invoke the app.
+` + scheduler.replace('begin;\n', () => 'begin;\n' + guard) + '\n' + schedulerVerification;
+  fs.writeFileSync(path.join(root, `docs/COPY_PASTE_GYM_DELETION_${label}_SCHEDULER.sql`), upgrade);
 
   const config = `
 -- STEP 2: only after deploying BOTH apps, configuring storage and verifying worker readiness.
@@ -73,19 +80,16 @@ end $worker_configuration$;
   const activate = header + `-- This script stores worker configuration, enables requests and starts automatic cleanup.
 -- Existing due jobs may be purged immediately. Finish the DEV rehearsal before PROD activation.
 ` + activation.replace('-- Vault values must already exist; never paste tokens into source control.', '-- Vault values are configured below; never save filled-in tokens to source control.').replace('begin;\n', () => 'begin;\n' + guard + config) + `
--- Expected: enabled=true; one active job with the 15-minute schedule.
-select default_days,enabled from public.gym_deletion_config;
-select jobname,schedule,active from cron.job where jobname='purge-expired-gyms';
--- Cron success confirms dispatch only; check the worker's HTTP result separately.
+-- Expected: enabled=true. Deadline job is inactive when no work remains.
+${schedulerVerification}
+-- HTTP result for the currently tracked request only; idle/future work has none.
 select r.status_code,r.timed_out,r.error_msg,r.created
 from net._http_response r
-where r.id in (
-  select max(x.id) from net._http_response x
-)
+join app.gym_deletion_dispatch d on d.singleton and d.request_id=r.id
 order by r.created desc;
--- Responses arrive asynchronously after COMMIT. Re-run the last query if it is empty.
--- This is the latest pg_net response; correlate its request with worker logs if other jobs use pg_net.
+-- Responses arrive asynchronously after COMMIT and are consumed by the timer.
+-- Journal last_status/last_error retain the last result without exposing secrets.
 `;
   fs.writeFileSync(path.join(root, `docs/COPY_PASTE_GYM_DELETION_${label}_ACTIVATE.sql`), activate);
 }
-console.log('Generated DEV and PROD installation and activation SQL Editor scripts.');
+console.log('Generated DEV and PROD installation, scheduler upgrade and activation SQL Editor scripts.');

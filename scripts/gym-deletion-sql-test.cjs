@@ -8,6 +8,7 @@ const TOKEN='00000000-0000-0000-0000-000000000030';
 (async()=>{
   const db = new PGlite();
   try {
+    const withoutExtensions = sql => sql.replace(/^create extension[^\n]*\n/gm,'');
     await db.exec(`create schema app; create schema auth;
       create role anon; create role authenticated; create role service_role bypassrls;
       create function auth.uid() returns uuid language sql as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;
@@ -46,8 +47,9 @@ const TOKEN='00000000-0000-0000-0000-000000000030';
     const queueSource=fs.readFileSync('scripts/fixtures/gym-deletion-queue.sql','utf8');
     const queueStart=queueSource.indexOf('create or replace function public.claim_whatsapp_queue_batch(');
     await db.exec(queueSource.slice(queueStart,queueSource.indexOf('$$;',queueStart)+3));
-    const devInstall=fs.readFileSync('docs/COPY_PASTE_GYM_DELETION_DEV_INSTALL.sql','utf8');
-    const prodInstall=fs.readFileSync('docs/COPY_PASTE_GYM_DELETION_PROD_INSTALL.sql','utf8');
+    await db.exec(fs.readFileSync('scripts/fixtures/gym-deletion-scheduler-stubs.sql','utf8'));
+    const devInstall=withoutExtensions(fs.readFileSync('docs/COPY_PASTE_GYM_DELETION_DEV_INSTALL.sql','utf8'));
+    const prodInstall=withoutExtensions(fs.readFileSync('docs/COPY_PASTE_GYM_DELETION_PROD_INSTALL.sql','utf8'));
     await assert.rejects(()=>db.exec(prodInstall),/only for PROD/); await db.exec('rollback');
     assert.equal((await db.query("select to_regclass('public.gym_deletion_config') config")).rows[0].config,null);
     await db.exec(devInstall); await db.exec(devInstall);
@@ -56,6 +58,7 @@ const TOKEN='00000000-0000-0000-0000-000000000030';
     await db.exec(prodInstall);
     await db.exec("update disaster_recovery_config set environment='development',database_identifier='pgedlnxuuelmtpmbkdwm'");
     await db.exec(fs.readFileSync('supabase/migrations/1027_gym_deletion_lifecycle.sql','utf8')); // manual re-run/post-restore
+    await db.exec(withoutExtensions(fs.readFileSync('supabase/migrations/1028_gym_deletion_due_dispatch.sql','utf8')));
     async function fails(sql,pattern) { await assert.rejects(()=>db.exec(sql),pattern); }
     await fails(`select admin_request_gym_deletion('${A}',7,'test','Gym A')`,/not configured/);
     await db.exec('update gym_deletion_config set enabled=true');
@@ -145,16 +148,6 @@ const TOKEN='00000000-0000-0000-0000-000000000030';
     await fails(`select purge_gym_database('${job.id}','${TOKEN}')`,/permission denied/);
     await db.exec('reset role');
     // Rehearse scheduler activation without extensions, networking or secrets.
-    await db.exec(`create schema vault; create schema cron; create schema net;
-      create table vault.secrets(id uuid primary key default gen_random_uuid(),name text unique,secret text);
-      create view vault.decrypted_secrets as select name,secret as decrypted_secret from vault.secrets;
-      create function vault.create_secret(value text,name text,description text) returns uuid language sql as $$ insert into vault.secrets(name,secret) values(name,value) returning id $$;
-      create function vault.update_secret(secret_id uuid,value text,new_name text,description text) returns void language sql as $$ update vault.secrets set secret=value,name=new_name where id=secret_id $$;
-      create table cron.job(jobid bigserial primary key,jobname text,schedule text,command text,active boolean default true);
-      create table net._http_response(id bigint,status_code integer,timed_out boolean,error_msg text,created timestamptz);
-      create function cron.schedule(job_name text,schedule text,command text) returns bigint language sql as $$ insert into cron.job(jobname,schedule,command) values(job_name,schedule,command) returning jobid $$;
-      create function cron.unschedule(job_name text) returns boolean language plpgsql as $$ begin delete from cron.job where jobname=job_name; return true; end $$;
-      create function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language sql as $$ select 1::bigint $$;`);
     const activation=fs.readFileSync('supabase/apply/1027_activate.sql','utf8').replace(/^create extension[^\n]*\n/gm,'');
     await fails(activation,/Configure and verify/); await db.exec('rollback');
     await db.exec(`insert into vault.decrypted_secrets values('gym_deletion_worker_url','https://admin.example.invalid/api/cron/gym-deletions?environment=prod'),('gym_deletion_cron_secret','fixture-secret-not-real-12345678901234567890')`);
@@ -170,6 +163,8 @@ const TOKEN='00000000-0000-0000-0000-000000000030';
     await db.exec(devConfigured); await db.exec(devConfigured);
     assert.equal((await db.query('select count(*)::int count from vault.secrets')).rows[0].count,2);
     assert.equal((await db.query("select count(*)::int count from cron.job where jobname='purge-expired-gyms'")).rows[0].count,1);
+    await db.exec("update disaster_recovery_config set environment='development',database_identifier='pgedlnxuuelmtpmbkdwm'; update vault.decrypted_secrets set decrypted_secret='https://admin.example.invalid/api/cron/gym-deletions?environment=dev' where name='gym_deletion_worker_url'");
+    await require('./gym-deletion-scheduler-checks.cjs')(db, withoutExtensions);
     await db.exec("update disaster_recovery_config set environment='production',database_identifier='clbphruocsqsmklmrloq'");
     const prodConfigured=prodActivate.replace('REPLACE_WITH_GYM_DELETION_CRON_SECRET_PROD','fixture-prod-secret-12345678901234567890');
     await db.exec(prodConfigured); await db.exec(prodConfigured);

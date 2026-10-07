@@ -11,14 +11,16 @@ Use the Supabase SQL Editor as `postgres`. Open the relevant `.sql` file, copy i
 | DEV | https://supabase.com/dashboard/project/pgedlnxuuelmtpmbkdwm/sql/new | `COPY_PASTE_GYM_DELETION_DEV_INSTALL.sql` | `COPY_PASTE_GYM_DELETION_DEV_ACTIVATE.sql` |
 | PROD | https://supabase.com/dashboard/project/clbphruocsqsmklmrloq/sql/new | `COPY_PASTE_GYM_DELETION_PROD_INSTALL.sql` | `COPY_PASTE_GYM_DELETION_PROD_ACTIVATE.sql` |
 
-1. Confirm a verified platform backup and existing admin migrations through 1026. Run **DEV INSTALL** first. It installs the complete shared migration 1027 and includes verification queries. No editing is required.
+1. Confirm a verified platform backup and existing admin migrations through 1026. For a fresh installation, run **DEV INSTALL** first: it installs shared migrations 1027 and 1028 and verification queries. **If 1027 is already installed (as on DEV), run `COPY_PASTE_GYM_DELETION_DEV_SCHEDULER.sql` instead.** The scheduler upgrade preserves enabled state and deadlines and makes no HTTP request. PROD has its own `COPY_PASTE_GYM_DELETION_PROD_SCHEDULER.sql` for an existing installation.
 2. Deploy the admin changes and matching FitDeskApp changes. Configure the admin deployment as described below, redeploy, and check the worker with an authenticated GET. Run the disposable two-gym DEV rehearsal described in `GYM_DELETION_WORKFLOW.md`.
-3. Run **DEV ACTIVATE** after replacing its secret placeholder. It stores the Vault URL/secret, enables requests, schedules cleanup every 15 minutes and dispatches the worker immediately.
+3. Run the updated **DEV ACTIVATE** after replacing its secret placeholder. It stores the Vault URL/secret and enables requests. It invokes the worker only when work is already due; otherwise it arms the earliest deadline or stays idle.
 4. After DEV passes, repeat installation, deployment/configuration, readiness checks and activation for PROD. Use the **PROD** files and a separate PROD secret.
 
 New installations remain disabled until activation. Installation reruns preserve an already enabled configuration. No migration-history records are rewritten. Both scripts reject the wrong `disaster_recovery_config` environment **and project identifier** before writing; do not edit the database's identity to bypass an error.
 
-Expected installation results: `default_days=7`, `enabled=false` on a new installation; three installed-function flags `true`; worker privileges `false / true / false`; no tables in the missing-isolation-trigger result. Activation should show `enabled=true` and one active `purge-expired-gyms` job with schedule `*/15 * * * *`. Check HTTP worker results and logs separately: cron success only confirms dispatch.
+Expected installation results: `default_days=7`, `enabled=false` on a new installation; three installed-function flags `true`; worker privileges `false / true / false`; no tables in the missing-isolation-trigger result. Activation shows `enabled=true`. `purge-expired-gyms` is inactive when idle and has a calendar schedule for the next deadline/retry when work exists. `recover-gym-deletion-dispatch` runs hourly inside the database (`7 * * * *`); it invokes the app only if work is due. Check journal `last_status` / `last_error` and worker logs separately: cron success alone does not confirm cleanup.
+
+The request/restore/claim/finish events adjust one shared timer. Worker calls are coalesced while a response is pending; response checks stay inside PostgreSQL. Transport failures retry after 5, 10, 20, 40 then 60 minutes, while job failures retain their existing 15-minute retry lease. Minute-resolution timers run at or just after a deadline, never before it. The hourly recovery check covers missed timer runs, lost HTTP requests and downtime. This removes the former 96 idle app calls per day per environment; database checks still use a small amount of compute.
 
 ## Admin deployment environment variables
 
@@ -72,6 +74,10 @@ Activation uses the documented Supabase [Vault create/update functions](https://
 From this repository's PowerShell terminal, run whichever line you need, then paste into the corresponding Supabase SQL Editor. Activate scripts still require filling the secret placeholder **in the editor**.
 
 ```powershell
+Set-Clipboard -Value (Get-Content -Raw -LiteralPath '.\docs\COPY_PASTE_GYM_DELETION_DEV_SCHEDULER.sql')
+```
+
+```powershell
 Set-Clipboard -Value (Get-Content -Raw -LiteralPath '.\docs\COPY_PASTE_GYM_DELETION_DEV_INSTALL.sql')
 ```
 
@@ -87,4 +93,4 @@ Set-Clipboard -Value (Get-Content -Raw -LiteralPath '.\docs\COPY_PASTE_GYM_DELET
 Set-Clipboard -Value (Get-Content -Raw -LiteralPath '.\docs\COPY_PASTE_GYM_DELETION_PROD_ACTIVATE.sql')
 ```
 
-If the source migration or activation SQL changes, regenerate the delivery copies with `node scripts/build-gym-deletion-sql.cjs`. Keep migration 1027 in the admin sequence; both applications share its database changes.
+If the source migration or activation SQL changes, regenerate the delivery copies with `node scripts/build-gym-deletion-sql.cjs`. Keep migrations 1027 and 1028 in the admin sequence; both applications share their database changes. Historical 1027 remains unchanged.

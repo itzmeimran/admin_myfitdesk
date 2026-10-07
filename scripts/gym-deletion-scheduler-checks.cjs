@@ -1,0 +1,93 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Focused PostgreSQL scheduler checks, called by lifecycle harness. */
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+module.exports = async (db, withoutExtensions) => {
+  const C='00000000-0000-0000-0000-000000000003';
+  const token='00000000-0000-0000-0000-000000000033';
+  const row = async sql => (await db.query(sql)).rows[0];
+  const journal = () => row('select * from app.gym_deletion_dispatch');
+  const calls = async () => (await row('select count(*)::int n from net.calls')).n;
+  const deadlineJob = () => row("select * from cron.job where jobname='purge-expired-gyms'");
+  const dispatch = () => db.exec('select app.dispatch_gym_deletion_worker()');
+  const response = async status => db.exec(`insert into net._http_response(id,status_code) select request_id,${status} from app.gym_deletion_dispatch where request_id is not null`);
+  const scheduler = withoutExtensions(fs.readFileSync('docs/COPY_PASTE_GYM_DELETION_DEV_SCHEDULER.sql','utf8'));
+  assert.equal(await calls(),0);
+  assert.equal((await deadlineJob()).active,false);
+  assert.equal((await row("select active from cron.job where jobname='recover-gym-deletion-dispatch'")).active,true);
+  await dispatch(); await dispatch();
+  assert.equal(await calls(),0, 'idle watchdog must not invoke app');
+  assert.equal((await row("select has_table_privilege('authenticated','app.gym_deletion_dispatch','select') allowed")).allowed,false);
+  assert.equal((await row("select has_function_privilege('service_role','app.dispatch_gym_deletion_worker()','execute') allowed")).allowed,false);
+
+  await db.exec(`insert into organizations values('${C}','Timer gym',null); select admin_request_gym_deletion('${C}',3,'timer test','Timer gym')`);
+  let job=await row(`select * from gym_deletion_jobs where organization_id='${C}' and state='quarantined'`);
+  let j=await journal();
+  assert.ok(new Date(j.wake_at)>=new Date(job.purge_after));
+  assert.ok(new Date(j.wake_at)-new Date(job.purge_after)<60000);
+  const utcWake=new Date(j.wake_at);
+  assert.equal((await deadlineJob()).schedule,`${utcWake.getUTCMinutes()} ${utcWake.getUTCHours()} ${utcWake.getUTCDate()} ${utcWake.getUTCMonth()+1} *`);
+  assert.equal((await deadlineJob()).active,true);
+  await dispatch(); assert.equal(await calls(),0,'future deadline must not invoke app');
+  await db.exec(`select restore_gym_deletion('${C}')`);
+  assert.equal((await deadlineJob()).active,false,'restore cancels the last timer');
+  await db.exec(`select admin_request_gym_deletion('${C}',3,'timer test','Timer gym'); update gym_deletion_jobs set requested_at=clock_timestamp()-interval '4 days',purge_after=clock_timestamp()-interval '1 day' where organization_id='${C}' and state='quarantined'`);
+  job=await row(`select * from gym_deletion_jobs where organization_id='${C}' and state='quarantined'`);
+  await dispatch(); assert.equal(await calls(),1);
+  await dispatch(); assert.equal(await calls(),1,'pending dispatch coalesces duplicate timer/recovery wakeups');
+  const pending=await journal();
+  await assert.rejects(()=>db.exec(withoutExtensions(fs.readFileSync('docs/COPY_PASTE_GYM_DELETION_PROD_SCHEDULER.sql','utf8'))),/only for PROD/);
+  await db.exec('rollback');
+  await db.exec(scheduler);
+  assert.equal((await journal()).request_id,pending.request_id,'upgrade rerun preserves pending request');
+  assert.equal((await row('select enabled from gym_deletion_config')).enabled,true);
+  assert.equal((await row(`select purge_after from gym_deletion_jobs where id='${job.id}'`)).purge_after.getTime(),job.purge_after.getTime());
+  const claimed=(await row(`select claim_gym_deletion('${token}') job`)).job;
+  assert.equal(claimed.id,job.id);
+  await response(200); await dispatch();
+  assert.equal(await calls(),1,'active worker lease blocks redispatch');
+  assert.ok(new Date((await journal()).wake_at)>=new Date(claimed.lease_until));
+  await db.exec(`select finish_gym_deletion('${job.id}','${token}','fixture failure')`);
+  const failedJob=await row(`select * from gym_deletion_jobs where id='${job.id}'`);
+  assert.ok(new Date((await journal()).wake_at)>=new Date(failedJob.lease_until));
+  await dispatch(); assert.equal(await calls(),1,'failed gym waits for its retry lease');
+  await db.exec(`update gym_deletion_jobs set lease_until=clock_timestamp()-interval '1 minute' where id='${job.id}'`);
+
+  // Transport failures retry with bounded backoff, without waiting in real time.
+  for (const minutes of [5,10,20,40,60,60]) {
+    await dispatch(); const count=await calls();
+    await response(503); await dispatch();
+    j=await journal();
+    const delay=(new Date(j.retry_not_before)-new Date())/60000;
+    assert.ok(delay>minutes-0.1 && delay<=minutes+0.1,`expected ${minutes}-minute backoff, got ${delay}`);
+    await dispatch(); assert.equal(await calls(),count,'retry must not fire early');
+    await db.exec("update app.gym_deletion_dispatch set retry_not_before=clock_timestamp()-interval '1 minute'");
+  }
+  await dispatch(); const lostCount=await calls();
+  await db.exec("update app.gym_deletion_dispatch set requested_at=clock_timestamp()-interval '7 minutes'; delete from cron.job where jobname='purge-expired-gyms'");
+  await dispatch();
+  assert.equal(await calls(),lostCount,'lost response waits for backoff');
+  assert.equal((await deadlineJob()).active,true,'recovery recreates a missing timer');
+  assert.match((await journal()).last_error,/not received/);
+
+  await db.exec("update app.gym_deletion_dispatch set retry_not_before=null; update vault.decrypted_secrets set decrypted_secret='https://admin.example.invalid/api/cron/gym-deletions?environment=prod' where name='gym_deletion_worker_url'");
+  await dispatch(); assert.equal(await calls(),lostCount,'wrong environment must not be called');
+  assert.match((await journal()).last_error,/another environment/);
+  await db.exec("update vault.decrypted_secrets set decrypted_secret='https://admin.example.invalid/api/cron/gym-deletions?environment=dev' where name='gym_deletion_worker_url'; update app.gym_deletion_dispatch set retry_not_before=null");
+  const postDefinition=(await row("select pg_get_functiondef('net.http_post(text,jsonb,jsonb,integer)'::regprocedure) definition")).definition;
+  await db.exec("create or replace function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language plpgsql as $$ begin raise exception 'fixture enqueue failure'; end $$");
+  await dispatch(); assert.equal(await calls(),lostCount,'enqueue failure must not lose the retry timer');
+  assert.match((await journal()).last_error,/enqueue failed: P0001/);
+  assert.ok((await journal()).retry_not_before);
+  await db.exec(postDefinition);
+  await db.exec('update app.gym_deletion_dispatch set retry_not_before=null; update gym_deletion_config set enabled=false');
+  await dispatch(); assert.equal(await calls(),lostCount);
+  assert.equal((await deadlineJob()).active,false);
+  await db.exec('update gym_deletion_config set enabled=true');
+  await dispatch(); assert.equal(await calls(),lostCount+1);
+  await db.exec(`select claim_gym_deletion('${token}'); select purge_gym_database('${job.id}','${token}'); select finish_gym_deletion('${job.id}','${token}')`);
+  await response(200); await dispatch();
+  assert.equal((await deadlineJob()).active,false,'completion leaves no active deadline timer');
+  await dispatch(); assert.equal(await calls(),lostCount+1);
+  assert.equal((await row("select count(*)::int n from organizations where name='Gym B'")).n,1);
+  console.log('Deadline scheduler: no idle/early HTTP, request/restore timers, coalescing, leases, 5–60 minute retry backoff, lost-response recovery, wrong-environment/disabled guards and idempotent upgrades passed.');
+};

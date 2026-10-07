@@ -30,6 +30,7 @@ import {
 } from "./lib/disaster-recovery-policy.mjs";
 
 const CONTROL_PLANE_TABLES = [
+  "app.gym_deletion_dispatch",
   "public.gym_deletion_config",
   "public.gym_deletion_jobs",
   "public.disaster_recovery_config",
@@ -412,6 +413,7 @@ async function restoreDatabase(restoreId) {
     // Old backups predate these policies; completion tombstones are excluded
     // from backups and stay in this database's recovery control plane.
     await sql(await readFile(new URL("../supabase/migrations/1027_gym_deletion_lifecycle.sql", import.meta.url), "utf8"));
+    await sql(await readFile(new URL("../supabase/migrations/1028_gym_deletion_due_dispatch.sql", import.meta.url), "utf8"));
 
     await updateRestore(id, "verifying");
     const counts = {};

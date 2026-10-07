@@ -1,5 +1,4 @@
 import { ButtonLink } from "@/components/ButtonLink";
-import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
 import type { GymDetail } from "@/features/gyms/detail";
@@ -121,12 +120,12 @@ export function WhatsAppSection({ supabase, gym, tz }: Ctx) {
                 <EmptyNote>No failed messages in the last 30 days.</EmptyNote>
               )}
               <div className="flex flex-wrap items-center gap-3">
-                <Link href={`/admin/gyms/${gym.id}/whatsapp?status=failed`} className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">
+                <ButtonLink variant="text" href={`/admin/gyms/${gym.id}/whatsapp?status=failed`} className="text-[10.5px] font-bold normal-case tracking-[0.09em] text-accent hover:underline">
                   View failed messages →
-                </Link>
-                <Link href={`/admin/gyms/${gym.id}/whatsapp`} className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">
+                </ButtonLink>
+                <ButtonLink variant="text" href={`/admin/gyms/${gym.id}/whatsapp`} className="text-[10.5px] font-bold normal-case tracking-[0.09em] text-accent hover:underline">
                   Full message history →
-                </Link>
+                </ButtonLink>
               </div>
             </SectionCard>
 
@@ -376,9 +375,9 @@ export function AlertsSection({ supabase, gym, tz, showResolved }: Ctx & { showR
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
                     <AlertControls organizationId={gym.id} alert={a} />
-                    <Link href={alertTarget(a.type, gym.id)} className="text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">
+                    <ButtonLink variant="text" href={alertTarget(a.type, gym.id)} className="text-[10.5px] font-bold normal-case tracking-[0.09em] text-accent hover:underline">
                       Open related records →
-                    </Link>
+                    </ButtonLink>
                   </div>
                 </div>
               ))}
@@ -558,7 +557,7 @@ export function DataSection({ supabase, gym, tz }: Ctx) {
                 <Tile label="Backup health" pill={{ text: hours === null ? "No backup" : hours > 26 ? "Stale" : hours > 12 ? "Late" : "On schedule", tone: hours === null || hours > 26 ? "Down" : hours > 12 ? "Attention" : "Healthy" }} />
                 <ButtonLink href={`/admin/system/disaster-recovery?org=${gym.id}`} variant="primary" size="lg">
                   <DatabaseIcon size={14} aria-hidden />
-                  Open Recovery
+                  Open recovery
                 </ButtonLink>
               </div>
             </SectionCard>

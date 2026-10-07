@@ -63,7 +63,7 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                variant="control" size="custom" className={`flex min-h-[44px] items-center gap-3 border-l-2 px-3 text-[13.5px] ${
+                variant="ghost" layout="control" size="custom" className={`flex min-h-[44px] items-center gap-3 border-l-2 px-3 text-[13.5px] ${
                   active
                     ? "border-hi bg-[#302620] font-bold text-paper"
                     : "border-transparent text-mute3 hover:bg-[#302620] hover:text-paper"

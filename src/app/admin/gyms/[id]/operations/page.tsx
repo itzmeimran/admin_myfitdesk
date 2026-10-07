@@ -74,7 +74,7 @@ export default async function GymOperationsPage({
             key={s.key}
             href={`${base}?section=${s.key}`}
             aria-current={s.key === section ? "page" : undefined}
-            variant={s.key === section ? s.key === "danger" ? "danger" : "primary" : s.key === "danger" ? "danger-secondary" : "secondary"} size="sm" className={`flex-shrink-0 whitespace-nowrap ${s.key === section
+            variant={s.key === section ? "primary" : "secondary"} tone={s.key === "danger" ? "danger" : "default"} size="sm" className={`flex-shrink-0 whitespace-nowrap ${s.key === section
     ? "" : s.key === "danger"
     ? "border-accent/50" : ""} `}
           >

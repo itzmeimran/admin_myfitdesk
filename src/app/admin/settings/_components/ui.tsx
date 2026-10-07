@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { AlertIcon } from "@/core/ui/icons";
 import { formatZonedDateTime } from "@/core/dates/format";
@@ -149,9 +150,9 @@ export function Provenance({ at, by }: { at: string | null; by: string | null })
 
 export function TextLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className="font-bold text-ink underline underline-offset-2 hover:text-accent">
+    <ButtonLink variant="text" href={href} className="font-bold text-ink underline underline-offset-2 hover:text-accent">
       {children}
-    </Link>
+    </ButtonLink>
   );
 }
 

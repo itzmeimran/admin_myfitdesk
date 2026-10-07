@@ -120,7 +120,7 @@ export function AdminChrome({
               key={item.href}
               href={item.href}
               aria-current={isActive(item.href) ? "page" : undefined}
-              variant="control" size="custom" className={`relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 px-0.5 ${
+              variant="ghost" layout="control" size="custom" className={`relative flex min-h-[62px] flex-col items-center justify-center gap-1.5 px-0.5 ${
                 isActive(item.href) ? "bg-ink text-hi" : "text-mute"
               }`}
             >
@@ -172,7 +172,7 @@ export function AdminChrome({
                       key={item.href}
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
-                      variant="control" size="custom" className={`flex min-h-[48px] items-center gap-3.5 border-l-2 px-3 text-[14px] ${
+                      variant="ghost" layout="control" size="custom" className={`flex min-h-[48px] items-center gap-3.5 border-l-2 px-3 text-[14px] ${
                         active
                           ? "border-hi bg-[#302620] font-bold text-paper"
                           : "border-transparent text-mute3 hover:bg-[#302620] hover:text-paper"
@@ -219,7 +219,7 @@ export function AdminChrome({
             type="button"
             aria-label="Dismiss"
             onClick={() => setMenuOpen(false)}
-            variant="overlay" size="custom" className="flex-1 cursor-pointer border-none bg-black/45"
+            variant="ghost" layout="overlay" size="custom" className="flex-1 cursor-pointer border-none bg-black/45"
           />
         </div>
       ) : null}

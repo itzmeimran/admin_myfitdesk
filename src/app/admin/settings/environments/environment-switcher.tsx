@@ -95,7 +95,7 @@ export function EnvironmentSwitcher() {
               aria-pressed={active}
               disabled={Boolean(switching)}
               onClick={() => requestSwitch(env)}
-              variant={active ? isProd ? "danger" : "primary" : "secondary"} size="md" className="flex-1"
+              variant={active ? "primary" : "secondary"} tone={active && isProd ? "danger" : "default"} size="md" className="flex-1"
             >
               {ADMIN_ENVIRONMENT_LABEL[env]}
             </Button>
@@ -126,7 +126,7 @@ export function EnvironmentSwitcher() {
         danger={confirmTarget==='prod'}
         title={`Switch to ${confirmTarget==='prod'?'Production':'Development'}?`}
         description={confirmTarget==='prod'?"You are about to access live customer data. Changes made here can affect real gyms, members, subscriptions, payments and platform operations.":'Switch to the separate Development environment? The page will reload with development data.'}
-        confirmLabel={`Switch to ${confirmTarget==='prod'?'Production':'Development'}`}
+        confirmLabel={`Switch to ${confirmTarget==='prod'?'production':'development'}`}
         pending={Boolean(switching)}
         requireTypedConfirmation={confirmTarget === 'prod' ? 'PRODUCTION' : undefined}
         onConfirm={(typed) => confirmTarget && performSwitch(confirmTarget, typed)}

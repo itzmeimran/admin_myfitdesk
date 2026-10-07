@@ -1,43 +1,28 @@
 "use client";
 
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { DatePicker, type DateRange } from "./DatePicker";
+import { istDateKey } from "@/core/dates/ist";
 
-/** Shared "from – to" date range filter (Billing history's date range,
- * Activity log's date range) — two plain `<input type="date">`s writing
- * to the given query params on change/reset `page` to 1, same URL-as-state
- * model as every other filter in this app. */
+/** MyFitDesk range calendar: Apply changes both URL endpoints together. */
 export function DateRangeFilter({ fromParam = "from", toParam = "to" }: { fromParam?: string; toParam?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const from = searchParams.get(fromParam) ?? "";
-  const to = searchParams.get(toParam) ?? "";
+  const [pending, startTransition] = useTransition();
 
-  function update(param: string, value: string) {
+  function apply(range: DateRange) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) params.set(param, value);
-    else params.delete(param);
+    for (const [param, value] of [[fromParam, range.from], [toParam, range.to]]) {
+      if (value) params.set(param, value);
+      else params.delete(param);
+    }
     params.delete("page");
-    router.push(`${pathname}?${params.toString()}`);
+    startTransition(() => router.push(`${pathname}${params.size ? `?${params}` : ""}`, { scroll: false }));
   }
 
-  return (
-    <div className="flex items-center gap-1.5">
-      <input
-        type="date"
-        value={from}
-        onChange={(e) => update(fromParam, e.target.value)}
-        aria-label="From date"
-        className="min-h-[36px] cursor-pointer border-[1.5px] border-line bg-paper px-2 text-[12px] text-ink outline-none transition-colors hover:border-ink focus:border-ink"
-      />
-      <span className="text-[11px] text-mute3">to</span>
-      <input
-        type="date"
-        value={to}
-        onChange={(e) => update(toParam, e.target.value)}
-        aria-label="To date"
-        className="min-h-[36px] cursor-pointer border-[1.5px] border-line bg-paper px-2 text-[12px] text-ink outline-none transition-colors hover:border-ink focus:border-ink"
-      />
-    </div>
-  );
+  return <DatePicker mode="range" rangeValue={{ from: searchParams.get(fromParam) ?? "", to: searchParams.get(toParam) ?? "" }}
+    onRangeChange={apply} ariaLabel="Date range" placeholder="Select date range" today={istDateKey()}
+    disabled={pending} className="w-full sm:w-[260px]" />;
 }

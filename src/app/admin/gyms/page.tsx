@@ -177,10 +177,10 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
               key={f}
               href={href}
               aria-pressed={on}
-              variant="surface" size="custom" className={`flex min-h-[52px] flex-1 flex-col gap-0.5 border-[1.5px] px-3 py-2 ${on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink hover:border-ink hover:bg-sand"} `}
+              variant="secondary" layout="content" size="custom" className={`flex min-h-[52px] flex-1 flex-col gap-0.5 border-[1.5px] px-3 py-2 ${on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink hover:border-ink hover:bg-sand"} `}
               style={{ minWidth: 108 }}
             >
-              <span className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-[0.1em]" style={{ opacity: 0.75 }}>
+              <span className="flex items-center gap-1.5 text-[9.5px] font-bold normal-case tracking-[0.1em]" style={{ opacity: 0.75 }}>
                 <Icon size={11} aria-hidden />
                 {label}
               </span>
@@ -215,9 +215,9 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
           ]}
         />
         {hasFilters ? (
-          <Link href={resetHref} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
+          <ButtonLink variant="text" href={resetHref} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
             Reset filters
-          </Link>
+          </ButtonLink>
         ) : null}
       </div>
 

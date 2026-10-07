@@ -55,7 +55,7 @@ export function Segmented<T extends string>({
         {options.map((o) => {
           const on = o.value === value;
           return (
-            <Button icon={iconForAction(o.label)} key={o.value} type="button" role="radio" aria-checked={on} variant="control" size="custom" onClick={() => onChange(o.value)}
+            <Button icon={iconForAction(o.label)} key={o.value} type="button" role="radio" aria-checked={on} variant="secondary" layout="control" size="custom" onClick={() => onChange(o.value)}
               className={`min-h-[42px] border-[1.5px] px-3.5 text-[13px] font-bold ${on ? "border-ink bg-ink text-hi" : "border-line bg-paper text-ink hover:border-ink hover:bg-sand"}`}>
               {o.label}
             </Button>
@@ -69,7 +69,7 @@ export function Segmented<T extends string>({
       {options.map((o, i) => {
         const on = o.value === value;
         return (
-          <Button icon={iconForAction(o.label)} key={o.value} type="button" role="tab" aria-selected={on} variant="control" size="custom" onClick={() => onChange(o.value)}
+          <Button icon={iconForAction(o.label)} key={o.value} type="button" role="tab" aria-selected={on} variant="ghost" layout="control" size="custom" onClick={() => onChange(o.value)}
             className={`${h} whitespace-nowrap px-2 text-[12px] font-bold sm:px-3.5 ${i < options.length - 1 ? "border-r-[1.5px] border-r-ink" : ""} ${on ? "bg-ink text-hi" : "bg-paper text-ink hover:bg-sand"}`}>
             {o.label}
           </Button>

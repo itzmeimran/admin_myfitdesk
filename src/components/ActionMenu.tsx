@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { createPortal } from "react-dom";
 import type { IconType } from "@/core/ui/icons";
 import { MoreIcon } from "@/core/ui/icons";
+import { iconForAction } from "@/core/ui/action-icons";
 
 export type ActionMenuItem = {
   key: string;
@@ -227,7 +228,6 @@ export function ActionMenu({
               className="fade-in z-[60] overflow-y-auto border-[1.5px] border-ink bg-paper py-1 shadow-[4px_4px_0_var(--ink)] focus:outline-none"
             >
               {items.map((item, index) => {
-                const Icon = item.icon;
                 const isActive = index === activeIndex && !item.disabled;
                 return (
                   <div key={item.key}>
@@ -240,13 +240,20 @@ export function ActionMenu({
                         {item.heading}
                       </div>
                     ) : null}
-                    <div
+                    <Button
+                      variant="ghost"
+                      layout="control"
+                      size="custom"
+                      icon={item.icon ?? iconForAction(item.label)}
+                      tone={item.danger ? "danger" : "default"}
+                      disabled={item.disabled}
+                      tabIndex={-1}
                       id={itemId(index)}
                       role="menuitem"
                       aria-disabled={item.disabled || undefined}
                       onMouseEnter={() => !item.disabled && setActiveIndex(index)}
                       onClick={() => select(index)}
-                      className={`flex min-h-10 items-center gap-2.5 px-3 py-2 text-left text-[12px] font-bold sm:min-h-9 ${
+                      className={`flex min-h-10 w-full justify-start gap-2.5 px-3 py-2 text-left text-[12px] font-bold sm:min-h-9 ${
                         item.disabled
                           ? "cursor-not-allowed text-mute3"
                           : `cursor-pointer ${item.danger ? "text-accent" : "text-ink"} ${
@@ -254,14 +261,13 @@ export function ActionMenu({
                             }`
                       }`}
                     >
-                      {Icon ? <Icon size={14} aria-hidden className="flex-shrink-0" /> : null}
                       <span className="min-w-0">
                         <span className="block truncate">{item.label}</span>
                         {item.disabled && item.hint ? (
                           <span className="block text-[10px] font-normal leading-tight text-mute2">{item.hint}</span>
                         ) : null}
                       </span>
-                    </div>
+                    </Button>
                   </div>
                 );
               })}

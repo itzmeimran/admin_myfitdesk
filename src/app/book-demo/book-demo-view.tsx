@@ -3,11 +3,12 @@
 import { startTransition, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type KeyboardEvent } from "react";
 import { Button } from "@/components/Button";
 import { ButtonLink } from "@/components/ButtonLink";
+import { DatePicker } from "@/components/DatePicker";
 import { Dropdown } from "@/components/Dropdown";
-import { BackIcon, CalendarIcon, ConfirmIcon, MailIcon, NextPageIcon, PrevPageIcon, SendIcon } from "@/core/ui/icons";
+import { BackIcon, CalendarIcon, ConfirmIcon, MailIcon, SendIcon } from "@/core/ui/icons";
 import {
-  DEMO_TIMES, addDays, calendarMonths, dayOfMonth, dayStatus, formatDemoDate,
-  type DayStatus, type DemoWindow, type DemoCalendar, type DemoAvailability,
+  DEMO_TIMES, addDays, dayStatus, formatDemoDate,
+  type DemoWindow, type DemoCalendar, type DemoAvailability,
 } from "@/features/demo-requests/slots";
 import { submitDemoRequest } from "./actions";
 import {
@@ -18,7 +19,6 @@ import { ClockIcon, GymsIcon, RetryIcon } from '@/core/ui/icons';
 
 export type PreviewState = "errors" | "sending" | "success" | "returning";
 
-const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const LABEL = "text-[11px] font-bold uppercase tracking-[0.12em] text-mute";
 const INPUT =
@@ -41,7 +41,6 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
   window: DemoWindow; previewState?: PreviewState; calendar: DemoCalendar | null; marketingOrigin: string; supportEmail: string;
 }) {
   const contactMailto = `mailto:${supportEmail}?subject=MyFitDesk%20demo`;
-  const months = useMemo(() => calendarMonths(win), [win]);
   const previewDate = useMemo(() => {
     for (let i = 2; i < 20; i++) {
       const key = addDays(win.today, i);
@@ -56,7 +55,6 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
   );
   const [date, setDate] = useState<string | null>(filledPreview ? previewDate : null);
   const [time, setTime] = useState<number | null>(filledPreview ? 12 : null);
-  const [monthIdx, setMonthIdx] = useState(0);
   const [showErrors, setShowErrors] = useState(previewState === "errors");
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [mode, setMode] = useState<Mode>(previewState === "success" || previewState === "returning" || previewState === "sending" ? previewState : "form");
@@ -143,7 +141,6 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
     });
   }
 
-  const month = months[monthIdx];
   const slotsOpen = openSlots.length;
   const digits = normalizeDemoPhone(values.phone);
 
@@ -280,7 +277,7 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                           const on = values.branches === b;
                           return (
                             <Button icon={GymsIcon}
-                              key={b} variant="surface" size="custom" role="radio" aria-checked={on} onClick={() => set("branches", b)}
+                              key={b} variant="secondary" layout="content" size="custom" role="radio" aria-checked={on} onClick={() => set("branches", b)}
                               tabIndex={on || (!values.branches && i === 0) ? 0 : -1}
                               className={`min-h-[45px] items-center justify-center border-0 text-[15px] font-bold ${i < BRANCH_RANGES.length - 1 ? "border-r border-line" : ""} ${on ? "bg-ink text-hi" : "bg-paper text-ink hover:bg-sand"}`}
                             >
@@ -322,33 +319,12 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                   {!calendar ? <p role="status" className="text-[13px] text-mute">Choose a date to check available times.</p> : null}
 
                   <div id="bd-date" tabIndex={-1} className="flex flex-col gap-3 outline-none">
-                    <div className="flex items-center gap-2">
-                      <span className={`${LABEL} mr-auto`}>Preferred date</span>
-                      <div className="flex items-center gap-1.5">
-                        <MonthStep label="Previous month" disabled={monthIdx === 0} onClick={() => setMonthIdx(monthIdx - 1)} />
-                        <span aria-live="polite" className="min-w-[104px] text-center text-sm font-bold">{month.label}</span>
-                        <MonthStep label="Next month" disabled={monthIdx >= months.length - 1} onClick={() => setMonthIdx(monthIdx + 1)} />
-                      </div>
-                    </div>
-
-                    <div role="grid" aria-label={month.label} className="grid grid-cols-7 gap-1">
-                      {WEEKDAY_HEADERS.map((w) => (
-                        <span key={w} className="py-1 text-center text-[10.5px] font-bold uppercase tracking-[0.1em] text-mute2">
-                          <span className="sm:hidden">{w[0]}</span><span className="hidden sm:inline">{w}</span>
-                        </span>
-                      ))}
-                      {Array.from({ length: month.blanks }, (_, i) => <span key={`b${i}`} />)}
-                      {month.days.map((key) => (
-                        <DayCell key={key} dayKey={key} status={dayStatus(key, win, calendar ?? undefined)} selected={date === key} today={key === win.today} onPick={() => void pickDate(key)} />
-                      ))}
-                    </div>
-
-                    <div aria-hidden="true" className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11.5px] text-mute">
-                      <Legend swatch="h-3 w-3 border-[1.5px] border-line" text="Available" />
-                      <Legend swatch="h-3 w-3 bg-ink" text="Selected" />
-                      <Legend swatch="h-3 w-3 bg-sand" text="Full or closed" />
-                      <span className="flex items-center gap-1.5"><span className="text-xs font-bold text-mute3/70">00</span>Past / too soon</span>
-                    </div>
+                    <span className={LABEL}>Preferred date</span>
+                    <DatePicker inline value={date ?? ""} onChange={(key) => void pickDate(key)}
+                      ariaLabel="Preferred demo date" min={win.earliest} max={win.last} today={win.today}
+                      disabled={sending} isDateDisabled={(key) => dayStatus(key, win, calendar ?? undefined) !== "open"}
+                      dateHint={(key) => dayStatus(key, win, calendar ?? undefined) === "open" ? "Available" : "Full, closed or outside booking window"} />
+                    <p className="text-[11.5px] text-mute">Full, closed and past dates are unavailable.</p>
                     {errors.date ? <span role="alert" className={FIELD_ERROR}>{errors.date}</span> : null}
                   </div>
 
@@ -380,7 +356,7 @@ export function BookDemoView({ window: win, previewState, calendar: initialCalen
                           const on = time === t.index;
                           return (
                             <Button icon={ClockIcon}
-                              key={t.index} variant="surface" size="custom" role="radio" aria-checked={on} disabled={!open} onClick={() => setTime(t.index)}
+                              key={t.index} variant="secondary" layout="content" size="custom" role="radio" aria-checked={on} disabled={!open} onClick={() => setTime(t.index)}
                               tabIndex={on || (time === null && t.index === openSlots[0]) ? 0 : -1}
                               aria-label={t.label + (open ? "" : ", unavailable")}
                               className={`min-h-[46px] items-center justify-center text-[14.5px] font-bold disabled:opacity-100 ${on ? "border-ink bg-ink text-hi" : open ? "border-line bg-paper text-ink hover:border-ink" : "border-sand bg-sand text-mute3 line-through"}`}
@@ -469,41 +445,6 @@ function TextField({ id, label, value, error, onChange, type = "text", placehold
       />
     </Field>
   );
-}
-
-function MonthStep({ label, disabled, onClick }: { label: string; disabled: boolean; onClick: () => void }) {
-  return (
-    <Button icon={label === 'Previous month' ? PrevPageIcon : NextPageIcon}
-      variant="surface" size="custom" aria-label={label} disabled={disabled} onClick={onClick}
-      className={`h-11 w-11 items-center justify-center border-line bg-transparent disabled:opacity-100 ${disabled ? "text-mute3/70" : "text-ink hover:border-ink"}`}
-     />
-  );
-}
-
-const STATUS_WORD: Record<DayStatus, string> = { open: "available", past: "not bookable", closed: "closed", full: "fully booked" };
-
-function DayCell({ dayKey, status, selected, today, onPick }: { dayKey: string; status: DayStatus; selected: boolean; today: boolean; onPick: () => void }) {
-  const style = selected
-    ? "border-ink bg-ink font-bold text-hi"
-    : status === "open"
-      ? "border-line bg-paper font-bold text-ink hover:border-ink"
-      : status === "past"
-        ? "border-transparent bg-transparent font-medium text-mute3/70"
-        : "border-sand bg-sand font-medium text-mute3 line-through";
-  return (
-    <Button icon={CalendarIcon}
-      variant="surface" size="custom" disabled={status !== "open"} aria-pressed={selected} onClick={onPick}
-      aria-label={`${formatDemoDate(dayKey)}, ${selected ? "selected" : STATUS_WORD[status]}`}
-      className={`relative h-11 items-center justify-center p-0 text-[15px] disabled:opacity-100 sm:h-[46px] ${style}`}
-    >
-      {dayOfMonth(dayKey)}
-      {today ? <span aria-hidden="true" className="absolute bottom-[5px] left-1/2 -ml-0.5 h-1 w-1 bg-accent" /> : null}
-    </Button>
-  );
-}
-
-function Legend({ swatch, text }: { swatch: string; text: string }) {
-  return <span className="flex items-center gap-1.5"><span className={swatch} />{text}</span>;
 }
 
 function WhatsAppGlyph() {

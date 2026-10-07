@@ -169,7 +169,7 @@ export function SuspendSheet({
             type="button"
             disabled={isPending || !canSubmit}
             onClick={confirm}
-            variant="danger" size="md" className="flex-1"
+            variant="primary" tone="danger" size="md" className="flex-1"
           >
             {isPending ? "Suspending…" : "Suspend gym"}
           </Button>

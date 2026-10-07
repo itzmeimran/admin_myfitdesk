@@ -25,3 +25,11 @@ The user confirmed on 2026-10-01 that admin changes go directly into `main`; do 
 ## Reusable button and focus styling
 
 User confirmed 2026-10-07: every visible action button must have an icon; link buttons are exempt. Use Button, SubmitButton or AsyncButton and the shared Lucide icon vocabulary. Custom card/control layouts may embed an always-visible icon; invisible dismiss backdrops are not visible action buttons. Keep hover and press feedback in the shared styles, subtle, and respectful of reduced-motion settings. Focus should turn the control's own border rust rather than draw an outside ring. Show the environment badge once in the header.
+
+User confirmed 2026-10-07: button action labels use sentence case ("Save changes"), never forced uppercase or title case. Preserve proper names and acronyms such as WhatsApp, MyFitDesk, CRM, CSV and OTP, and preserve user-provided record names. Use only primary (main CTA), secondary (supporting/bordered action), text (inline action), and ghost (quiet toolbar, menu or navigation action) variants. Disabled and pending are shared states of every variant, not extra variants. Destructive actions use `tone="danger"` with primary or secondary as appropriate. `layout="control"` and `layout="content"` only arrange compound widgets; `layout="overlay"` is reserved for invisible dismiss targets. Keep casing, interaction feedback and disabled styling in the shared button system.
+
+## Reusable filters and date controls
+
+User confirmed 2026-10-07: reuse MyFitDesk controls across the admin platform. `src/components/Select.tsx`, `DatePicker.tsx` and `TimePicker.tsx` are ported from FitDeskApp, with shared admin buttons and IST. `Dropdown` is a compatibility adapter over Select; URL filters use it or `DateRangeFilter`. Use `PeriodSelector` for preset period groups and DatePicker range mode for custom ranges. Do not add native select/date/time inputs or one-off calendars. Preserve query parameters, reset pagination on filter changes, apply range endpoints together, and retain booking/scheduling constraints.
+
+User clarified 2026-10-07: calendar date cells display plain date numbers, matching MyFitDesk. Do not put calendar icons beside individual dates. These cells in the shared DatePicker are exempt from the action-button icon rule; the calendar trigger and month navigation retain their icons.

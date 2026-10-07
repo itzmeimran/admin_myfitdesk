@@ -77,7 +77,7 @@ export function ConvertModal({ lead }: { lead: Lead }) {
             {orgs.map((o) => {
               const on = o.id === orgId;
               return (
-                <Button icon={GymsIcon} key={o.id} type="button" role="radio" aria-checked={on} variant="surface" onClick={() => setOrgId(o.id)}
+                <Button icon={GymsIcon} key={o.id} type="button" role="radio" aria-checked={on} variant="secondary" layout="content" onClick={() => setOrgId(o.id)}
                   className={`min-h-[56px] items-center gap-3 border-[1.5px] px-3 py-2.5 text-left text-ink ${on ? "border-ink bg-sand" : "border-line bg-paper hover:border-ink"}`}>
                   <span aria-hidden className="flex h-4 w-4 flex-shrink-0 items-center justify-center border-[1.5px] border-ink"><span className={`h-2 w-2 ${on ? "bg-ink" : "bg-transparent"}`} /></span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -85,7 +85,7 @@ export function ConvertModal({ lead }: { lead: Lead }) {
                     <span className="text-[12px] font-normal text-mute">{o.meta}</span>
                     {o.match ? <span className="text-[11.5px] font-bold">{o.match}</span> : null}
                   </span>
-                  <span className="flex-shrink-0 border-[1.5px] border-line px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-mute">{o.status}</span>
+                  <span className="flex-shrink-0 border-[1.5px] border-line px-1.5 py-0.5 text-[10px] font-bold normal-case tracking-[0.08em] text-mute">{o.status}</span>
                 </Button>
               );
             })}
@@ -187,7 +187,7 @@ export function DuplicateModal({ lead }: { lead: Lead }) {
               const cell = (side: Side, text: string) => {
                 const on = !same && r.key && picks[r.key] === side;
                 return (
-                  <Button icon={ConfirmIcon} type="button" variant="control" size="custom" disabled={same} aria-pressed={!!on}
+                  <Button icon={ConfirmIcon} type="button" variant="secondary" layout="control" size="custom" disabled={same} aria-pressed={!!on}
                     onClick={() => r.key && setPicks({ ...picks, [r.key]: side })}
                     className={`min-h-[36px] justify-start border-[1.5px] px-2 py-1 text-left text-[13px] [overflow-wrap:anywhere] disabled:opacity-100 ${on ? "border-ink font-bold" : same ? "border-transparent font-bold" : "border-line font-medium"}`}>
                     {text}

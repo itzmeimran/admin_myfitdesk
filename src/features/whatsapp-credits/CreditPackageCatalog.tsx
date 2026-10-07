@@ -59,7 +59,7 @@ export function CreditPackageCatalog({
           {isArchived ? <span className="text-[10px] font-bold uppercase tracking-wider text-mute">Archived</span> : null}
         </div>
         <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
-          <Button icon={EditIcon} variant="primary" size="lg" className="min-w-0" onClick={() => onEdit(pkg)} aria-label={`Edit ${pkg.name}`}>
+          <Button icon={EditIcon} variant="secondary" size="lg" className="min-w-0" onClick={() => onEdit(pkg)} aria-label={`Edit ${pkg.name}`}>
             Edit
           </Button>
           <Button

@@ -1,5 +1,5 @@
 import { ButtonLink } from "@/components/ButtonLink";
-import { buttonClasses } from "@/core/ui/button-styles";
+import { PeriodSelector } from "@/components/PeriodSelector";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 
@@ -87,6 +87,10 @@ export default async function GymActivityPage({
 
   const presetHref = (days: number) => {
     const p = new URLSearchParams();
+    for (const [key, raw] of Object.entries(sp)) {
+      const value = first(raw);
+      if (value && key !== "page") p.set(key, value);
+    }
     p.set("from", zonedToday(tz, -days));
     p.set("to", zonedToday(tz));
     return `${pathname}?${p.toString()}`;
@@ -96,7 +100,6 @@ export default async function GymActivityPage({
     week: dateFrom === zonedToday(tz, -6) && dateTo === zonedToday(tz),
     month: dateFrom === zonedToday(tz, -29) && dateTo === zonedToday(tz),
   };
-  const custom = (dateFrom || dateTo) && !preset.today && !preset.week && !preset.month;
 
   const sortHref = (() => {
     const p = new URLSearchParams();
@@ -111,16 +114,12 @@ export default async function GymActivityPage({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2.5">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Date range">
-          <ButtonLink href={presetHref(0)} size="sm" selected={preset.today} aria-current={preset.today ? "true" : undefined}>Today</ButtonLink>
-          <ButtonLink href={presetHref(6)} size="sm" selected={preset.week} aria-current={preset.week ? "true" : undefined}>Last 7 days</ButtonLink>
-          <ButtonLink href={presetHref(29)} size="sm" selected={preset.month} aria-current={preset.month ? "true" : undefined}>Last 30 days</ButtonLink>
-          <span data-selected={Boolean(custom) || undefined} className={buttonClasses({ size: "sm" })}>Custom</span>
-        </div>
+        <PeriodSelector value={preset.today ? "today" : preset.week ? "week" : preset.month ? "month" : ""} ariaLabel="Date presets"
+          options={[{value:"today",label:"Today",href:presetHref(0)},{value:"week",label:"Last 7 days",href:presetHref(6)},{value:"month",label:"Last 30 days",href:presetHref(29)}]} />
         <DateRangeFilter />
         <span className="ml-auto flex items-center gap-3 text-[11.5px] text-mute3">
           {timeline.data ? `${timeline.data.total.toLocaleString("en-IN")} events` : null}
-          <ButtonLink href={sortHref} variant="link" size="custom" className="underline underline-offset-2">
+          <ButtonLink href={sortHref} variant="text" size="custom" className="underline underline-offset-2">
             {sortDir === "desc" ? "Newest first" : "Oldest first"}
           </ButtonLink>
           <ExportActivityButton
@@ -140,7 +139,7 @@ export default async function GymActivityPage({
         <FilterSelect param="actor" placeholder="Any actor" options={ACTORS} />
         <FilterSelect param="status" placeholder="Any status" options={STATUSES} />
         {hasFilters ? (
-          <ButtonLink href={pathname} variant="link" size="custom" className="underline underline-offset-2">
+          <ButtonLink href={pathname} variant="text" size="custom" className="underline underline-offset-2">
             Reset filters
           </ButtonLink>
         ) : null}

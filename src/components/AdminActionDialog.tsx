@@ -160,7 +160,7 @@ export function AdminActionDialog({
             onClick={submit}
             pending={isPending}
             disabled={!canSubmit}
-            variant={danger ? "danger" : "primary"} size="md"
+            variant="primary" tone={danger ? "danger" : "default"} size="md"
           >
             {isPending ? "Working…" : confirmLabel}
           </Button>

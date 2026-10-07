@@ -39,7 +39,7 @@ export function ModalFrame({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 md:items-center md:p-6">
-      <Button type="button" variant="overlay" size="custom" aria-label="Dismiss" onClick={onClose} className="fade-in absolute inset-0 cursor-default bg-transparent" />
+      <Button type="button" variant="ghost" layout="overlay" size="custom" aria-label="Dismiss" onClick={onClose} className="fade-in absolute inset-0 cursor-default bg-transparent" />
       <div role="dialog" aria-modal="true" aria-labelledby={titleId}
         className="sheet-slide-up relative flex max-h-[90%] w-full flex-col border-[1.5px] border-ink bg-paper md:max-h-[86%] md:max-w-[540px]">
         <div className="flex flex-shrink-0 items-start gap-2.5 border-b border-line px-[18px] pb-3 pt-4">
@@ -139,7 +139,7 @@ export function RadioCards<T extends string>({ label, value, onChange, options, 
         {options.map((o) => {
           const on = o.value === value;
           return (
-            <Button icon={ConfirmIcon} key={o.value} type="button" role="radio" aria-checked={on} variant="surface" onClick={() => onChange(o.value)}
+            <Button icon={ConfirmIcon} key={o.value} type="button" role="radio" aria-checked={on} variant="secondary" layout="content" onClick={() => onChange(o.value)}
               className={`min-h-[46px] items-start gap-3 border-[1.5px] px-3 py-[11px] text-left ${on ? "border-ink bg-sand" : "border-line bg-paper hover:border-ink"} text-ink`}>
               <span aria-hidden className="mt-px flex h-4 w-4 flex-shrink-0 items-center justify-center border-[1.5px] border-ink">
                 <span className={`h-2 w-2 ${on ? "bg-ink" : "bg-transparent"}`} />
@@ -148,7 +148,7 @@ export function RadioCards<T extends string>({ label, value, onChange, options, 
                 <span className="text-[13.5px] font-bold">{o.label}</span>
                 {o.sub ? <span className="text-[12px] font-normal text-mute">{o.sub}</span> : null}
               </span>
-              {o.tag ? <span className="ml-auto flex-shrink-0 border-[1.5px] border-ink px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em]">{o.tag}</span> : null}
+              {o.tag ? <span className="ml-auto flex-shrink-0 border-[1.5px] border-ink px-1.5 py-0.5 text-[9.5px] font-bold normal-case tracking-[0.08em]">{o.tag}</span> : null}
             </Button>
           );
         })}

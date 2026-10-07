@@ -7,8 +7,8 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "", label: "Overview" },
   { href: "/members", label: "Members" },
-  { href: "/team", label: "Branches & Team" },
-  { href: "/billing", label: "Subscription & Billing" },
+  { href: "/team", label: "Branches & team" },
+  { href: "/billing", label: "Subscription & billing" },
   { href: "/operations", label: "Operations" },
   { href: "/activity", label: "Activity" },
 ] as const;
@@ -21,7 +21,7 @@ const TABS = [
  * search/filter/sort state, and works with the back button.
  *
  * Tab set matches the Claude Design "MyFitDesk Gym Detail" canvas exactly
- * (Overview / Members / Branches & Team / Subscription & Billing /
+ * (Overview / Members / Branches & team / Subscription & billing /
  * Activity) — Entitlements was folded into Overview's usage bars (it was
  * already just a rephrasing of the same caps data, see the old
  * entitlements/page.tsx's own docblock) and Settings stays reachable from
@@ -58,7 +58,7 @@ export function GymDetailTabs({
             key={tab.href}
             href={href}
             aria-current={active ? "page" : undefined}
-            variant="control" size="custom" className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${
+            variant="ghost" layout="control" size="custom" className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold normal-case tracking-[0.06em] ${
               active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"
             }`}
           >

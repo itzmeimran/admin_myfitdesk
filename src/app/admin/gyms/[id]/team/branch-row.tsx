@@ -19,7 +19,7 @@ export function BranchRowDetail({ branch, trigger }: { branch: BranchRow; trigge
 
   return (
     <>
-      <Button type="button" onClick={() => setOpen(true)} variant="link" size="custom" className="block truncate text-left">
+      <Button type="button" onClick={() => setOpen(true)} variant="text" size="custom" className="block truncate text-left">
         {trigger}
       </Button>
       <Sheet open={open} onClose={() => setOpen(false)} eyebrow="branches" title={branch.name}>

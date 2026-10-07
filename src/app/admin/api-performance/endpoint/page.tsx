@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { createClient } from "@/core/db/server-client";
 import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 import { getApiOverview, listRequests } from "@/features/api-performance/queries";
@@ -25,7 +26,7 @@ export default async function ApiEndpointDetailPage({ searchParams }: { searchPa
   if (!route || !method) {
     return (
       <div className="border-[1.5px] border-ink bg-paper">
-        <EmptyState message="Pick an endpoint from the Endpoints table to see its detail." resetHref={back} resetLabel="Go to Endpoints" />
+        <EmptyState message="Pick an endpoint from the Endpoints table to see its detail." resetHref={back} resetLabel="Go to endpoints" />
       </div>
     );
   }
@@ -42,10 +43,10 @@ export default async function ApiEndpointDetailPage({ searchParams }: { searchPa
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <Link href={back} className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
+        <ButtonLink variant="text" href={back} className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
           <BackIcon size={13} aria-hidden />
           All endpoints
-        </Link>
+        </ButtonLink>
         <h2 className="break-all font-mono text-[18px] font-bold">
           <span className="text-mute">{method}</span> {route}
         </h2>
@@ -88,9 +89,9 @@ export default async function ApiEndpointDetailPage({ searchParams }: { searchPa
           <Section title="Recent failed requests" hint="Server errors (5xx), newest first.">
             {failed.rows.length === 0 ? <p className="text-[12px] text-mute">None in this window.</p> : <RequestsTable rows={failed.rows} thresholds={ov.thresholds} />}
           </Section>
-          <Link href={explorer} className="text-[11.5px] font-bold text-accent hover:underline">
-            Open every request for this endpoint in the Request Explorer →
-          </Link>
+          <ButtonLink variant="text" href={explorer} className="text-[11.5px] font-bold text-accent hover:underline">
+            Open every request for this endpoint in the request explorer →
+          </ButtonLink>
         </>
       )}
     </div>

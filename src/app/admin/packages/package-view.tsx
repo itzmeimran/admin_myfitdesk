@@ -183,12 +183,12 @@ function PackagePicker({ packages, selectedId }: { packages: SimplePackage[]; se
           <ButtonLink
             key={pkg.id}
             href={`/admin/packages?pkg=${pkg.id}`}
-            variant="surface" size="custom" className={`flex flex-col gap-1.5 border-[1.5px] bg-paper p-3.5 ${isSelected ? "border-[2.5px] border-accent" : "border-line hover:border-ink"} `}
+            variant="secondary" layout="content" size="custom" className={`flex flex-col gap-1.5 border-[1.5px] bg-paper p-3.5 ${isSelected ? "border-[2.5px] border-accent" : "border-line hover:border-ink"} `}
           >
             <div className="flex items-start justify-between gap-2">
               <span className="min-w-0 truncate text-[12.5px] font-bold">{pkg.name}</span>
               {pkg.status === "archived" ? (
-                <span className="flex-shrink-0 border border-line px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-mute">
+                <span className="flex-shrink-0 border border-line px-1.5 py-0.5 text-[9px] font-bold normal-case tracking-[0.1em] text-mute">
                   Archived
                 </span>
               ) : null}
@@ -203,7 +203,7 @@ function PackagePicker({ packages, selectedId }: { packages: SimplePackage[]; se
 
       <ButtonLink
         href="/admin/packages?pkg=new"
-        variant="surface" size="custom" className={`flex min-h-[84px] flex-col items-center justify-center gap-1 border-[1.5px] border-dashed bg-paper p-3.5 text-center ${selectedId === "new" ? "border-[2.5px] border-accent border-solid" : "border-line hover:border-ink"} `}
+        variant="secondary" layout="content" size="custom" className={`flex min-h-[84px] flex-col items-center justify-center gap-1 border-[1.5px] border-dashed bg-paper p-3.5 text-center ${selectedId === "new" ? "border-[2.5px] border-accent border-solid" : "border-line hover:border-ink"} `}
       >
         <AddIcon size={16} aria-hidden />
         <span className="text-[11.5px] font-bold">New package</span>

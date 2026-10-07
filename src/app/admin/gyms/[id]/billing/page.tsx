@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
@@ -16,7 +18,6 @@ import { formatShortDate } from "@/core/dates/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { PAYMENT_METHODS } from "@/features/gyms/payment-method";
 import { BillingActions } from "./billing-actions";
-import Link from "next/link";
 import { AutoPaySummary } from "./autopay-summary";
 
 const SORT_ALLOWLIST = new Set(["created_at", "amount_minor", "status", "paid_at"]);
@@ -175,9 +176,9 @@ export default async function GymBillingPage({
         />
         <DateRangeFilter />
         {hasFilters ? (
-          <Link href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
+          <ButtonLink variant="text" href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
             Reset filters
-          </Link>
+          </ButtonLink>
         ) : null}
       </div>
 

@@ -65,7 +65,7 @@ export function AnalyticsView({ data }: { data: Analytics }) {
       <div className="grid gap-3.5 lg:grid-cols-2">
         <section aria-labelledby="a-stage" className="flex flex-col gap-2.5 border-[1.5px] border-line p-3.5">
           <SectionTitle id="a-stage">Leads by stage</SectionTitle>
-          <Bars rows={data.stages} max={Math.max(1,...data.stages.map(r=>r[1]))} color={(l) => (l === "Later / Lost" ? "bg-[#a99d91]" : "bg-ink")} />
+          <Bars rows={data.stages} max={Math.max(1,...data.stages.map(r=>r[1]))} color={(l) => (l === "Later / lost" ? "bg-[#a99d91]" : "bg-ink")} />
         </section>
         <section aria-labelledby="a-lost" className="flex flex-col gap-2.5 border-[1.5px] border-line p-3.5">
           <SectionTitle id="a-lost">Lost &amp; not interested · reasons</SectionTitle>

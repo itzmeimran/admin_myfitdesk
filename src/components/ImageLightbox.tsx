@@ -63,7 +63,7 @@ export function ImageLightbox({
         aria-label={`View ${title} picture full size`}
         aria-haspopup="dialog"
         title="Click to enlarge"
-        variant="surface" size="custom" className={` ${className} group relative overflow-hidden`}
+        variant="ghost" layout="content" size="custom" className={` ${className} group relative overflow-hidden`}
         style={{ cursor: "zoom-in" }}
       >
         <span className="block h-full w-full transition-transform duration-200 ease-out group-hover:scale-110">{children}</span>
@@ -78,7 +78,7 @@ export function ImageLightbox({
                 aria-label="Close picture"
                 tabIndex={-1}
                 onClick={close}
-                variant="overlay" size="custom" className="fade-in absolute inset-0 border-none bg-black/75"
+                variant="ghost" layout="overlay" size="custom" className="fade-in absolute inset-0 border-none bg-black/75"
                 style={{ cursor: "zoom-out" }}
               />
               <figure className="fade-in relative flex max-h-full w-full max-w-[min(92vw,560px)] flex-col border-[1.5px] border-ink bg-paper">

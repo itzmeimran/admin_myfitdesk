@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { Button } from "@/components/Button";
@@ -65,11 +66,11 @@ function Screen({ view }: { view: SalesView }) {
         {tabs.map((t) => {
           const on = t.key === view;
           return (
-            <Link key={t.key} href={t.key === "board" ? "/admin/sales" : `/admin/sales?view=${t.key}`} scroll={false} aria-current={on ? "page" : undefined}
+            <ButtonLink variant="ghost" layout="control" size="custom" key={t.key} href={t.key === "board" ? "/admin/sales" : `/admin/sales?view=${t.key}`} scroll={false} aria-current={on ? "page" : undefined}
               className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 border-b-[3px] px-4 text-[13px] ${on ? "border-hi font-bold text-ink" : "border-transparent font-medium text-mute hover:text-ink"}`}>
               {t.label}
               {t.badge ? <span className="flex h-[18px] min-w-[18px] items-center justify-center bg-ink px-1 text-[9.5px] font-bold text-hi">{t.badge}</span> : null}
-            </Link>
+            </ButtonLink>
           );
         })}
       </nav>
@@ -135,7 +136,7 @@ function EmptyLeads() {
       <span className="font-display text-[19px]">{crm.summary.total ? 'No matching leads' : 'No leads yet'}</span>
       <p className="max-w-[430px] text-[13.5px] leading-relaxed text-mute">{crm.summary.total ? 'Adjust the search or filters to see more leads.' : 'Add a lead from a field visit, call or referral. Website demo requests also appear here.'}</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <Button icon={CopyIcon} type="button" variant="primary" size="lg" onClick={() => void navigator.clipboard?.writeText(crm.bookDemoUrl)}>Copy Book a Demo link</Button>
+        <Button icon={CopyIcon} type="button" variant="primary" size="lg" onClick={() => void navigator.clipboard?.writeText(crm.bookDemoUrl)}>Copy book a demo link</Button>
         {crm.summary.total ? <Button icon={CancelIcon} variant="secondary" onClick={crm.clearFilters}>Clear filters</Button> : null}
       </div>
     </div>

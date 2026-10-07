@@ -54,7 +54,7 @@ export function TimelineFeed({
               key={e.eventId}
               type="button"
               onClick={() => setSelected(e)}
-              variant="surface" size="custom" className={`flex w-full flex-col gap-1 border-[1.5px] border-l-[5px] border-line bg-paper p-3.5 text-left hover:border-ink ${STATUS_BORDER[e.status]} `}
+              variant="secondary" layout="content" size="custom" className={`flex w-full flex-col gap-1 border-[1.5px] border-l-[5px] border-line bg-paper p-3.5 text-left hover:border-ink ${STATUS_BORDER[e.status]} `}
             >
               <span className="flex flex-wrap items-center gap-2">
                 <DetailsIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />

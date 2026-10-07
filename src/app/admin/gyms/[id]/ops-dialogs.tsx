@@ -1,7 +1,9 @@
 "use client";
 
+import { DatePicker } from "@/components/DatePicker";
+import { TimePicker } from "@/components/TimePicker";
 import { Button } from "@/components/Button";
-import { istInputToIso } from "@/core/dates/ist";
+import { istDateKey, istInputToIso } from "@/core/dates/ist";
 import { useState } from "react";
 import { AdminActionDialog } from "@/components/AdminActionDialog";
 import {
@@ -129,9 +131,11 @@ export function LockDialog({
   enable,
 }: Base & { lockType: LockType; enable: boolean }) {
   const entry = LOCK_CATALOG.find((l) => l.type === lockType);
-  const [expires, setExpires] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [expiryTime, setExpiryTime] = useState("");
+  const expires = expiryDate && expiryTime ? `${expiryDate}T${expiryTime}` : "";
   const expiresIso = expires ? istInputToIso(expires) : null;
-  const expiryValid = !expires || isFuture(expires);
+  const expiryValid = (!expiryDate && !expiryTime) || Boolean(expires && isFuture(expires));
 
   return (
     <AdminActionDialog
@@ -157,16 +161,14 @@ export function LockDialog({
       onSubmit={(reason) => setOperationLock({ organizationId, lockType, enabled: enable, reason, expiresAt: enable ? expiresIso : null })}
     >
       {enable ? (
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute">Automatically lift on (IST, optional)</span>
-          <input
-            type="datetime-local"
-            value={expires}
-            onChange={(e) => setExpires(e.target.value)}
-            className="min-h-[40px] w-full border-[1.5px] border-line bg-paper px-2.5 text-[13px] text-ink outline-none focus:border-ink"
-          />
-          {!expiryValid ? <span className="text-[11px] text-accent">Pick a time in the future.</span> : null}
-        </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <DatePicker value={expiryDate} onChange={setExpiryDate} ariaLabel="Restriction expiry date" size="field" min={istDateKey()} today={istDateKey()} />
+            <TimePicker value={expiryTime} onChange={setExpiryTime} ariaLabel="Restriction expiry time in IST" />
+          </div>
+          {!expiryValid ? <span className="text-[11px] text-accent">Choose both a date and time in the future, or clear both to keep the restriction without an expiry.</span> : null}
+        </div>
       ) : null}
     </AdminActionDialog>
   );

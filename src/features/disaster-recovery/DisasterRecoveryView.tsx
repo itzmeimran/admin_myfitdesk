@@ -1,6 +1,7 @@
 "use client";
 
 import { useConfirmedTransition } from '@/components/use-confirmed-transition';
+import { DatePicker } from "@/components/DatePicker";
 import { Button } from "@/components/Button";
 import { IST_TIME_ZONE, istDateKey } from "@/core/dates/ist";
 import { useEffect, useMemo, useState } from "react";
@@ -29,7 +30,7 @@ import type { BackupRow, DisasterRecoveryData, ScheduleHealth } from "./types";
 import { ConfirmIcon, ManageIcon } from '@/core/ui/icons';
 import { iconForAction } from '@/core/ui/action-icons';
 
-const TABS = ["Backups", "Restore History", "Audit Logs", "Deleted Records", "System Health"] as const;
+const TABS = ["Backups", "Restore history", "Audit logs", "Deleted records", "System health"] as const;
 type Tab = (typeof TABS)[number];
 type Confirmation =
   | { kind: "restore"; backup: BackupRow }
@@ -186,9 +187,9 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         <div className="flex min-w-max gap-1">
           {TABS.map((item) => (
             <Button icon={iconForAction(item)} key={item} type="button" onClick={() => setTab(item)}
-              variant="control" size="custom" className={`min-h-[42px] border-b-[3px] px-3 text-[11.5px] font-bold ${tab === item ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}>
+              variant="ghost" layout="control" size="custom" className={`min-h-[42px] border-b-[3px] px-3 text-[11.5px] font-bold ${tab === item ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}>
               {item}
-              {item === "System Health" && data.health.openCriticalAlerts ? ` (${data.health.openCriticalAlerts})` : ""}
+              {item === "System health" && data.health.openCriticalAlerts ? ` (${data.health.openCriticalAlerts})` : ""}
             </Button>
           ))}
         </div>
@@ -206,7 +207,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
             <div className="w-full min-w-[150px] sm:w-auto">
               <Dropdown ariaLabel="Backup status" value={statusFilter} options={STATUS_OPTIONS} onChange={setStatusFilter} />
             </div>
-            <input aria-label="Backup date" type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="min-h-[38px] cursor-pointer border-[1.5px] border-line bg-paper px-3 text-[12px] font-bold text-mute transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-none" />
+            <DatePicker ariaLabel="Backup date" value={dateFilter} onChange={setDateFilter} placeholder="All dates" />
           </div>
 
           <div className="border-[1.5px] border-ink bg-paper">
@@ -245,7 +246,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         </section>
       ) : null}
 
-      {tab === "Restore History" ? (
+      {tab === "Restore history" ? (
         <section className="flex flex-col gap-3">
           {data.restores.map((restore) => (
             <article key={restore.id} className="border-[1.5px] border-line bg-paper p-4 transition-colors duration-150 hover:bg-sand/70">
@@ -266,7 +267,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         </section>
       ) : null}
 
-      {tab === "Audit Logs" ? (
+      {tab === "Audit logs" ? (
         <section className="border-[1.5px] border-ink bg-paper">
           {data.audits.map((audit) => (
             <div key={audit.id} className="grid gap-1 border-b border-line px-4 py-3 transition-colors duration-150 last:border-b-0 hover:bg-sand/70 md:grid-cols-[180px_1fr_180px]">
@@ -279,7 +280,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         </section>
       ) : null}
 
-      {tab === "Deleted Records" ? (
+      {tab === "Deleted records" ? (
         <section className="flex flex-col gap-3">
           <div className="border-l-2 border-ink bg-sand px-4 py-3 text-[12px] text-mute">This recycle bin uses MyFitDesk&apos;s existing soft-delete/request-delete fields. Payments are intentionally excluded.</div>
           <div className="border-[1.5px] border-ink bg-paper">
@@ -294,7 +295,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         </section>
       ) : null}
 
-      {tab === "System Health" ? (
+      {tab === "System health" ? (
         <section className="flex flex-col gap-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -323,7 +324,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
               <h2 className="font-display text-[16px]">Maintenance mode</h2>
               <p className="mt-2 text-[12px] leading-relaxed text-mute">{data.health.maintenanceMode ? data.health.maintenanceReason || "Maintenance mode is active." : "Normal application access is enabled."}</p>
               <label className="mt-3 flex flex-col gap-1"><span className="mfd-micro-label">Reason</span><input value={maintenanceReason} onChange={(event) => setMaintenanceReason(event.target.value)} maxLength={500} className="min-h-[38px] border-[1.5px] border-line bg-paper px-2.5 text-[12px]" /></label>
-              <Button icon={ManageIcon} type="button" disabled={isPending || !data.health.configured} onClick={() => setConfirmation({ kind: "maintenance", enabled: !data.health.maintenanceMode })} variant={data.health.maintenanceMode ? "danger" : "primary"} size="sm" className="mt-3">{data.health.maintenanceMode ? "Disable maintenance" : "Enable maintenance"}</Button>
+              <Button icon={ManageIcon} type="button" disabled={isPending || !data.health.configured} onClick={() => setConfirmation({ kind: "maintenance", enabled: !data.health.maintenanceMode })} variant="primary" tone={data.health.maintenanceMode ? "danger" : "default"} size="sm" className="mt-3">{data.health.maintenanceMode ? "Disable maintenance" : "Enable maintenance"}</Button>
             </div>
           </div>
 

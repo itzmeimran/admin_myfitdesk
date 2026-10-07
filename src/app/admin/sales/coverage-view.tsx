@@ -57,7 +57,7 @@ export function CoverageView({ root }: { root: CoverageNode }) {
           const last = i === nodes.length - 1;
           return (
             <span key={n.name} className="flex items-center gap-1">
-              <Button icon={ManageIcon} type="button" variant="control" size="custom" aria-current={last ? "page" : undefined} onClick={() => setPath(path.slice(0, i))}
+              <Button icon={ManageIcon} type="button" variant="ghost" layout="control" size="custom" aria-current={last ? "page" : undefined} onClick={() => setPath(path.slice(0, i))}
                 className={`min-h-[36px] px-2 text-[13px] font-bold ${last ? "text-ink" : "text-accent"}`}>
                 {n.name}
               </Button>
@@ -93,7 +93,7 @@ export function CoverageView({ root }: { root: CoverageNode }) {
             <div key={k.name} role="row" className="grid grid-cols-4 items-center gap-2.5 border-b border-line px-3.5 py-3 last:border-b-0 md:grid-cols-[minmax(0,1.4fr)_repeat(4,84px)_minmax(0,1.6fr)_110px]">
               <span role="cell" className="col-span-4 flex items-center gap-2 md:col-span-1">
                 {k.kids ? (
-                  <Button icon={LuChevronRight} type="button" variant="control" size="custom" onClick={() => setPath([...path, k.name])}
+                  <Button icon={LuChevronRight} type="button" variant="ghost" layout="control" size="custom" onClick={() => setPath([...path, k.name])}
                     className="min-h-[36px] justify-start gap-1.5 px-0 text-left text-[14px] font-bold hover:bg-transparent">
                     {k.name}
                   </Button>

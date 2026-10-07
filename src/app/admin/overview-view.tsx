@@ -1,9 +1,9 @@
 "use client";
 
+import { PeriodSelector } from "@/components/PeriodSelector";
 import { Button } from "@/components/Button";
 import { ButtonLink } from "@/components/ButtonLink";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { OverviewPeriod } from "@/features/overview/queries";
 import type {
   AttentionCell,
@@ -19,9 +19,6 @@ import type {
 import { PERIODS } from "@/features/overview/mock-data";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import {
-  CalendarIcon,
-  CalendarRangeIcon,
-  CalendarCheckIcon,
   AlertIcon,
   ReadOnlyIcon,
   RevenueIcon,
@@ -40,11 +37,6 @@ import { ICON_SIZE } from "@/core/ui/icon-size";
 const ACCENT = "var(--accent)";
 const INK = "var(--ink)";
 
-const PERIOD_ICON: Record<Period, IconType> = {
-  "This month": CalendarIcon,
-  Quarter: CalendarRangeIcon,
-  Year: CalendarCheckIcon,
-};
 
 /** Display label (this file's own `Period`, from the design's mock-data.ts)
  * ↔ the `?period=` query value (`OverviewPeriod`, from queries.ts) the
@@ -112,6 +104,7 @@ export function OverviewView({
   trendHeaderHint: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const period = QUERY_TO_PERIOD[periodParam];
 
   return (
@@ -121,23 +114,12 @@ export function OverviewView({
           <h1 className="font-display text-[24px] tracking-[-0.02em] md:text-[26px]">Platform overview</h1>
           <p className="text-[12.5px] text-mute">{headerLine}</p>
         </div>
-        <div className="flex" role="group" aria-label="Period">
-          {PERIODS.map((p) => {
-            const Icon = PERIOD_ICON[p];
-            const on = period === p;
-            return (
-              <Button icon={Icon}
-                key={p}
-                type="button"
-                aria-pressed={on}
-                onClick={() => router.push(`/admin?period=${PERIOD_TO_QUERY[p]}`)}
-                variant="secondary" selected={on} size="sm" className="-ml-[1.5px] first:ml-0"
-              >
-                {p}
-              </Button>
-            );
-          })}
-        </div>
+        <PeriodSelector value={period} options={PERIODS.map((p) => ({value:p,label:p}))} onChange={(p) => {
+          const params = new URLSearchParams(searchParams.toString());
+          params.set("period", PERIOD_TO_QUERY[p]);
+          params.delete("page");
+          router.push("/admin?" + params, {scroll:false});
+        }} />
         <ButtonLink
           href="/admin/packages"
           variant="primary" size="sm"
@@ -174,13 +156,13 @@ export function OverviewView({
                   {a.count}
                 </span>
                 <span className="text-[12px] leading-snug text-mute">{a.detail}</span>
-                <Link
+                <ButtonLink variant="text"
                   href={a.href}
                   className="mt-0.5 flex items-center gap-1.5 self-start text-[11.5px] font-bold text-accent"
                 >
                   <Icon size={14} aria-hidden />
                   {a.cta}
-                </Link>
+                </ButtonLink>
               </div>
             );
           })}
@@ -266,10 +248,10 @@ export function OverviewView({
               <h2 id="mfd-mix" className="text-[11px] font-bold uppercase tracking-[0.14em] text-mute">
                 Package mix
               </h2>
-              <Link href="/admin/packages" className="ml-auto flex items-center gap-1.5 text-[11.5px] font-bold text-accent">
+              <ButtonLink variant="text" href="/admin/packages" className="ml-auto flex items-center gap-1.5 text-[11.5px] font-bold text-accent">
                 <PackagesIcon size={14} aria-hidden />
                 Manage packages
-              </Link>
+              </ButtonLink>
             </div>
             <div className="flex flex-col gap-3">
               {mix.map((m) => (
@@ -307,10 +289,10 @@ export function OverviewView({
               <h2 id="mfd-risk" className="text-[11px] font-bold uppercase tracking-[0.14em] text-mute">
                 Accounts at risk
               </h2>
-              <Link href="/admin/gyms" className="ml-auto flex items-center gap-1.5 text-[11.5px] font-bold text-accent">
+              <ButtonLink variant="text" href="/admin/gyms" className="ml-auto flex items-center gap-1.5 text-[11.5px] font-bold text-accent">
                 <GymsIcon size={14} aria-hidden />
                 All {gymsEnrolledCount} gyms
-              </Link>
+              </ButtonLink>
             </div>
 
             <div className="hidden overflow-x-auto md:block">

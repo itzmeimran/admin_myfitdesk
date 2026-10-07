@@ -48,7 +48,7 @@ export const BOARD_COLUMNS: { key: BoardColumn; label: string }[] = [
   { key: "trial", label: "Trial started" },
   { key: "followup", label: "Follow-up" },
   { key: "converted", label: "Converted" },
-  { key: "closed", label: "Later / Lost" },
+  { key: "closed", label: "Later / lost" },
 ];
 
 export const CLOSED_LABEL: Record<ClosedStage, string> = {

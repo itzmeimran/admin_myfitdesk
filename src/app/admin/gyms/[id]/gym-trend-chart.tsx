@@ -221,7 +221,7 @@ export function GymTrendChart({ trend, currency }: { trend: GymTrend; currency: 
         {stats.map((s) => (
           <Button
             key={s.key}
-            variant="surface"
+            variant="ghost" layout="content"
             onClick={toggle(s.key)}
             aria-pressed={s.on}
             title={`${s.on ? "Hide" : "Show"} ${s.key === "pay" ? "payments" : "members"} line`}

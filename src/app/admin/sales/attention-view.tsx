@@ -44,7 +44,7 @@ export function AttentionView() {
             const owner = crm.users[l.owner];
             return (
               <div key={l.id} className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5 border-b border-line px-3.5 py-3 last:border-b-0">
-                <Button type="button" variant="control" size="custom" onClick={() => crm.openLead(l.id)}
+                <Button type="button" variant="ghost" layout="control" size="custom" onClick={() => crm.openLead(l.id)}
                   className="min-h-[44px] min-w-0 flex-1 basis-[240px] justify-start gap-3 px-0 text-left hover:bg-transparent">
                   <span title={owner.name} className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center border-[1.5px] border-ink text-[10px] font-bold">{owner.initials}</span>
                   <span className="flex min-w-0 flex-col gap-0.5">

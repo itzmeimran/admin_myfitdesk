@@ -70,6 +70,7 @@ export {
   LuChevronLeft as PrevPageIcon,
   LuChevronRight as NextPageIcon,
   LuChevronDown as LoadMoreIcon,
+  LuChevronDown as ChevronIcon,
 
   // Attention / status actions
   LuTriangleAlert as AlertIcon,

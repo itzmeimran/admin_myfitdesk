@@ -13,7 +13,7 @@ export type ButtonLinkProps = ComponentProps<typeof Link> & ButtonStyleProps & {
 
 /** Uses a real link for navigation, with the same visual contract as Button. */
 export function ButtonLink({
-  variant = "secondary", size, iconOnly, selected, tone, icon, disabled = false,
+  variant = "secondary", layout, size, iconOnly, selected, tone, icon, disabled = false,
   className, children, onClick, tabIndex, ...props
 }: ButtonLinkProps) {
   const unavailable = disabled || props["aria-disabled"] === true || props["aria-disabled"] === "true";
@@ -23,7 +23,7 @@ export function ButtonLink({
       aria-disabled={unavailable || undefined}
       tabIndex={unavailable ? -1 : tabIndex}
       data-selected={selected || undefined}
-      className={buttonClasses({ variant, size, iconOnly, tone, className })}
+      className={buttonClasses({ variant, layout, size, iconOnly, tone, className })}
       onClick={(event) => {
         if (unavailable) { event.preventDefault(); event.stopPropagation(); return; }
         onClick?.(event);

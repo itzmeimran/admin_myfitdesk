@@ -35,7 +35,7 @@ export function Dialog({
         type="button"
         aria-label="Dismiss"
         onClick={onClose}
-        variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
+        variant="ghost" layout="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
       />
       <div className="relative flex w-full max-w-md flex-col gap-3.5 overflow-y-auto border-[1.5px] border-ink bg-paper p-4 max-h-[88vh]">
         <div className="flex items-start justify-between gap-3 border-b-[1.5px] border-ink pb-3">

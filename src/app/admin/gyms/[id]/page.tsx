@@ -1,6 +1,5 @@
 import { ButtonLink } from "@/components/ButtonLink";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail, type GymDetail } from "@/features/gyms/detail";
@@ -191,7 +190,7 @@ function OverviewContent({
                 {overview.whatsapp.latestFailure.errorMessage || overview.whatsapp.latestFailure.errorCode || "Delivery failed without provider detail"}
               </strong>
               <span className="text-[11.5px] text-mute">{formatDateTime(overview.whatsapp.latestFailure.at, IST_TIME_ZONE)}</span>
-              <Link href={`/admin/gyms/${gym.id}/whatsapp?status=failed`} className="mt-auto w-fit text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">View failures →</Link>
+              <ButtonLink variant="text" href={`/admin/gyms/${gym.id}/whatsapp?status=failed`} className="mt-auto w-fit text-[10.5px] font-bold normal-case tracking-[0.09em] text-accent hover:underline">View failures →</ButtonLink>
             </div>
           ) : (
             <div className="flex items-center border-[1.5px] border-line bg-paper p-4 text-[12.5px] text-mute">No failed WhatsApp messages recorded.</div>
@@ -205,7 +204,7 @@ function OverviewContent({
         ) : (
           <EmptyCopy>No outbound WhatsApp messages have been recorded for this gym.</EmptyCopy>
         )}
-        <Link href={`/admin/gyms/${gym.id}/whatsapp`} className="w-fit text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">View complete WhatsApp history →</Link>
+        <ButtonLink variant="text" href={`/admin/gyms/${gym.id}/whatsapp`} className="w-fit text-[10.5px] font-bold normal-case tracking-[0.09em] text-accent hover:underline">View complete WhatsApp history →</ButtonLink>
       </Section>
 
       <Section title="Payments & enrollments" description="Money members paid the gym and new sign-ups, in IST." id="trend">
@@ -259,7 +258,7 @@ function OverviewContent({
 
       <Section title="Recent activity" description="Latest important platform billing and admin events.">
         {overview.recentActivity.length ? <div className="divide-y divide-line border-[1.5px] border-line bg-paper">{overview.recentActivity.map((event, index) => <div key={`${event.kind}-${event.at}-${index}`} className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-3 text-[12.5px]"><span className="font-bold text-ink">{activityLabel(event.label)}</span><span className="text-mute">{event.amountMinor !== null ? `${formatMinorWhole(event.amountMinor, event.currency ?? currency)} · ` : ""}{formatDateTime(event.at, IST_TIME_ZONE)}</span></div>)}</div> : <EmptyCopy>No important activity has been recorded yet.</EmptyCopy>}
-        <Link href={`/admin/gyms/${gym.id}/activity`} className="w-fit text-[10.5px] font-bold uppercase tracking-[0.09em] text-accent hover:underline">View complete activity →</Link>
+        <ButtonLink variant="text" href={`/admin/gyms/${gym.id}/activity`} className="w-fit text-[10.5px] font-bold normal-case tracking-[0.09em] text-accent hover:underline">View complete activity →</ButtonLink>
       </Section>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

@@ -19,6 +19,7 @@ import {
   type ScheduledPackageInfo,
 } from "./actions";
 import { PAYMENT_METHODS, DEFAULT_PAYMENT_METHOD, type PaymentMethod } from "./payment-method";
+import { Select } from "@/components/Select";
 import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -146,23 +147,14 @@ export function ManageSubscriptionSheet({
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-mute">Record paid renewal</span>
-          <select
-            value={renewalPackageId}
-            onChange={(e) => {
-              const nextId = e.target.value;
+          <Select aria-label="Renewal package" value={renewalPackageId} disabled={isPending}
+            placeholder="Select the package they paid for"
+            options={packages.map((p) => ({value: p.id, label: p.name + " · " + capitalizeBillingPeriod(p.billingPeriod) + " · " + p.price}))}
+            onChange={(nextId) => {
               const selected = packages.find((p) => p.id === nextId);
               setRenewalPackageId(nextId);
               if (selected) setPaymentAmount((selected.effectivePriceMinor / 100).toFixed(2));
-            }}
-            className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-          >
-            <option value="" disabled>Select the package they paid for</option>
-            {packages.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
-              </option>
-            ))}
-          </select>
+            }} />
           <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
             <input
               type="text"
@@ -172,13 +164,7 @@ export function ManageSubscriptionSheet({
               onChange={(e) => setPaymentAmount(e.target.value)}
               className="min-w-0 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
             />
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-              className="min-w-0 border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-            >
-              {PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
+            <Select aria-label="Payment method" value={paymentMethod} disabled={isPending} options={PAYMENT_METHODS} onChange={(value) => setPaymentMethod(value as PaymentMethod)} />
           </div>
           <input
             type="text"
@@ -288,27 +274,14 @@ export function ManageSubscriptionSheet({
                 type="button"
                 disabled={isPending}
                 onClick={() => run("clear", () => clearPendingSubscriptionPackage(gym.organizationId), "Scheduled change cleared.")}
-                variant="link" size="custom" className="underline underline-offset-2"
+                variant="text" size="custom" className="underline underline-offset-2"
               >
                 {busy === "clear" ? "Clearing…" : "Clear scheduled change"}
               </Button>
             </div>
           ) : null}
-          <select
-            value={packageId}
-            onChange={(e) => setPackageId(e.target.value)}
-            className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-          >
-            <option value="" disabled>
-              Select a package
-            </option>
-            {packages.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
-                {p.listPrice ? ` (was ${p.listPrice})` : ""}
-              </option>
-            ))}
-          </select>
+          <Select aria-label="Change package" value={packageId} onChange={setPackageId} disabled={isPending} placeholder="Select a package"
+            options={packages.map((p) => ({value: p.id, label: p.name + " · " + capitalizeBillingPeriod(p.billingPeriod) + " · " + p.price + (p.listPrice ? " (was " + p.listPrice + ")" : "")}))} />
           <p className="text-[10.5px] text-mute3">
             If the gym is still inside its current period (trialing or already paid), this queues the new package to
             start automatically when that period ends — today&apos;s access, price and caps are untouched until then.
@@ -347,20 +320,8 @@ export function ManageSubscriptionSheet({
             </div>
           ) : (
             <>
-              <select
-                value={schedulePackageId}
-                onChange={(e) => setSchedulePackageId(e.target.value)}
-                className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-              >
-                <option value="" disabled>
-                  Select a package
-                </option>
-                {packages.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} · {capitalizeBillingPeriod(p.billingPeriod)} · {p.price}
-                  </option>
-                ))}
-              </select>
+              <Select aria-label="Scheduled package" value={schedulePackageId} onChange={setSchedulePackageId} disabled={isPending} placeholder="Select a package"
+                options={packages.map((p) => ({value: p.id, label: p.name + " · " + capitalizeBillingPeriod(p.billingPeriod) + " · " + p.price}))} />
               <p className="text-[10.5px] text-mute3">
                 Starts automatically at {gym.renewsLabel} — today&apos;s access, price and caps are untouched until then.
               </p>

@@ -1,5 +1,6 @@
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { IST_TIME_ZONE } from "@/core/dates/ist";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
@@ -46,10 +47,10 @@ export default async function GymDetailLayout({
     <GymRealtimeProvider key={gym.id} organizationId={gym.id}>
     <div className="flex flex-col gap-3.5">
       <div className="flex items-center justify-between gap-3">
-        <Link href="/admin/gyms" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
+        <ButtonLink variant="text" href="/admin/gyms" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
           <BackIcon size={13} aria-hidden />
           All gyms
-        </Link>
+        </ButtonLink>
         <LiveIndicator />
       </div>
 

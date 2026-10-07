@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import buttonIcon from './scripts/eslint-rules/button-icon.mjs';
+import buttonCase from './scripts/eslint-rules/button-case.mjs';
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -9,12 +10,19 @@ const eslintConfig = defineConfig([
   {
     files: ["src/**/*.tsx"],
     ignores: ["src/components/Button.tsx"],
-    plugins: { 'mfd-ui': { rules: { 'button-icon': buttonIcon } } },
+    plugins: { 'mfd-ui': { rules: { 'button-icon': buttonIcon, 'button-case': buttonCase } } },
     rules: {
       'mfd-ui/button-icon': 'error',
+      'mfd-ui/button-case': 'error',
       "no-restricted-syntax": ["error", {
         selector: "JSXOpeningElement[name.name='button']",
         message: "Use the shared Button component from @/components/Button so styles and interaction states stay consistent.",
+      }, {
+        selector: "JSXOpeningElement[name.name='select']",
+        message: "Use the reusable MyFitDesk Select component from @/components/Select.",
+      }, {
+        selector: "JSXOpeningElement[name.name='input'] JSXAttribute[name.name='type'][value.value=/^(date|datetime-local|time)$/]",
+        message: "Use the reusable MyFitDesk DatePicker or TimePicker so calendar controls remain consistent.",
       }],
     },
   },

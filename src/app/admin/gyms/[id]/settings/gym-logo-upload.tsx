@@ -106,7 +106,7 @@ export function GymLogoUpload({
             type="button"
             disabled={pending !== null}
             onClick={() => inputRef.current?.click()}
-            variant="link" size="custom"
+            variant="text" size="custom"
           >
               {pending === "upload" ? "Uploading…" : previewUrl ? "Replace logo" : "Upload logo"}
           </Button>
@@ -115,7 +115,7 @@ export function GymLogoUpload({
               type="button"
               disabled={pending !== null}
               onClick={handleRemove}
-              variant="link" size="custom" className="text-mute"
+              variant="text" size="custom" className="text-mute"
             >
                 {pending === "remove" ? "Removing…" : "Remove"}
             </Button>

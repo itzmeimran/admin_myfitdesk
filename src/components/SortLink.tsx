@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
 
 /** Sortable `<th>` — toggles asc/desc on the given column key, shows a
  * small arrow when it's the active sort, and carries every other current
@@ -39,7 +39,7 @@ export function SortLink({
 
   return (
     <th scope="col" className={`mfd-micro-label border-b border-line px-3 py-2.5 ${align === "right" ? "text-right" : ""} ${className}`}>
-      <Link
+      <ButtonLink variant="ghost" layout="control" size="custom"
         href={`${pathname}?${params.toString()}`}
         className={`inline-flex items-center gap-1 transition-colors hover:text-ink ${active ? "text-ink" : ""}`}
         aria-sort={active ? (currentDir === "asc" ? "ascending" : "descending") : "none"}
@@ -48,7 +48,7 @@ export function SortLink({
         <span aria-hidden="true" className="text-[9px]">
           {active ? (currentDir === "asc" ? "▲" : "▼") : "↕"}
         </span>
-      </Link>
+      </ButtonLink>
     </th>
   );
 }

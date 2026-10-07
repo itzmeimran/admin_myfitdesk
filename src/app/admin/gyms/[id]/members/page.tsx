@@ -1,7 +1,6 @@
 import { ButtonLink } from "@/components/ButtonLink";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
 import { describeLastPayment, describeMembership, getGymMembers, getGymMemberSummary, getMemberActors, getMemberAvatarKeys, humanize } from "@/features/gyms/members";
@@ -124,7 +123,7 @@ export default async function GymMembersPage({
             { value: "invalid_phone", label: "Missing / invalid phone" },
           ]}
         />
-        {hasFilters ? <Link href={clearHref} className="text-[11.5px] font-bold text-accent underline underline-offset-2">Reset filters</Link> : null}
+        {hasFilters ? <ButtonLink variant="text" href={clearHref} className="text-[11.5px] font-bold text-accent underline underline-offset-2">Reset filters</ButtonLink> : null}
       </div>
 
       <div className="overflow-x-auto border-[1.5px] border-ink bg-paper">
@@ -178,5 +177,5 @@ export default async function GymMembersPage({
 }
 
 function InlineFailure({ message, retryHref }: { message: string; retryHref: string }) {
-  return <div className="flex flex-wrap items-center justify-between gap-2 border-[1.5px] border-accent bg-accent/5 px-3 py-2.5 text-[11.5px]"><span className="text-mute">{message}</span><Link href={retryHref} className="font-bold text-accent underline underline-offset-2">Retry</Link></div>;
+  return <div className="flex flex-wrap items-center justify-between gap-2 border-[1.5px] border-accent bg-accent/5 px-3 py-2.5 text-[11.5px]"><span className="text-mute">{message}</span><ButtonLink variant="text" href={retryHref} className="font-bold text-accent underline underline-offset-2">Retry</ButtonLink></div>;
 }

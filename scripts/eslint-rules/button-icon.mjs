@@ -29,11 +29,14 @@ const buttonIcon = {
           return;
         }
         const variant = attribute('variant')?.value;
-        if (variant?.type === 'Literal' && ['link', 'overlay'].includes(variant.value)) return;
+        if (variant?.type === 'Literal' && variant.value === 'text') return;
+        if (attribute('layout')?.value?.value === 'overlay') return;
+        const filename = context.filename.replaceAll('\\', '/');
+        // Calendar cells show date numbers, matching the shared MyFitDesk picker.
+        if (/\/components\/DatePicker\.tsx$/.test(filename) && attribute('role')?.value?.value === 'gridcell') return;
         const icon = attribute('icon');
         if (icon && !(icon.value?.type === 'JSXExpressionContainer' && icon.value.expression.type === 'Literal' && icon.value.expression.value == null)) return;
         if (node.children.some(hasVisibleIcon)) return;
-        const filename = context.filename.replaceAll('\\', '/');
         if (/\/components\/(AsyncButton|SubmitButton)\.tsx$/.test(filename) && opening.attributes.some(item => item.type === 'JSXSpreadAttribute')) return;
         context.report({ node: opening, messageId: 'missing' });
       },

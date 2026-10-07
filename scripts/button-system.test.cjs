@@ -69,18 +69,19 @@ test("loading disables the action, announces busy and replaces the existing icon
   assert.doesNotMatch(idle, /animate-spin|aria-busy|disabled=/);
   assert.equal((idle.match(/<svg/g) || []).length, 1);
   assert.equal(Button({ disabled: true, pending: false }).props.disabled, true);
+  for (const value of [true, "true"]) assert.equal(Button({ "aria-disabled": value }).props.disabled, true);
 });
 
 test("buttons and navigation share variants, sizes and selection without leaking style props", () => {
-  for (const variant of ["primary", "secondary", "danger", "danger-secondary", "ghost", "link", "control", "surface", "overlay"]) {
-    const props = { variant, size: "sm", selected: true, iconOnly: true, tone: "inverse", className: "ml-auto", "aria-label": "Action" };
+  for (const variant of ["primary", "secondary", "text", "ghost"]) {
+    const props = { variant, layout: "content", size: "sm", selected: true, iconOnly: true, tone: "inverse", className: "ml-auto", "aria-label": "Action" };
     const button = Button(props);
     const link = ButtonLink({ ...props, href: "/admin" });
     assert.equal(button.props.className, link.props.className);
     assert.match(button.props.className, new RegExp(`mfd-button--${variant}(?: |$)`));
-    assert.match(button.props.className, /mfd-button--sm.*mfd-button--icon.*mfd-button--inverse-tone.*ml-auto/);
+    assert.match(button.props.className, /mfd-button--content-layout.*mfd-button--sm.*mfd-button--icon.*mfd-button--inverse-tone.*ml-auto/);
     assert.equal(button.props["data-selected"], true);
-    for (const key of ["variant", "size", "iconOnly", "tone", "selected", "pendingLabel"]) assert.equal(button.props[key], undefined);
+    for (const key of ["variant", "layout", "size", "iconOnly", "tone", "selected", "pendingLabel"]) assert.equal(button.props[key], undefined);
   }
 });
 
@@ -143,10 +144,11 @@ test("icon rule protects all action buttons while exempting links and backdrops"
   const { Linter } = require('eslint');
   const rule = (await import('./eslint-rules/button-icon.mjs')).default;
   const linter = new Linter();
-  const check = source => linter.verify(source, [{
+  const check = (source, filename = 'test.js') => linter.verify(source, [{
+    files: ['**/*.{js,tsx}'],
     languageOptions: { ecmaVersion: 'latest', sourceType: 'module', parserOptions: { ecmaFeatures: { jsx: true } } },
     plugins: { ui: { rules: { icon: rule } } }, rules: { 'ui/icon': 'error' },
-  }]);
+  }], { filename });
   for (const source of [
     '<Button>Save</Button>;', '<Button pending>Save</Button>;',
     '<SubmitButton>Save</SubmitButton>;', '<AsyncButton>Retry</AsyncButton>;',
@@ -157,9 +159,12 @@ test("icon rule protects all action buttons while exempting links and backdrops"
     '<Button icon={ConfirmIcon}>Save</Button>;', '<Button icon={ConfirmIcon} />;',
     '<Button><CancelIcon /></Button>;', '<Button><span><DetailsIcon />Details</span></Button>;',
     '<Button>{shown ? <HideIcon /> : <RevealIcon />}</Button>;',
-    '<Button variant="link">Open</Button>;', '<ButtonLink href="/admin">Open</ButtonLink>;',
-    '<Button variant="overlay" aria-label="Dismiss" />;',
+    '<Button variant="text">Open</Button>;', '<ButtonLink href="/admin">Open</ButtonLink>;',
+    '<Button variant="ghost" layout="overlay" aria-label="Dismiss" />;',
   ]) assert.deepEqual(check(source), [], source);
+  assert.deepEqual(check('<Button role="gridcell">7</Button>;', 'src/components/DatePicker.tsx'), []);
+  assert.equal(check('<Button>Apply</Button>;', 'src/components/DatePicker.tsx').length, 1);
+  assert.equal(check('<Button role="gridcell">7</Button>;', 'src/features/calendar.tsx').length, 1);
 });
 
 test("button icons stay direct flex children and loading renders one glyph", () => {

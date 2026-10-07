@@ -62,7 +62,7 @@ export function SessionsTable({ sessions, canManage }: { sessions: AdminSession[
               </span>
             </div>
             {canManage && !session.isCurrent ? (
-              <Button icon={RevokeIcon} type="button" disabled={isPending} onClick={() => setTarget(session)} variant="danger-secondary" size="sm" >
+              <Button icon={RevokeIcon} type="button" disabled={isPending} onClick={() => setTarget(session)} variant="secondary" tone="danger" size="sm" >
                  End session
               </Button>
             ) : null}

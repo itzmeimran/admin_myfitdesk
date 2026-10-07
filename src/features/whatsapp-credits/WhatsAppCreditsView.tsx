@@ -10,6 +10,7 @@ import { Sheet } from "@/components/Sheet";
 import { useToast } from "@/components/Toast";
 import { SearchBox } from "@/components/SearchBox";
 import { Pagination } from "@/components/Pagination";
+import { DatePicker } from "@/components/DatePicker";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { formatMinor, toMinorUnits } from "@/core/money/format";
 import { AddIcon, SettingsIcon, WhatsAppIcon } from "@/core/ui/icons";
@@ -149,7 +150,7 @@ export function WhatsAppCreditsView({
               <strong>{profitability.unpricedMessages.toLocaleString("en-IN")} managed messages</strong> have no
               effective Meta rate, so the cost and margin shown above are understated.
             </span>
-            <Button tone="danger" type="button" onClick={() => setRatesOpen(true)} variant="link" size="custom" className="underline underline-offset-2">
+            <Button tone="danger" type="button" onClick={() => setRatesOpen(true)} variant="text" size="custom" className="underline underline-offset-2">
               Configure rates
             </Button>
           </div>
@@ -172,7 +173,7 @@ export function WhatsAppCreditsView({
                   <td className="border-b border-line px-3 py-2.5 font-bold capitalize">{row.category}</td>
                   <td className="border-b border-line px-3 py-2.5 text-right">
                     {row.currentRateMinor === null ? (
-                      <Button tone="danger" type="button" onClick={() => setRatesOpen(true)} variant="link" size="custom" className="underline underline-offset-2">Not set</Button>
+                      <Button tone="danger" type="button" onClick={() => setRatesOpen(true)} variant="text" size="custom" className="underline underline-offset-2">Not set</Button>
                     ) : (
                       <><strong>{formatMetaRate(row.currentRateMinor, profitability.currency)}</strong><span className="block text-[10px] text-mute">per accepted message</span></>
                     )}
@@ -445,7 +446,7 @@ function MetaRatesSheet({
         </p>
         <label className={LABEL}>
           Effective from
-          <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className={INPUT} />
+          <DatePicker ariaLabel="Rate effective date" value={effectiveDate} onChange={setEffectiveDate} size="field" required />
         </label>
         <div className="grid gap-3 sm:grid-cols-3">
           {categories.map((category) => {

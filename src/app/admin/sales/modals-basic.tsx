@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { schedulingDays, TIME_SLOTS } from "@/features/sales/scheduling";
+import { DatePicker } from "@/components/DatePicker";
 import { Button } from "@/components/Button";
 import { LEAD_SOURCES, BOARD_COLUMNS, STAGE_OPTIONS, type FollowUpType, type Lead, type LeadFilters } from "@/features/sales/model";
 import { useSalesCrm, type ModalState } from "@/features/sales/use-sales-crm";
@@ -49,7 +50,7 @@ export function StagesModal() {
     <ModalFrame title="Choose stage" onClose={crm.closeModal} footer={false}>
       <div className="flex flex-col border-[1.5px] border-line">
         {BOARD_COLUMNS.map((c, i) => (
-          <Button icon={CrmIcon} key={c.key} type="button" variant="surface" onClick={() => { crm.setMobileStage(i); crm.closeModal(); }}
+          <Button icon={CrmIcon} key={c.key} type="button" variant="ghost" layout="content" onClick={() => { crm.setMobileStage(i); crm.closeModal(); }}
             className={`min-h-[52px] items-center border-b border-line px-3.5 text-left text-[14.5px] font-bold text-ink last:border-b-0 ${crm.mobileStage === i ? "bg-sand" : "bg-paper"}`}>
             {c.label}
           </Button>
@@ -77,7 +78,7 @@ export function MoreModal({ modal, lead }: { modal: Of<"more">; lead: Lead }) {
         {items.map((i) => {
           const ActionIcon=iconForAction(i.label);
           return (
-          <Button key={i.label} type="button" variant="surface" disabled={i.disabled} onClick={i.act}
+          <Button key={i.label} type="button" variant="ghost" layout="content" disabled={i.disabled} onClick={i.act}
             className="min-h-[52px] flex-col items-start justify-center gap-0.5 border-b border-line bg-paper px-3.5 text-left text-ink last:border-b-0">
             <span className="flex items-center gap-2 text-[14.5px] font-bold"><ActionIcon size={15} className="flex-shrink-0" aria-hidden />{i.label}</span>
             {i.sub ? <span className="text-[12px] font-normal text-mute2">{i.sub}</span> : null}
@@ -124,7 +125,7 @@ export function ActivityModal({ modal, lead }: { modal: Of<"activity">; lead: Le
         </>
       ) : (
         <>
-          <SelectField label="Date" value={date} onChange={setDate} options={FOLLOW_UP_DAYS} />
+          <Field label="Date"><DatePicker value={date} onChange={setDate} ariaLabel="Follow-up date" size="field" required min={FOLLOW_UP_DAYS[0].value} max={FOLLOW_UP_DAYS.at(-1)?.value} /></Field>
           <SelectField label="Time" value={time} onChange={setTime} options={TIME_SLOTS} />
           <Field label="Follow-up type"><Segmented wrap ariaLabel="Follow-up type" value={fuType} onChange={setFuType} options={FU_TYPES.map((v) => ({ value: v, label: v }))} /></Field>
           <AreaField label="Notes (optional)" value={note} onChange={setNote} placeholder="What should happen on this follow-up?" />
@@ -143,7 +144,7 @@ export function DemoModal({ modal, lead }: { modal: Of<"demo">; lead: Lead }) {
   const [time, setTime] = useState(modal.variant === "suggest" ? "5:00 PM" : "4:00 PM");
   const [note, setNote] = useState("");
   const pick = [
-    <SelectField key="d" label="Date" value={date} onChange={setDate} options={DEMO_DAYS} help="Demos run Mon–Sat, 10:00 AM–6:30 PM IST" />,
+    <Field key="d" label="Date"><DatePicker value={date} onChange={setDate} ariaLabel="Demo date" size="field" required min={DEMO_DAYS[0].value} max={DEMO_DAYS.at(-1)?.value} isDateDisabled={(key) => !DEMO_DAYS.some((day) => day.value === key)} /><p className="mt-1 text-[11px] text-mute">Demos run Mon–Sat, 10:00 AM–6:30 PM IST</p></Field>,
     <SelectField key="t" label="Time" value={time} onChange={setTime} options={TIME_SLOTS} />,
   ];
   const title = confirmLayout ? "Confirm demo" : modal.variant === "reschedule" ? "Reschedule demo" : "Schedule demo";

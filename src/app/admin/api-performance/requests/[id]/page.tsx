@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/ButtonLink";
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
@@ -36,10 +38,10 @@ export default async function ApiRequestDetailPage({ params }: { params: Promise
 
   return (
     <div className="flex flex-col gap-4">
-      <Link href="/admin/api-performance/requests" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
+      <ButtonLink variant="text" href="/admin/api-performance/requests" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
         <BackIcon size={13} aria-hidden />
-        Request Explorer
-      </Link>
+        Request explorer
+      </ButtonLink>
 
       <Section title={requestLabel(r.request_id)} hint={`Full id ${r.request_id}`}>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

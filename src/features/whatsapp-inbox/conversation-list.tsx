@@ -66,7 +66,7 @@ export function ConversationList({
               key={f.key}
               role="tab"
               aria-selected={on}
-              variant="control"
+              variant="ghost" layout="control"
               size="custom"
               onClick={() => onFilter(f.key)}
               className={`-mb-px min-h-10 gap-1.5 whitespace-nowrap border-0 border-b-2 p-0 text-[12.5px] font-bold hover:bg-transparent ${on ? "border-b-ink text-ink" : "border-b-transparent text-mute2 hover:border-b-line hover:text-ink"}`}
@@ -104,7 +104,7 @@ export function ConversationList({
                 <Button
                   key={c.id}
                   role="listitem"
-                  variant="control"
+                  variant="ghost" layout="control"
                   size="custom"
                   aria-current={on ? "true" : undefined}
                   onClick={() => onSelect(c.id)}

@@ -55,7 +55,7 @@ export function DangerZone() {
               Suspend or Revoke on the Admins tab to remove someone&apos;s access. Your own session is not affected.
             </span>
           </div>
-          <Button icon={SignOutIcon} type="button" disabled={isPending} onClick={() => setOpen(true)} variant="danger-secondary" size="sm" >
+          <Button icon={SignOutIcon} type="button" disabled={isPending} onClick={() => setOpen(true)} variant="secondary" tone="danger" size="sm" >
              Sign out others
           </Button>
         </div>

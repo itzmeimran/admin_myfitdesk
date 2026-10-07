@@ -62,7 +62,7 @@ export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { o
     <>
       <div className="flex min-w-0 items-center gap-2.5">
         <MemberAvatar name={member.name} url={avatarUrl} size={32} />
-        <Button type="button" onClick={show} variant="link" size="custom" className="block min-w-0 max-w-full truncate text-left">
+        <Button type="button" onClick={show} variant="text" size="custom" className="block min-w-0 max-w-full truncate text-left">
           {trigger}
         </Button>
       </div>
@@ -79,7 +79,7 @@ export function MemberDrawer({ organizationId, member, trigger, avatarUrl }: { o
           <div className="flex flex-col items-center gap-3 border-[1.5px] border-accent bg-accent/5 px-4 py-10 text-center">
             <span className="font-display text-[17px] text-ink">Member details unavailable</span>
             <p className="text-[12px] text-mute">{error}</p>
-            <Button icon={RetryIcon} type="button" onClick={() => void fetchDetail()} variant="danger" size="md">
+            <Button icon={RetryIcon} type="button" onClick={() => void fetchDetail()} variant="primary" size="md">
               Retry
             </Button>
           </div>

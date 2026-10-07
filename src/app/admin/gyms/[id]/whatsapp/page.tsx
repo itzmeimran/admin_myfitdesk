@@ -1,5 +1,6 @@
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { IST_TIME_ZONE } from "@/core/dates/ist";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
@@ -37,7 +38,7 @@ export default async function GymWhatsAppHistoryPage({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <Link href={`/admin/gyms/${id}`} className="flex items-center gap-1.5 text-[11px] font-bold text-mute hover:text-ink"><BackIcon size={12} aria-hidden />Overview</Link>
+          <ButtonLink variant="text" href={`/admin/gyms/${id}`} className="flex items-center gap-1.5 text-[11px] font-bold text-mute hover:text-ink"><BackIcon size={12} aria-hidden />Overview</ButtonLink>
           <h2 className="font-display text-[20px] tracking-[-0.02em]">WhatsApp message history</h2>
           <p className="text-[11.5px] text-mute">Outbound delivery history and provider diagnostics. No tokens or credentials are exposed.</p>
         </div>

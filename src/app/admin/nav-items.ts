@@ -56,7 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon, permission: "revenue.view" },
   { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon, permission: "whatsapp.view" },
   { href: "/admin/whatsapp/inbox", label: "WhatsApp inbox", icon: ConversationIcon, permission: "whatsapp.view" },
-  { href: "/admin/api-performance", label: "API Performance", icon: ApiPerformanceIcon, permission: "api_performance.view" },
+  { href: "/admin/api-performance", label: "API performance", icon: ApiPerformanceIcon, permission: "api_performance.view" },
   { href: "/admin/system/disaster-recovery", label: "Recovery", icon: DatabaseIcon, permission: "recovery.view" },
   { href: "/admin/settings", label: "Settings", icon: SettingsIcon, permission: "settings.view" },
 ];

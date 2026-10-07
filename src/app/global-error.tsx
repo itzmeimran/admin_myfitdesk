@@ -72,20 +72,24 @@ export default function GlobalError({
             in a moment.
           </p>
 
-          <Button icon={RetryIcon} variant="ghost" size="md"
+          <Button icon={RetryIcon} variant="primary" size="md"
             type="button"
             onClick={reset}
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
               width: "100%",
               padding: "12px",
-              border: "none",
+              border: "1.5px solid #1b1512",
               cursor: "pointer",
-              background: "#f2c14e",
-              color: "#1b1512",
+              background: "#1b1512",
+              color: "#f2c14e",
               fontSize: "12px",
               fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.12em",
+              textTransform: "none",
+              letterSpacing: "normal",
               fontFamily: "inherit",
             }}
           >

@@ -41,7 +41,7 @@ export function Sheet({
         type="button"
         aria-label="Dismiss"
         onClick={onClose}
-        variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
+        variant="ghost" layout="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/45"
       />
       <div
         className={`sheet-slide-up relative flex flex-col gap-3.5 overflow-y-auto border-t-[1.5px] border-ink bg-paper p-4 md:mx-auto md:w-[calc(100%-2rem)] md:border-x-[1.5px] ${maxWidthClassName} ${maxHeightClassName}`}
@@ -90,7 +90,7 @@ export function SheetRow({
     <Button
       type="button"
       onClick={onClick}
-      variant="surface"
+      variant="secondary" layout="content"
       className={`min-h-[52px] items-center gap-3 px-3.5 py-2.5 text-left ${active ? "border-ink bg-ink text-paper" : "border-line bg-transparent text-ink hover:border-ink hover:bg-sand"}`}
     >
       <Icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />

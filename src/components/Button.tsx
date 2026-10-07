@@ -12,20 +12,22 @@ export type ButtonProps = ComponentProps<"button"> & ButtonStyleProps & {
 };
 
 /** Native button semantics, refs and form props are preserved. Visible actions
- * require an icon (enforced by mfd-ui/button-icon); link variants and invisible
- * backdrops are exempt. Actions default to type=button; submissions opt in. */
+ * require an icon (enforced by mfd-ui/button-icon); text variants and invisible
+ * backdrops and shared calendar date cells are exempt. Actions default to
+ * type=button; submissions opt in. */
 export function Button({
-  variant = "secondary", size, iconOnly, selected, tone, icon, pending = false,
+  variant = "secondary", layout, size, iconOnly, selected, tone, icon, pending = false,
   pendingLabel, className, children, disabled, type = "button", ...props
 }: ButtonProps) {
+  const unavailable = disabled || pending || props["aria-disabled"] === true || props["aria-disabled"] === "true";
   return (
     <button
       {...props}
       type={type}
-      disabled={disabled || pending}
+      disabled={unavailable}
       aria-busy={pending || props["aria-busy"] || undefined}
       data-selected={selected || undefined}
-      className={buttonClasses({ variant, size, iconOnly, tone, className })}
+      className={buttonClasses({ variant, layout, size, iconOnly, tone, className })}
     >
       <ButtonLabel icon={icon} pending={pending}>
         {pending && pendingLabel !== undefined ? pendingLabel : children}

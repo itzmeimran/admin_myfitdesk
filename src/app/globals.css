@@ -183,8 +183,8 @@ html[data-admin-env="prod"] body::before {
     font-size: 11.5px;
     font-weight: 700;
     line-height: 1.35;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    letter-spacing: normal;
+    text-transform: none;
     text-decoration: none;
     vertical-align: middle;
     cursor: pointer;
@@ -196,7 +196,7 @@ html[data-admin-env="prod"] body::before {
   }
   .mfd-button:is(:disabled, [aria-disabled="true"]) {
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 1;
   }
   .mfd-button[aria-busy="true"] { cursor: wait; }
   .mfd-button--xs { min-height: 28px; padding: 0.25rem 0.5rem; }
@@ -216,42 +216,40 @@ html[data-admin-env="prod"] body::before {
   .mfd-button--icon > svg { width: 16px; height: 16px; }
   .mfd-button--primary { border-color: var(--ink); background: var(--ink); color: var(--hi); }
   .mfd-button--secondary { border-color: var(--line); background: var(--paper); color: var(--ink); }
-  .mfd-button--danger { border-color: var(--accent); background: var(--accent); color: var(--paper); }
-  .mfd-button--danger-secondary { border-color: var(--accent); background: var(--paper); color: var(--accent); }
   .mfd-button--ghost { background: transparent; color: var(--mute); }
-  .mfd-button--link { border: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; }
-  .mfd-button--control, .mfd-button--surface {
-    letter-spacing: inherit; text-transform: inherit; font-size: inherit; line-height: inherit;
+  .mfd-button--text { background: transparent; color: var(--accent); padding: 0; }
+  .mfd-button--control-layout, .mfd-button--content-layout {
+    font-size: inherit; line-height: inherit;
   }
-  .mfd-button--control { border-color: transparent; background: transparent; color: inherit; }
-  .mfd-button--surface { align-items: stretch; justify-content: initial; font-weight: inherit; }
+  .mfd-button--content-layout { align-items: stretch; justify-content: initial; font-weight: inherit; }
   .mfd-button--danger-tone { color: var(--accent); }
+  .mfd-button--primary.mfd-button--danger-tone { border-color: var(--accent); background: var(--accent); color: var(--paper); }
+  .mfd-button--secondary.mfd-button--danger-tone { border-color: var(--accent); }
   .mfd-button--inverse-tone { color: var(--paper); }
-  .mfd-button--overlay { border: 0; padding: 0; }
+  .mfd-button--overlay-layout { border: 0; padding: 0; }
   .mfd-button--primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     background: var(--ink2); color: var(--hi);
   }
-  .mfd-button--secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible),
-  .mfd-button--control:not(:disabled):not([aria-disabled="true"]):hover {
+  .mfd-button--secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     border-color: var(--accent); background: var(--sand);
   }
-  .mfd-button--danger:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+  .mfd-button--primary.mfd-button--danger-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     background: color-mix(in srgb, var(--accent) 88%, var(--ink)); border-color: var(--accent);
   }
-  .mfd-button--danger-secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+  .mfd-button--secondary.mfd-button--danger-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     background: var(--accent); color: var(--paper);
   }
-  .mfd-button--ghost:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
+  .mfd-button--ghost:not(.mfd-button--overlay-layout):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     background: var(--sand); color: var(--ink);
   }
-  .mfd-button--link:not(:disabled):not([aria-disabled="true"]):hover { text-decoration: underline; }
+  .mfd-button--text:not(:disabled):not([aria-disabled="true"]):hover { text-decoration: underline; text-underline-offset: 3px; }
   .mfd-button--ghost.mfd-button--inverse-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) { background: var(--ink2); color: var(--hi); }
   .mfd-button--secondary[data-selected="true"] { border-color: var(--ink); background: var(--ink); color: var(--hi); }
   @media (prefers-reduced-motion: no-preference) {
-    .mfd-button:not(.mfd-button--overlay) {
+    .mfd-button:not(.mfd-button--overlay-layout) {
       transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, opacity 160ms ease-out, transform 120ms ease-out;
     }
-    .mfd-button:is(.mfd-button--primary, .mfd-button--secondary, .mfd-button--danger, .mfd-button--danger-secondary):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.985); }
+    .mfd-button:is(.mfd-button--primary, .mfd-button--secondary, .mfd-button--ghost, .mfd-button--text):not(.mfd-button--overlay-layout):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.985); }
   }
 }
 
@@ -370,7 +368,7 @@ html[data-admin-env="prod"] body::before {
 
 /* Borderless controls and text links still need a visible keyboard indicator.
    The inset edge sits within their existing bounds. */
-.mfd-button:is(.mfd-button--link, [class~="border-0"]):focus-visible {
+.mfd-button[class~="border-0"]:focus-visible {
   box-shadow: inset 0 0 0 1.5px var(--accent);
 }
 :where(a:not(.mfd-button), summary, [tabindex]):focus-visible {
@@ -379,7 +377,35 @@ html[data-admin-env="prod"] body::before {
 }
 
 @media (hover: hover) {
-  .mfd-button--surface:not(:disabled):not([aria-disabled="true"]):hover {
+  .mfd-button--content-layout:not(:disabled):not([aria-disabled="true"]):hover {
     background-color: color-mix(in srgb, var(--sand) 65%, var(--paper));
   }
+}
+
+/* Button casing and unavailable states are part of the shared contract, even
+   when a widget supplies layout utilities or inherits uppercase headings. */
+.mfd-button {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.mfd-button:is(:disabled, [aria-disabled="true"]) {
+  border-color: var(--line);
+  background: var(--line);
+  color: var(--mute);
+  opacity: 1;
+  transform: none;
+  box-shadow: none;
+}
+.mfd-button:is(.mfd-button--text, .mfd-button--ghost):is(:disabled, [aria-disabled="true"]) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--mute2);
+}
+.mfd-button--inverse-tone:is(:disabled, [aria-disabled="true"]) {
+  border-color: var(--inkline);
+  background: var(--ink2);
+  color: var(--mute3);
+}
+.mfd-button:is(:disabled, [aria-disabled="true"]) :where(svg, span, strong) {
+  color: inherit;
 }

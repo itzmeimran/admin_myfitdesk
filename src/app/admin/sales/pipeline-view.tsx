@@ -78,7 +78,7 @@ export function PipelineView() {
           ))}
         </div>
 
-        <Button icon={LuListFilter} type="button" variant="control" size="custom" onClick={() => crm.openModal({ kind: "filters" })}
+        <Button icon={LuListFilter} type="button" variant="secondary" layout="control" size="custom" onClick={() => crm.openModal({ kind: "filters" })}
           className="min-h-[44px] gap-2 border-[1.5px] border-ink bg-paper px-3 text-[12px] font-bold text-ink hover:bg-sand md:min-h-[36px]">
 
           <span className="hidden lg:inline">All filters</span>
@@ -86,7 +86,7 @@ export function PipelineView() {
           {filterCount ? <span>· {filterCount}</span> : null}
         </Button>
 
-        <Button icon={AlertIcon} type="button" variant="control" size="custom" aria-pressed={crm.attentionOnly} onClick={() => crm.setAttentionOnly(!crm.attentionOnly)}
+        <Button icon={AlertIcon} type="button" variant="secondary" layout="control" size="custom" aria-pressed={crm.attentionOnly} onClick={() => crm.setAttentionOnly(!crm.attentionOnly)}
           className={`min-h-[44px] gap-2 border-[1.5px] border-ink px-3 text-[12px] font-bold md:min-h-[36px] ${crm.attentionOnly ? "bg-ink text-hi" : "bg-paper text-ink hover:bg-sand"}`}>
           <span aria-hidden className="h-2 w-2 border-[1.5px] border-ink bg-hi" />
           Needs attention · {crm.attentionCount}
@@ -96,13 +96,13 @@ export function PipelineView() {
       {chips.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">
           {chips.map((c) => (
-            <Button icon={LuX} key={c.key} type="button" variant="control" size="custom" aria-label={`Remove filter ${c.label}`} onClick={() => crm.patchFilters({ [c.key]: "" })}
+            <Button icon={LuX} key={c.key} type="button" variant="secondary" layout="control" size="custom" aria-label={`Remove filter ${c.label}`} onClick={() => crm.patchFilters({ [c.key]: "" })}
               className="min-h-[30px] gap-1.5 border-[1.5px] border-line bg-sand pl-2.5 pr-2 text-[12px] font-medium text-ink hover:border-ink">
               {c.label}: {c.fmt ? c.fmt(crm.filters[c.key], crm.users) : crm.filters[c.key]}
 
             </Button>
           ))}
-          <Button type="button" variant="link" size="custom" onClick={crm.clearFilters} className="min-h-[30px] px-1.5 text-[12px] font-bold text-accent">
+          <Button type="button" variant="text" size="custom" onClick={crm.clearFilters} className="min-h-[30px] px-1.5 text-[12px] font-bold text-accent">
             Clear all
           </Button>
         </div>
@@ -110,18 +110,18 @@ export function PipelineView() {
 
       {/* Phone: one stage at a time, switched with arrows or the stage list. */}
       <div className="flex gap-1.5 md:hidden">
-        <Button icon={LuChevronLeft} type="button" variant="surface" aria-label="Previous stage" onClick={() => crm.setMobileStage((mobileIdx + BOARD_COLUMNS.length - 1) % BOARD_COLUMNS.length)}
+        <Button icon={LuChevronLeft} type="button" variant="secondary" layout="content" aria-label="Previous stage" onClick={() => crm.setMobileStage((mobileIdx + BOARD_COLUMNS.length - 1) % BOARD_COLUMNS.length)}
           className="min-h-[48px] w-12 flex-shrink-0 items-center justify-center border-[1.5px] border-line bg-paper text-ink" />
-        <Button icon={LuChevronDown} type="button" variant="surface" aria-haspopup="dialog" onClick={() => crm.openModal({ kind: "stages" })}
+        <Button icon={LuChevronDown} type="button" variant="secondary" layout="content" aria-haspopup="dialog" onClick={() => crm.openModal({ kind: "stages" })}
           className="min-h-[48px] min-w-0 flex-1 items-center gap-2.5 border-[1.5px] border-ink bg-paper px-3.5 text-left">
           <span className="flex min-w-0 flex-1 flex-col gap-px">
-            <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute2">Stage {mobileIdx + 1} of {BOARD_COLUMNS.length}</span>
+            <span className="text-[9.5px] font-bold normal-case tracking-[0.12em] text-mute2">Stage {mobileIdx + 1} of {BOARD_COLUMNS.length}</span>
             <span className="text-[15px] font-bold">{mobileCol.label}</span>
           </span>
           <span className="flex h-6 min-w-6 items-center justify-center bg-ink px-1.5 text-[12px] font-bold text-hi">{countIn(mobileCol.key)}</span>
 
         </Button>
-        <Button icon={LuChevronRight} type="button" variant="surface" aria-label="Next stage" onClick={() => crm.setMobileStage((mobileIdx + 1) % BOARD_COLUMNS.length)}
+        <Button icon={LuChevronRight} type="button" variant="secondary" layout="content" aria-label="Next stage" onClick={() => crm.setMobileStage((mobileIdx + 1) % BOARD_COLUMNS.length)}
           className="min-h-[48px] w-12 flex-shrink-0 items-center justify-center border-[1.5px] border-line bg-paper text-ink" />
       </div>
 
@@ -181,7 +181,7 @@ function LeadCard({ lead: l }: { lead: Lead }) {
     { k: "Next follow-up", v: l.next ? `${l.next.label} · ${l.next.type}` : "—", rust: l.next?.due === "overdue" },
   ];
   return (
-    <Button variant="surface" size="custom"
+    <Button variant="secondary" layout="content" size="custom"
       draggable
       onDragStart={(e) => { e.dataTransfer.setData("text/plain", String(l.id)); e.dataTransfer.effectAllowed = "move"; }}
       onClick={() => crm.openLead(l.id)}
@@ -195,13 +195,13 @@ function LeadCard({ lead: l }: { lead: Lead }) {
           <span className="text-[12px] text-mute">{l.city}, {l.state}</span>
         </span>
         {l.priority === "high" ? (
-          <span className="flex-shrink-0 border-[1.5px] border-accent px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.1em] text-accent">High</span>
+          <span className="flex-shrink-0 border-[1.5px] border-accent px-1.5 py-0.5 text-[9.5px] font-bold normal-case tracking-[0.1em] text-accent">High</span>
         ) : null}
       </div>
       <dl className="grid grid-cols-2 gap-x-2.5 gap-y-2">
         {meta.map((m) => (
           <div key={m.k} className="flex min-w-0 flex-col gap-px">
-            <dt className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-mute2">{m.k}</dt>
+            <dt className="text-[9.5px] font-bold normal-case tracking-[0.1em] text-mute2">{m.k}</dt>
             <dd className={`truncate text-[12.5px] font-medium ${m.rust ? "text-accent" : "text-ink"}`}>{m.v}</dd>
           </div>
         ))}

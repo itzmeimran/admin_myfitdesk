@@ -2,6 +2,8 @@
 
 import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { ConfirmedForm } from '@/components/ConfirmedForm';
+import { PeriodSelector } from "@/components/PeriodSelector";
+import { Select } from "@/components/Select";
 import { Button } from "@/components/Button";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,7 +14,7 @@ import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
-import { AddIcon, CalendarIcon, CalendarRangeIcon, EditIcon, ArchiveIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
+import { AddIcon, EditIcon, ArchiveIcon, RestoreIcon, ConfirmIcon } from "@/core/ui/icons";
 import { CancelIcon } from '@/core/ui/icons';
 
 const INK = "var(--ink)";
@@ -124,23 +126,7 @@ export function PackagesView({
             The catalogue every gym buys from. Editing a price never changes what a gym already paid.
           </p>
         </div>
-        <div className="flex" role="group" aria-label="Billing period">
-          {(["Monthly", "Yearly"] as const).map((p) => {
-            const Icon = p === "Monthly" ? CalendarIcon : CalendarRangeIcon;
-            const on = period === p;
-            return (
-              <Button icon={Icon}
-                key={p}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setPeriod(p)}
-                variant="secondary" selected={on} size="sm" className="-ml-[1.5px] first:ml-0"
-              >
-                {p}
-              </Button>
-            );
-          })}
-        </div>
+        <PeriodSelector value={period} ariaLabel="Billing period" onChange={setPeriod} options={[{value:"Monthly",label:"Monthly"},{value:"Yearly",label:"Yearly"}]} />
         <Button icon={AddIcon}
           type="button"
           onClick={openCreate}
@@ -385,15 +371,8 @@ function PackageSheet({
                 className="w-full border-[1.5px] border-line bg-sand px-2.5 py-2 text-[13px] text-mute outline-none"
               />
             ) : (
-              <select
-                name="billingPeriod"
-                defaultValue="Monthly"
-                required
-                className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
-              >
-                <option value="Monthly">Monthly</option>
-                <option value="Yearly">Yearly</option>
-              </select>
+              <Select aria-label="Billing period" name="billingPeriod" defaultValue="Monthly" required
+                options={[{value:"Monthly",label:"Monthly"},{value:"Yearly",label:"Yearly"}]} />
             )}
             <span className="text-[10.5px] text-mute3">
               {isEditing ? "Create a new package to change this." : "Yearly rows are priced at 10× monthly today"}

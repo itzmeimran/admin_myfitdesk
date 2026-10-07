@@ -77,7 +77,7 @@ export function AdminsView({
                         <Button
                           type="button"
                           onClick={() => setSelectedId(admin.userId)}
-                          variant="surface" size="custom" className="flex max-w-[260px] flex-col text-left"
+                          variant="ghost" layout="content" size="custom" className="flex max-w-[260px] flex-col text-left"
                           aria-label={`Open details for ${admin.email}`}
                         >
                           <span className="flex items-center gap-2 font-medium text-ink underline-offset-2 hover:underline">
@@ -123,7 +123,7 @@ export function AdminsView({
                   <Button
                     type="button"
                     onClick={() => setSelectedId(admin.userId)}
-                    variant="surface" size="custom" className="flex w-full flex-col gap-2.5 border-[1.5px] border-line bg-paper p-3.5 text-left hover:border-ink"
+                    variant="secondary" layout="content" size="custom" className="flex w-full flex-col gap-2.5 border-[1.5px] border-line bg-paper p-3.5 text-left hover:border-ink"
                   >
                     <span className="flex items-start justify-between gap-2">
                       <DetailsIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />

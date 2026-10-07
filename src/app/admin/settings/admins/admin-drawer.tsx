@@ -311,12 +311,12 @@ export function AdminDrawer({
                     </Button>
                   ) : null}
                   {canSuspend ? (
-                    <Button icon={SuspendIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "suspend" })} variant="danger-secondary" size="sm" >
+                    <Button icon={SuspendIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "suspend" })} variant="secondary" tone="danger" size="sm" >
                        Suspend
                     </Button>
                   ) : null}
                   {canRevoke ? (
-                    <Button icon={RevokeIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "revoke" })} variant="danger-secondary" size="sm" >
+                    <Button icon={RevokeIcon} type="button" disabled={isPending} onClick={() => setPendingAction({ kind: "revoke" })} variant="secondary" tone="danger" size="sm" >
                        {admin.status === "pending" || admin.status === "expired" ? "Cancel invitation" : "Revoke access"}
                     </Button>
                   ) : null}

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { getDisasterRecoveryData } from "@/features/disaster-recovery/queries";
 import { DisasterRecoveryView } from "@/features/disaster-recovery/DisasterRecoveryView";
 import { createClient } from "@/core/db/server-client";
@@ -35,12 +36,12 @@ export default async function DisasterRecoveryPage({ searchParams }: { searchPar
             records list is limited to this gym.
           </span>
           <span className="ml-auto flex gap-3 text-[11px] font-bold uppercase tracking-[0.08em]">
-            <Link href={`/admin/gyms/${organizationId}/operations?section=data`} className="text-mute hover:text-ink">
+            <ButtonLink variant="text" href={`/admin/gyms/${organizationId}/operations?section=data`} className="text-mute hover:text-ink">
               ← Back to gym
-            </Link>
-            <Link href="/admin/system/disaster-recovery" className="text-accent">
+            </ButtonLink>
+            <ButtonLink variant="text" href="/admin/system/disaster-recovery" className="text-accent">
               Show all
-            </Link>
+            </ButtonLink>
           </span>
         </div>
       ) : null}

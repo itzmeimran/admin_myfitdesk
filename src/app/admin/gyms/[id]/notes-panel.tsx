@@ -64,10 +64,10 @@ export function NotesPanel({ organizationId, notes, timeZone }: { organizationId
                 {note.category ? <span className="bg-sand px-1.5 py-0.5 font-bold uppercase tracking-[0.08em] text-ink2">{note.category}</span> : null}
                 {note.updatedAt ? <span>· edited {exactTime(note.updatedAt, timeZone)}</span> : null}
                 <span className="ml-auto flex gap-3">
-                  <Button type="button" onClick={() => { setEditing(note.id); setDraft(note.content); }} variant="link">
+                  <Button type="button" onClick={() => { setEditing(note.id); setDraft(note.content); }} variant="text">
                     Edit
                   </Button>
-                  <Button tone="danger" type="button" onClick={() => setToDelete(note)} variant="link" size="custom">
+                  <Button tone="danger" type="button" onClick={() => setToDelete(note)} variant="text" size="custom">
                     Delete
                   </Button>
                 </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useConfirmedTransition } from '@/components/use-confirmed-transition';
+import { Select } from "@/components/Select";
 import { Button } from "@/components/Button";
 import { DetailsIcon } from '@/core/ui/icons';
 import { istDateKey } from "@/core/dates/ist";
@@ -46,7 +47,7 @@ export function WhatsAppControls({
       <Button icon={ManageIcon} type="button" variant="primary" size="sm" onClick={() => setPanel("credits")}>
         Add / remove credits
       </Button>
-      <Button icon={paused ? RestoreIcon : SuspendIcon} type="button" variant={paused ? "primary" : "danger-secondary"} size="sm"  onClick={() => setPanel("pause")}>
+      <Button icon={paused ? RestoreIcon : SuspendIcon} type="button" variant={paused ? "primary" : "secondary"} tone={paused ? "default" : "danger"} size="sm"  onClick={() => setPanel("pause")}>
         {paused ? "Resume sending" : "Pause sending"}
       </Button>
       <Button icon={RetryIcon}
@@ -100,7 +101,7 @@ export function LockRowControl({
   const active = Boolean(state?.isActive);
   return (
     <>
-      <Button icon={active ? RestoreIcon : SuspendIcon} type="button" variant={active ? "secondary" : "danger-secondary"} size="sm"  onClick={() => setOpen(true)}>
+      <Button icon={active ? RestoreIcon : SuspendIcon} type="button" variant="secondary" tone={active ? "default" : "danger"} size="sm"  onClick={() => setOpen(true)}>
         {active ? "Lift" : "Enable"}
       </Button>
       <LockDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} gymName={gymName} lockType={lockType} enable={!active} />
@@ -120,7 +121,7 @@ export function FlagRowControl({ organizationId, flag }: { organizationId: strin
         aria-checked={flag.isEnabled}
         aria-label={`${flag.label}: ${flag.isEnabled ? "enabled" : "disabled"}`}
         onClick={() => setOpen(true)}
-        variant="control" size="custom" iconOnly className={`h-8 w-10 flex-shrink-0 border-[1.5px] border-ink ${flag.isEnabled ? "bg-ink text-hi" : "bg-paper text-mute"}`}
+        variant="secondary" layout="control" size="custom" iconOnly className={`h-8 w-10 flex-shrink-0 border-[1.5px] border-ink ${flag.isEnabled ? "bg-ink text-hi" : "bg-paper text-mute"}`}
       />
       <FlagDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} flag={flag} />
     </>
@@ -198,7 +199,7 @@ export function AccessControls({ organizationId, gymName }: { organizationId: st
       <Button icon={SignOutIcon} type="button" variant="secondary" size="sm" onClick={() => setScope("owner")}>
         Force logout owner
       </Button>
-      <Button icon={SignOutIcon} type="button" variant="danger-secondary" size="sm" onClick={() => setScope("all")}>
+      <Button icon={SignOutIcon} type="button" variant="secondary" tone="danger" size="sm" onClick={() => setScope("all")}>
         Force logout all users
       </Button>
       <SessionsDialog open={scope !== null} onClose={() => setScope(null)} organizationId={organizationId} gymName={gymName} scope={scope ?? "owner"} />
@@ -220,7 +221,7 @@ export function WebhookEventList({ events, timeZone }: { events: WebhookEvent[];
               key={e.id}
               type="button"
               onClick={() => setSelected(e)}
-              variant="surface" className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-3 py-2.5 text-left hover:bg-sand sm:grid-cols-[1.2fr_1fr_auto]"
+              variant="ghost" layout="content" className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-3 py-2.5 text-left hover:bg-sand sm:grid-cols-[1.2fr_1fr_auto]"
             >
               <span className="flex min-w-0 flex-col">
                 <span className="flex items-center gap-2 text-[12.5px] font-bold text-ink"><DetailsIcon size={15} className="flex-shrink-0" aria-hidden /><span className="truncate">{e.eventType}</span></span>
@@ -303,17 +304,7 @@ export function ExportPanel({ organizationId }: { organizationId: string }) {
     <div className="flex flex-wrap items-end gap-2">
       <label className="flex flex-col gap-1">
         <span className="text-[9.5px] font-bold uppercase tracking-[0.12em] text-mute">Dataset</span>
-        <select
-          value={dataset}
-          onChange={(e) => setDataset(e.target.value)}
-          className="min-h-[38px] cursor-pointer border-[1.5px] border-line bg-paper px-2.5 text-[12.5px] outline-none hover:border-ink focus:border-ink"
-        >
-          {EXPORT_DATASETS.map((d) => (
-            <option key={d.key} value={d.key}>
-              {d.label}
-            </option>
-          ))}
-        </select>
+        <Select aria-label="Export dataset" value={dataset} onChange={setDataset} options={EXPORT_DATASETS.map((d) => ({value:d.key,label:d.label}))} />
       </label>
       <Button icon={ExportIcon} type="button" variant="primary" size="sm" onClick={() => setOpen(true)}>
         Export CSV…
@@ -358,7 +349,6 @@ export function DangerZone({
     { key: "block_whatsapp", title: has("block_whatsapp") ? "Resume WhatsApp" : "Block WhatsApp", text: "Stops all WhatsApp sending for this gym; queued messages wait.", label: has("block_whatsapp") ? "Resume" : "Block", danger: !has("block_whatsapp") },
     { key: "block_financial_edits", title: has("block_financial_edits") ? "Unlock financial edits" : "Lock financial operations", text: "Existing payments, expenses and invoices cannot be edited or voided.", label: has("block_financial_edits") ? "Unlock" : "Lock", danger: !has("block_financial_edits") },
     { key: "sessions", title: "Revoke all sessions", text: "Signs out every user of this gym on every device.", label: "Revoke sessions", danger: true },
-    { key: "suspend", title: "Archive gym", text: "Archiving is not supported — suspend the gym instead. Nothing is ever permanently deleted from here.", label: "Not available", danger: false, disabled: true, hint: "Not supported" },
   ];
 
   const lockDialog = panel === "read_only" || panel === "block_whatsapp" || panel === "block_financial_edits" ? panel : null;
@@ -376,7 +366,7 @@ export function DangerZone({
             disabled={row.disabled}
             title={row.hint}
             onClick={() => setPanel(row.key)}
-            variant={row.danger ? "danger-secondary" : "secondary"} size="sm"
+            variant="secondary" tone={row.danger ? "danger" : "default"} size="sm"
           >
             {row.label}
           </Button>

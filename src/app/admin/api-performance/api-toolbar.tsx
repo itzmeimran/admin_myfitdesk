@@ -1,5 +1,6 @@
 "use client";
 
+import { PeriodSelector } from "@/components/PeriodSelector";
 import { ButtonLink } from "@/components/ButtonLink";
 import { Button } from "@/components/Button";
 import { useEffect, useState } from "react";
@@ -16,7 +17,7 @@ const TABS = [
   { href: `${BASE}/endpoints`, label: "Endpoints", match: (p: string) => p.startsWith(`${BASE}/endpoint`) },
   { href: `${BASE}/errors`, label: "Errors", match: (p: string) => p.startsWith(`${BASE}/errors`) },
   { href: `${BASE}/organizations`, label: "Organizations", match: (p: string) => p.startsWith(`${BASE}/organizations`) },
-  { href: `${BASE}/requests`, label: "Request Explorer", match: (p: string) => p.startsWith(`${BASE}/requests`) },
+  { href: `${BASE}/requests`, label: "Request explorer", match: (p: string) => p.startsWith(`${BASE}/requests`) },
 ] as const;
 
 const REFRESH_MS = 30_000;
@@ -101,7 +102,7 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
               key={tab.href}
               href={tabHref(tab.href)}
               aria-current={active ? "page" : undefined}
-              variant="control" size="custom" className={`flex-shrink-0 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold uppercase tracking-[0.06em] ${active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}
+              variant="ghost" layout="control" size="custom" className={`flex-shrink-0 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold normal-case tracking-[0.06em] ${active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}
             >
               {tab.label}
             </ButtonLink>
@@ -110,18 +111,7 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
       </nav>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <div role="group" aria-label="Time range" className="flex max-w-full overflow-x-auto border-[1.5px] border-ink">
-          {RANGES.map((r) => (
-            <ButtonLink
-              key={r.value}
-              href={`${pathname}?${carry({ range: r.value }).toString()}`}
-              aria-current={currentRange === r.value ? "true" : undefined}
-              variant={currentRange === r.value ? "primary" : "ghost"} size="md" className="flex-shrink-0 whitespace-nowrap sm:px-3 sm:py-2"
-            >
-              {r.label}
-            </ButtonLink>
-          ))}
-        </div>
+        <PeriodSelector value={currentRange} ariaLabel="Time range" options={RANGES.map((r) => ({...r,href:pathname + "?" + carry({range:r.value})}))} />
 
         <div className="w-[140px]">
           <Dropdown
@@ -138,7 +128,7 @@ export function ApiToolbar({ defaultEnv }: { defaultEnv: string }) {
           aria-checked={live}
           onClick={() => toggleLive(!live)}
           title={live ? "Click to pause automatic refresh" : "Click to resume automatic refresh"}
-          variant="control" size="custom" className="flex min-h-[38px] items-center gap-2.5 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold text-mute hover:border-ink sm:ml-auto"
+          variant="secondary" layout="control" size="custom" className="flex min-h-[38px] items-center gap-2.5 border-[1.5px] border-line bg-paper px-3 text-[11.5px] font-bold text-mute hover:border-ink sm:ml-auto"
         >
           <span aria-hidden="true" className="relative flex h-2 w-2 flex-shrink-0">
             {live ? <span className="mfd-pulse-ring absolute inset-0 rounded-full bg-live" /> : null}

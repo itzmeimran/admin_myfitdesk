@@ -100,7 +100,7 @@ export function ConfirmDialog({
         aria-label="Dismiss"
         onClick={pending ? undefined : onCancel}
         disabled={pending}
-        variant="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/50"
+        variant="ghost" layout="overlay" size="custom" className="fade-in absolute inset-0 cursor-pointer border-none bg-black/50"
       />
       <div
         ref={dialogRef}
@@ -159,7 +159,7 @@ export function ConfirmDialog({
             onClick={() => onConfirm(typedValue.trim())}
             pending={pending}
             disabled={pending || !typedConfirmationSatisfied}
-            variant={danger ? "danger" : "primary"} size="md" className="flex-1"
+            variant="primary" tone={danger ? "danger" : "default"} size="md" className="flex-1"
           >
             {pending ? "Working…" : confirmLabel}
           </Button>

@@ -117,7 +117,7 @@ function ActionCard({
       <Button icon={iconForAction(cta)}
         type="button"
         onClick={onClick}
-        variant={danger ? "danger" : "secondary"} size="sm" className="mt-auto"
+        variant={danger ? "primary" : "secondary"} tone={danger ? "danger" : "default"} size="sm" className="mt-auto"
       >
         {cta}
       </Button>

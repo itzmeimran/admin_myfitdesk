@@ -1,5 +1,6 @@
+import { ButtonLink } from "@/components/ButtonLink";
+
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
 import { getGymBranches, listBranchOptions } from "@/features/gyms/branches";
@@ -169,9 +170,9 @@ export default async function GymTeamPage({
             ]}
           />
           {hasFilters ? (
-            <Link href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
+            <ButtonLink variant="text" href={pathname} className="text-[11.5px] font-bold text-accent underline underline-offset-2">
               Reset filters
-            </Link>
+            </ButtonLink>
           ) : null}
         </div>
 

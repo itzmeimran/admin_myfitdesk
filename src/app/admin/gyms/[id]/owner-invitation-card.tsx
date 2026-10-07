@@ -99,7 +99,7 @@ export function OwnerInvitationCard({ invitation }: { invitation: OwnerInvitatio
           type="button"
           disabled={isPending}
           onClick={() => setConfirmRevoke(true)}
-          variant="link" size="custom" className="underline underline-offset-2"
+          variant="text" size="custom" className="underline underline-offset-2"
         >
           Revoke
         </Button>

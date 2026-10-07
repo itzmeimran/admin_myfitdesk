@@ -83,7 +83,7 @@ function Drawer({ lead: l }: { lead: Lead }) {
 
   return (
     <>
-      <Button type="button" variant="overlay" size="custom" aria-label="Close lead" onClick={crm.closeDrawer} className="fade-in fixed inset-0 z-40 cursor-default bg-ink/30" />
+      <Button type="button" variant="ghost" layout="overlay" size="custom" aria-label="Close lead" onClick={crm.closeDrawer} className="fade-in fixed inset-0 z-40 cursor-default bg-ink/30" />
       <aside role="dialog" aria-modal="true" aria-label={l.gym}
         className="fixed inset-y-0 right-0 z-40 flex w-full max-w-full flex-col bg-paper md:w-[560px] md:border-l-[1.5px] md:border-ink lg:w-[500px]">
         <div className="flex flex-shrink-0 flex-col gap-3 border-b-[1.5px] border-ink px-4 pt-3.5 md:px-[22px] md:pt-[18px]">
@@ -132,7 +132,7 @@ function Drawer({ lead: l }: { lead: Lead }) {
             </div>
             <div className="flex flex-wrap gap-x-3.5 gap-y-1">
               {moreLinks.map((m) => (
-                <Button key={m.label} type="button" variant="link" size="custom" disabled={m.disabled} title={m.note} onClick={m.act}
+                <Button key={m.label} type="button" variant="text" size="custom" disabled={m.disabled} title={m.note} onClick={m.act}
                   className={`min-h-[30px] text-[12.5px] font-bold ${m.disabled ? "text-[#a99d91]" : "text-ink"}`}>{m.label}</Button>
               ))}
             </div>
@@ -142,7 +142,7 @@ function Drawer({ lead: l }: { lead: Lead }) {
             {DRAWER_TABS.map((t) => {
               const on = crm.drawerTab === t.key;
               return (
-                <Button icon={iconForAction(t.label)} key={t.key} type="button" variant="control" size="custom" role="tab" aria-selected={on} onClick={() => crm.setDrawerTab(t.key)}
+                <Button icon={iconForAction(t.label)} key={t.key} type="button" variant="ghost" layout="control" size="custom" role="tab" aria-selected={on} onClick={() => crm.setDrawerTab(t.key)}
                   className={`min-h-[42px] border-b-[3px] border-b-transparent text-[13px] ${on ? "!border-b-ink font-bold" : "font-medium"}`}>{t.label}</Button>
               );
             })}
@@ -266,7 +266,7 @@ function OverviewTab({ lead: l, owner, canReassign }: { lead: Lead; owner: strin
       <section aria-label="Assignment history" className="flex flex-col gap-2.5">
         <div className="flex items-center border-b border-line pb-2">
           <h3 className="mr-auto text-[10.5px] font-bold uppercase tracking-[0.13em] text-mute">Assignment history</h3>
-          <Button type="button" variant="link" size="custom" disabled={!canReassign} onClick={() => crm.openModal({ kind: "reassign", id: l.id })}
+          <Button type="button" variant="text" size="custom" disabled={!canReassign} onClick={() => crm.openModal({ kind: "reassign", id: l.id })}
             className={`min-h-[30px] text-[12px] font-bold ${canReassign ? "text-accent" : "text-[#a99d91]"}`}>
             {!canReassign ? <LuLock size={12} aria-hidden /> : null}Reassign
           </Button>
@@ -284,7 +284,7 @@ function ActivityTab({ lead: l }: { lead: Lead }) {
   const items = crm.activities[l.id] ?? [];
   return (
     <div className="flex flex-col gap-3.5">
-      <Button icon={LuPlus} type="button" variant="control" size="custom" onClick={() => crm.openModal({ kind: "activity", id: l.id, tab: "log" })}
+      <Button icon={LuPlus} type="button" variant="secondary" layout="control" size="custom" onClick={() => crm.openModal({ kind: "activity", id: l.id, tab: "log" })}
         className="min-h-[46px] justify-start gap-2.5 border-[1.5px] border-dashed border-mute3 px-3.5 text-[13px] font-normal text-mute hover:bg-sand">
         Log a call, WhatsApp, email or note
       </Button>

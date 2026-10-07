@@ -98,7 +98,7 @@ export function ChatPane({
       key={label}
       role="menuitem"
       disabled={!canManage || pending}
-      variant="control"
+      variant="ghost" layout="control"
       size="custom"
       onClick={() => { run(); }}
       className={`min-h-[38px] w-full justify-start border-0 px-3 text-left text-[13px] font-normal ${options.separated ? "border-t border-t-line" : ""} ${options.danger ? "text-accent" : "text-ink"}`}
@@ -112,7 +112,7 @@ export function ChatPane({
     <div className="relative flex min-h-0 flex-1 flex-col">
       {/* Header */}
       <div className="flex min-h-[62px] flex-shrink-0 items-center gap-3 border-b border-line px-3.5 py-2.5 lg:px-6">
-        <Button icon={PrevPageIcon} variant="control" size="custom" onClick={onBack} aria-label="Back to Inbox" className="-ml-2 min-h-11 gap-0.5 border-0 pr-1.5 text-[13px] font-bold lg:hidden">
+        <Button icon={PrevPageIcon} variant="ghost" layout="control" size="custom" onClick={onBack} aria-label="Back to Inbox" className="-ml-2 min-h-11 gap-0.5 border-0 pr-1.5 text-[13px] font-bold lg:hidden">
           Inbox
         </Button>
         <span aria-hidden="true" className="flex h-9 w-9 flex-shrink-0 items-center justify-center bg-sand text-[11.5px] font-bold">{initials(c.name)}</span>
@@ -129,7 +129,7 @@ export function ChatPane({
 
         <div className="hidden items-center gap-2 lg:flex">
           <Button icon={CrmIcon}
-            variant="control"
+            variant="secondary" layout="control"
             size="custom"
             onClick={() => onOpenPanel()}
             className={`min-h-8 gap-[7px] whitespace-nowrap border-[1.5px] px-2.5 text-[11.5px] font-bold ${c.crm ? "border-line" : "border-dashed border-[#c9bcab]"}`}
@@ -138,7 +138,7 @@ export function ChatPane({
             {c.crm ? `CRM · ${c.crm.stage}` : "Not in CRM"}
           </Button>
           <Button icon={InviteIcon}
-            variant="control"
+            variant="secondary" layout="control"
             size="custom"
             onClick={() => setMenu("assign")}
             disabled={!canManage || pending}
@@ -149,7 +149,7 @@ export function ChatPane({
             <span className="hidden xl:inline">{assignee ? assignee.short : "Assign"}</span>
           </Button>
           <Button icon={DetailsPanelIcon}
-            variant="control"
+            variant="secondary" layout="control"
             size="custom"
             iconOnly
             onClick={onTogglePanel}
@@ -161,7 +161,7 @@ export function ChatPane({
 
         <div className="relative">
           <Button icon={MoreIcon}
-            variant="control"
+            variant="secondary" layout="control"
             size="custom"
             iconOnly
             onClick={() => setMenu((m) => (m === "closed" ? "main" : "closed"))}
@@ -175,10 +175,10 @@ export function ChatPane({
               {menu === "assign" ? (
                 <div>
                   <Button icon={PrevPageIcon}
-                    variant="control"
+                    variant="ghost" layout="control"
                     size="custom"
                     onClick={() => setMenu("main")}
-                    className="min-h-9 w-full justify-start gap-1.5 border-0 border-b border-b-line px-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-mute2"
+                    className="min-h-9 w-full justify-start gap-1.5 border-0 border-b border-b-line px-3 text-[10.5px] font-bold normal-case tracking-[0.12em] text-mute2"
                   >
                     Assign to
                   </Button>
@@ -190,7 +190,7 @@ export function ChatPane({
                         role="menuitemradio"
                         disabled={!canManage || pending}
                         aria-checked={on}
-                        variant="control"
+                        variant="ghost" layout="control"
                         size="custom"
                         onClick={() => { onAssign(o.id); closePopovers(); }}
                         className="min-h-[38px] w-full justify-start gap-2.5 border-0 px-3 text-left text-[13px] font-normal"
@@ -223,7 +223,7 @@ export function ChatPane({
       {loading ? <ChatSkeleton /> : (
         <div ref={scrollRef} onScroll={() => { const el = scrollRef.current; if (el) { nearBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; } }} className="min-h-0 flex-1 overflow-y-auto px-3.5 pb-5 pt-4 lg:px-6">
           <div className="mx-auto flex max-w-[720px] flex-col gap-1">
-            {hasEarlier ? <Button variant="link" size="sm" onClick={() => { const el = scrollRef.current; if (el) previousScroll.current = { height: el.scrollHeight, top: el.scrollTop }; prepending.current = true; onLoadEarlier(); }}>Load earlier messages</Button> : null}
+            {hasEarlier ? <Button variant="text" size="sm" onClick={() => { const el = scrollRef.current; if (el) previousScroll.current = { height: el.scrollHeight, top: el.scrollTop }; prepending.current = true; onLoadEarlier(); }}>Load earlier messages</Button> : null}
             {c.messages.map((m, i) => (
               <MessageRow key={m.id} message={m} previous={c.messages[i - 1]} showStatusLabel={i === lastOut} onRetry={onRetry} canRetry={canSend} />
             ))}
@@ -276,7 +276,7 @@ export function ChatPane({
                     size="custom"
                     onClick={submit}
                     pending={pending} disabled={!hasDraft || !canSend || pending}
-                    className="ml-auto min-h-[34px] gap-[7px] px-3.5 text-[11.5px] disabled:border-line disabled:bg-line disabled:text-mute2 lg:ml-3"
+                    className="ml-auto min-h-[34px] gap-[7px] px-3.5 text-[11.5px] lg:ml-3"
                   >
                     Send
                   </Button>
@@ -317,7 +317,7 @@ export function ChatPane({
                 <Button
                   key={t.key}
                   disabled={!canSend || pending}
-                  variant="control"
+                  variant="ghost" layout="control"
                   size="custom"
                   onClick={() => { void onSend(body,t.key).then(sent=>{if(sent)setTemplatesOpen(false);}); }}
                   className="w-full flex-col items-stretch gap-1 border-0 border-b border-b-sand px-3 py-2.5 text-left font-normal"
@@ -325,7 +325,7 @@ export function ChatPane({
                   <span className="flex items-center gap-2">
                     <TemplateIcon size={15} className="flex-shrink-0 text-mute" aria-hidden />
                     <span className="flex-1 font-mono text-[12px] font-bold">{t.key}</span>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-mute2">{t.category}</span>
+                    <span className="text-[10px] font-bold normal-case tracking-[0.1em] text-mute2">{t.category}</span>
                   </span>
                   <span className="max-h-[35px] overflow-hidden text-[12px] leading-snug text-mute">{body}</span>
                 </Button>
@@ -383,7 +383,7 @@ function MessageRow({ message: m, previous, showStatusLabel, onRetry, canRetry }
         <StatusIcon size={14} className={st.tone} role="img" aria-label={st.label} />
         {showStatusLabel || failed || m.status === "sending" ? <span className={`font-bold ${st.tone}`}>{st.label}</span> : null}
         {failed && m.retryable && canRetry ? (
-          <Button variant="link" size="custom" onClick={() => onRetry(m.id)} className="min-h-6 px-0.5 text-[10.5px] font-bold text-accent underline">
+          <Button variant="text" size="custom" onClick={() => onRetry(m.id)} className="min-h-6 px-0.5 text-[10.5px] font-bold text-accent underline">
             Retry
           </Button>
         ) : null}

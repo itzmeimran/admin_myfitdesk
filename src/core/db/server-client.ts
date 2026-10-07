@@ -51,8 +51,8 @@ async function fetchTolerantOfClockSkew(input: RequestInfo | URL, init?: Request
  * cookie to an environment with no matching auth cookie yet correctly
  * yields "not signed in" for *that* project — Supabase Auth sessions are
  * project-scoped, so an admin who has only ever signed into DEV must sign
- * in again the first time they switch to PROD. That's expected, not a bug:
- * see core/env/README.md.
+ * in again if that project's credentials differ or its session was revoked.
+ * The sign-in action establishes both sessions when the credentials match.
  */
 export async function createClient() {
   return createClientForEnvironment(await getActiveAdminEnvironment());
@@ -86,8 +86,8 @@ export async function createClientForEnvironment(environment: AdminEnvironment) 
           }
         } catch {
           // Called from a Server Component that can't set cookies — a
-          // middleware/proxy layer would refresh the session cookie on the
-          // next request instead, same as FitDeskApp's proxy.ts.
+          // src/proxy.ts already refreshes the selected session and writes
+          // cookies before Server Components render.
         }
       },
     },

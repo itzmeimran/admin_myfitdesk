@@ -2,7 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createClient } from "@/core/db/server-client";
+import { cookies } from "next/headers";
+import { createClientForEnvironment } from "@/core/db/server-client";
+import { ADMIN_ENVIRONMENTS } from "@/core/config/environments";
+import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 
 /**
  * Plain Supabase email+password sign-in against the same `auth.users` pool
@@ -44,7 +47,8 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
     };
   }
 
-  const supabase = await createClient();
+  const environment = await getActiveAdminEnvironment();
+  const supabase = await createClientForEnvironment(environment);
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
@@ -54,11 +58,36 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
     return { error: "That email or password doesn't match an account.", email: parsed.data.email };
   }
 
+  // Authenticate independently against the other project while the submitted
+  // password is available. Never persist it or reuse one project's JWT in the
+  // other. A mismatch/outage there must not prevent the selected login.
+  const otherEnvironment = environment === "dev" ? "prod" : "dev";
+  try {
+    const other = await createClientForEnvironment(otherEnvironment);
+    await other.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
+  } catch {
+    // The selected session is valid; the other environment can be signed into later.
+  }
+
   redirect("/admin");
 }
 
 export async function signOut() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  await Promise.allSettled(ADMIN_ENVIRONMENTS.map(async (environment) => {
+    const supabase = await createClientForEnvironment(environment);
+    await supabase.auth.signOut();
+  }));
+  // Even if Auth is unreachable, remove both local sessions (including chunks)
+  // so a later environment switch cannot restore a signed-out admin console.
+  const cookieStore = await cookies();
+  for (const { name } of cookieStore.getAll()) {
+    if (ADMIN_ENVIRONMENTS.some((environment) =>
+      name === `sb-admin-${environment}` || name.startsWith(`sb-admin-${environment}.`))) {
+      cookieStore.set(name, "", { path: "/", maxAge: 0 });
+    }
+  }
   redirect("/login");
 }

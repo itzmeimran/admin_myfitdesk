@@ -42,7 +42,7 @@ was built for is explicit that DEV and PROD must never mix, and a full
 reload removes an entire category of "did some stale state leak through"
 risk for the cost of one brief blank moment during navigation.
 
-## Why switching to PROD needs a fresh sign-in
+## Sign-in and session refresh across environments
 
 Supabase Auth sessions are project-scoped: a session token issued by the
 DEV project's GoTrue instance does not verify against PROD's, and vice
@@ -50,13 +50,22 @@ versa. `core/db/server-client.ts` and `core/db/browser-client.ts` both set
 `cookieOptions.name` to `sb-admin-${environment}`, so a DEV session and a
 PROD session are stored under different cookie names and can coexist in
 the same browser without overwriting each other — but the first time an
-admin switches to an environment they haven't signed into yet, the
-fail-closed gate in `core/auth/get-platform-admin.ts` correctly finds no
-valid session and sends them to `/login`. Signing in there uses whichever
-environment is currently active (same `createClient()` factory), so it
-authenticates against the right project. This is expected behavior, not a
-bug to route around — it's what keeps a DEV credential from ever being
-usable against PROD.
+admin signs in, `features/auth/actions.ts` first authenticates against the
+selected project, then independently attempts the same submitted credentials
+against the other project. Matching credentials establish both sessions, so
+switching does not require another login. The password is never stored and
+one project's JWT is never used against the other. If the other project's
+credentials differ or Auth is unavailable, the selected login still succeeds;
+that environment requires its own sign-in when visited. Each project's admin
+authorization and permissions are still checked independently on entry.
+
+`src/proxy.ts` verifies and refreshes the selected session before rendering,
+passing updated cookies to both Server Components and the browser. Invalid
+refresh tokens are cleared by Supabase in this writable layer and protected
+pages redirect to `/login` before the console renders. The inactive session
+is left untouched and refreshed when that environment is next selected.
+Responses are private and uncached. Sign-out removes both environments'
+sessions, including local cookies if an Auth service is unreachable.
 
 ## Safety for PROD
 

@@ -1,8 +1,7 @@
 "use client";
 
-import { ButtonLink } from "@/components/ButtonLink";
-
 import { usePathname } from "next/navigation";
+import { TabsNav } from "@/components/Tabs";
 
 const TABS = [
   { href: "", label: "Overview" },
@@ -20,13 +19,12 @@ const TABS = [
  * than client-side tab switching, so each tab gets its own URL, its own
  * search/filter/sort state, and works with the back button.
  *
- * Tab set matches the Claude Design "MyFitDesk Gym Detail" canvas exactly
- * (Overview / Members / Branches & team / Subscription & billing /
- * Activity) — Entitlements was folded into Overview's usage bars (it was
- * already just a rephrasing of the same caps data, see the old
- * entitlements/page.tsx's own docblock) and Settings stays reachable from
- * the header's "Edit gym" button rather than a tab, since the design has
- * no Settings tab either.
+ * Renders the shared `TabsNav` (segmented bar below `xl`, side rail from `xl`);
+ * the layout wraps the page body in `TabsLayout`.
+ *
+ * Tab set matches the Claude Design "MyFitDesk Gym Detail" canvas — Entitlements
+ * was folded into Overview's usage bars, and Settings stays reachable from the
+ * header's "Edit gym" button rather than a tab.
  */
 export function GymDetailTabs({
   organizationId,
@@ -47,26 +45,15 @@ export function GymDetailTabs({
     "/team": `${branchCount} · ${staffCount}`,
   };
 
+  const active =
+    TABS.find((tab) => (tab.href === "" ? pathname === base : pathname.startsWith(`${base}${tab.href}`)))?.href ?? "";
+
   return (
-    <nav aria-label="Gym detail sections" className="flex overflow-x-auto border-b-[1.5px] border-ink">
-      {TABS.map((tab) => {
-        const href = `${base}${tab.href}`;
-        const active = tab.href === "" ? pathname === base : pathname.startsWith(href);
-        const count = counts[tab.href];
-        return (
-          <ButtonLink
-            key={tab.href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            variant="ghost" layout="control" size="custom" className={`flex flex-shrink-0 items-center gap-2 whitespace-nowrap border-b-[3px] px-3.5 py-2.5 text-[12px] font-bold normal-case tracking-[0.06em] ${
-              active ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"
-            }`}
-          >
-            {tab.label}
-            {count ? <span className={active ? "text-mute" : "text-mute3"}>{count}</span> : null}
-          </ButtonLink>
-        );
-      })}
-    </nav>
+    <TabsNav
+      ariaLabel="Gym detail sections"
+      activeKey={active}
+      sticky
+      items={TABS.map((tab) => ({ key: tab.href, label: tab.label, href: `${base}${tab.href}`, meta: counts[tab.href] }))}
+    />
   );
 }

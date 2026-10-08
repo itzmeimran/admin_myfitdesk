@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/Button";
+import { TabsNav } from "@/components/Tabs";
 import { SearchIcon, InboxIcon, ConfirmIcon, ConversationIcon } from "@/core/ui/icons";
 import type { IconType } from "@/core/ui/icons";
 import { FILTERS, WINDOW_DOT, WINDOW_LABEL, initials, lastTextMessage, windowState } from "./model";
@@ -57,25 +58,15 @@ export function ConversationList({
         </label>
       </div>
 
-      <div role="tablist" aria-label="Filter conversations" className="flex flex-shrink-0 gap-4 overflow-x-auto border-b border-line px-4 [scrollbar-width:none]">
-        {FILTERS.map((f) => {
-          const on = filter === f.key;
-          const count = f.key === "unread" && unreadCount ? unreadCount : 0;
-          return (
-            <Button icon={iconForAction(f.label)}
-              key={f.key}
-              role="tab"
-              aria-selected={on}
-              variant="ghost" layout="control"
-              size="custom"
-              onClick={() => onFilter(f.key)}
-              className={`-mb-px min-h-10 gap-1.5 whitespace-nowrap border-0 border-b-2 p-0 text-[12.5px] font-bold hover:bg-transparent ${on ? "border-b-ink text-ink" : "border-b-transparent text-mute2 hover:border-b-line hover:text-ink"}`}
-            >
-              {f.label}
-              {count ? <span className="text-[11px] text-accent">{count}</span> : null}
-            </Button>
-          );
-        })}
+      <div className="flex-shrink-0 px-4 pb-3">
+        <TabsNav
+          variant="segmented"
+          size="sm"
+          ariaLabel="Filter conversations"
+          activeKey={filter}
+          onSelect={(key) => onFilter(key as typeof filter)}
+          items={FILTERS.map((f) => ({ key: f.key, label: f.label, badge: f.key === "unread" && unreadCount ? unreadCount : undefined }))}
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

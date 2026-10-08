@@ -3,6 +3,7 @@
 import { useConfirmedTransition } from '@/components/use-confirmed-transition';
 import { DatePicker } from "@/components/DatePicker";
 import { Button } from "@/components/Button";
+import { TabsLayout, TabsNav } from "@/components/Tabs";
 import { IST_TIME_ZONE, istDateKey } from "@/core/dates/ist";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,6 @@ import {
 } from "./actions";
 import type { BackupRow, DisasterRecoveryData, ScheduleHealth } from "./types";
 import { ConfirmIcon, ManageIcon } from '@/core/ui/icons';
-import { iconForAction } from '@/core/ui/action-icons';
 
 const TABS = ["Backups", "Restore history", "Audit logs", "Deleted records", "System health"] as const;
 type Tab = (typeof TABS)[number];
@@ -186,18 +186,20 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         <p className="text-[12.5px] text-mute">Scheduled backups are disabled for development. Use Create backup whenever you need a recovery point.</p>
       ) : null}
 
-      <div className="overflow-x-auto border-b-[1.5px] border-ink">
-        <div className="flex min-w-max gap-1">
-          {TABS.map((item) => (
-            <Button icon={iconForAction(item)} key={item} type="button" onClick={() => setTab(item)}
-              variant="ghost" layout="control" size="custom" className={`min-h-[42px] border-b-[3px] px-3 text-[11.5px] font-bold ${tab === item ? "border-accent text-ink" : "border-transparent text-mute hover:text-ink"} `}>
-              {item}
-              {item === "System health" && data.health.openCriticalAlerts ? ` (${data.health.openCriticalAlerts})` : ""}
-            </Button>
-          ))}
-        </div>
-      </div>
-
+      <TabsLayout
+        nav={
+          <TabsNav
+            ariaLabel="Disaster recovery sections"
+            activeKey={tab}
+            onSelect={(key) => setTab(key as Tab)}
+            items={TABS.map((item) => ({
+              key: item,
+              label: item,
+              badge: item === "System health" ? data.health.openCriticalAlerts : undefined,
+            }))}
+          />
+        }
+      >
       {tab === "Backups" ? (
         <section className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
@@ -340,6 +342,7 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
           </div>
         </section>
       ) : null}
+      </TabsLayout>
 
       <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} eyebrow="Backup details" title={selected?.filename ?? "Backup"}>
         {selected ? <dl className="grid gap-2 text-[12px] sm:grid-cols-2">{[

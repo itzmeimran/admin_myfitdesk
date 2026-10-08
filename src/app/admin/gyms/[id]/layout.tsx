@@ -8,6 +8,7 @@ import { listAssignablePackages } from "@/features/gyms/queries";
 import { getGymOwnerInvitation } from "@/features/gyms/onboarding";
 import { BackIcon, AlertIcon } from "@/core/ui/icons";
 import { GymHeader } from "./gym-header";
+import { TabsLayout } from "@/components/Tabs";
 import { GymDetailTabs } from "./gym-detail-tabs";
 import { OwnerInvitationCard } from "./owner-invitation-card";
 import { GymRealtimeProvider } from "./gym-realtime-provider";
@@ -81,16 +82,20 @@ export default async function GymDetailLayout({
 
       <GymHeader gym={gym} packages={packages} invitation={ownerInvitation} />
 
-      <div className="z-10 bg-paper md:sticky md:top-0">
-        <GymDetailTabs
-          organizationId={gym.id}
-          memberCount={gym.usage.memberCount}
-          branchCount={gym.usage.branchCount}
-          staffCount={gym.usage.staffCount}
-        />
-      </div>
-
-      {children}
+      <TabsLayout
+        contentClassName="gap-3.5"
+        className="gap-3.5"
+        nav={
+          <GymDetailTabs
+            organizationId={gym.id}
+            memberCount={gym.usage.memberCount}
+            branchCount={gym.usage.branchCount}
+            staffCount={gym.usage.staffCount}
+          />
+        }
+      >
+        {children}
+      </TabsLayout>
     </div>
     </GymRealtimeProvider>
   );

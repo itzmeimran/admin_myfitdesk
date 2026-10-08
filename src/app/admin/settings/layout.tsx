@@ -1,5 +1,6 @@
 import { getAdminAccess, requirePermission } from "@/core/auth/access";
 import type { Permission } from "@/core/auth/permissions";
+import { TabsLayout } from "@/components/Tabs";
 import { SettingsTabs, type SettingsTab } from "./settings-tabs";
 
 type TabDefinition = SettingsTab & { permission: Permission };
@@ -37,8 +38,9 @@ export default async function SettingsLayout({ children }: { children: React.Rea
           Manage platform configuration, environments, administrators and security.
         </p>
       </div>
-      <SettingsTabs tabs={visible} />
-      <div className="flex flex-col gap-5">{children}</div>
+      <TabsLayout nav={<SettingsTabs tabs={visible} />} contentClassName="gap-5">
+        {children}
+      </TabsLayout>
     </div>
   );
 }

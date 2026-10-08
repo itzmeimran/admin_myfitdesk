@@ -50,6 +50,18 @@ Reference app (read-only source of truth for conventions/schema, do not edit): `
   - **I independently re-ran `tsc --noEmit` / `eslint` / `npm run build` myself after the agent's own report** (all clean) rather than trusting its self-report alone, and spot-read every new/changed file — the `admin_package_mix()` phantom-MRR bug earlier in this file is exactly the kind of thing a "trust the agent" pass would have missed.
   - **Also discovered mid-session and resolved:** a prior background agent had run `git init`/commit/push to a real GitHub remote (`github.com/itzmeimran/admin_myfitdesk`) without being asked — caught by checking `git status`/`git remote -v`, verified no secrets were ever committed (`.env.local` never appears in any commit), flagged to and confirmed-owned by the user. Take-away for future sessions: check `git log`/`git remote -v` right after any agent that might plausibly run `git` commands, don't wait until it surfaces on its own.
 
+## Milestone: Shared tabs — Claude Design "Admin Tabs" 2a + 2d (2026-10-08)
+
+One tab control, `src/components/Tabs.tsx` (`TabsNav` + `TabsLayout`), replaces every hand-rolled underline tab strip. **2a Segmented** (one bordered bar, active = ink fill, scrolls sideways) below `xl` (1280px); **2d Side rail** (vertical list, accent bar on the active item) from `xl`, with `TabsLayout` giving it a 220px column beside the page body. `xl`, not `lg`, because the admin sidebar already uses ~240px. Items with an `href` are real routes; without one they call `onSelect`.
+
+- Page-level (responsive 2a→2d): Settings (`settings-tabs.tsx`/`layout.tsx`), Gym Detail (`gym-detail-tabs.tsx`, layout; segmented bar stays sticky from `md`), API Performance (toolbar split into `ApiTabs` + `ApiToolbar` controls; layout wraps both), Disaster Recovery, Sales CRM views.
+- Contained (`variant="segmented"`, 2a at every width): Sales lead drawer, WhatsApp inbox conversation filters.
+- Not changed: the `Segmented` value switches in `crm-ui.tsx` (filters/scope, not navigation) and Gym Operations' own `section-picker.tsx` (another session's in-progress file).
+- Source was two screenshots (the design file itself couldn't be read: DesignSync stayed unauthorised). Padding/type sizes are matched by eye, not from the file.
+- Verified: `tsc`, `eslint` on touched files; the component rendered on a temporary preview page (deleted) at 1400px (rail) and 420px (segmented, fill variant, click-to-switch, active tab auto-centred). **Not verified:** the real signed-in pages, `next build`, wide tables beside the 220px rail on Gym Members / Sales pipeline.
+
+---
+
 ## Milestone: Book a Demo public page — UI only (2026-10-04)
 
 **Codex functionality update (2026-10-04):** the implementation now replaces the submit and availability stubs, preserving the design. Server validation/normalization, shared IP/contact rate limits, honeypot, idempotent transactional lead/request/activity writes, real calendar/day availability, owner-gated confirmation/capacity/audit RPCs and optional emails are implemented. Migration `1021_book_demo_foundation.sql` owns the shared `platform_sales_leads` / `platform_sales_activities` store; CRM and inbox sessions must extend that store. Public traffic is pinned by `BOOK_DEMO_ENVIRONMENT`, independent of the admin cookie. Full contract and activation steps: `docs/BOOK_DEMO_IMPLEMENTATION.md`. Typecheck, targeted lint, seven focused action checks and PGlite execution/role checks pass; HTTP rendering passes with process-only preview credentials. Interactive browser verification was blocked by the tab/session tool error. **DEV manual apply/live verification pending; PROD untouched.** The original UI milestone below remains as history.

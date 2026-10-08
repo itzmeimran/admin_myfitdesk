@@ -6,6 +6,7 @@ import {
   LuStickyNote, LuTriangleAlert, LuUser, LuUsers, LuX, LuLock,
 } from "react-icons/lu";
 import { Button } from "@/components/Button";
+import { TabsNav } from "@/components/Tabs";
 import { Dropdown } from "@/components/Dropdown";
 import { CLOSED_LABEL, STAGE_LABEL, STAGE_OPTIONS, formatPhone, isClosedStage, type ActivityKind, type DemoStatus, type Lead } from "@/features/sales/model";
 import { useSalesCrm, type DrawerTab } from "@/features/sales/use-sales-crm";
@@ -138,15 +139,15 @@ function Drawer({ lead: l }: { lead: Lead }) {
             </div>
           </div>
 
-          <div role="tablist" aria-label="Lead sections" className="-mb-px grid grid-cols-3">
-            {DRAWER_TABS.map((t) => {
-              const on = crm.drawerTab === t.key;
-              return (
-                <Button icon={iconForAction(t.label)} key={t.key} type="button" variant="ghost" layout="control" size="custom" role="tab" aria-selected={on} onClick={() => crm.setDrawerTab(t.key)}
-                  className={`min-h-[42px] border-b-[3px] border-b-transparent text-[13px] ${on ? "!border-b-ink font-bold" : "font-medium"}`}>{t.label}</Button>
-              );
-            })}
-          </div>
+          <TabsNav
+            variant="segmented"
+            fill
+            size="sm"
+            ariaLabel="Lead sections"
+            activeKey={crm.drawerTab}
+            onSelect={(key) => crm.setDrawerTab(key as typeof crm.drawerTab)}
+            items={DRAWER_TABS.map((t) => ({ key: t.key, label: t.label }))}
+          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4 md:px-[22px]">

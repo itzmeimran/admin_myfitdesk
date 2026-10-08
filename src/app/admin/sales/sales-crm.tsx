@@ -1,6 +1,6 @@
 "use client";
 
-import { ButtonLink } from "@/components/ButtonLink";
+import { TabsLayout, TabsNav } from "@/components/Tabs";
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
@@ -60,20 +60,22 @@ function Screen({ view }: { view: SalesView }) {
   ];
 
   return (
-    <div className="flex min-w-0 flex-col gap-4">
-
-      <nav aria-label="Sales views" className="-mx-4 flex overflow-x-auto border-b-[1.5px] border-ink px-4 md:mx-0 md:px-0">
-        {tabs.map((t) => {
-          const on = t.key === view;
-          return (
-            <ButtonLink variant="ghost" layout="control" size="custom" key={t.key} href={t.key === "board" ? "/admin/sales" : `/admin/sales?view=${t.key}`} scroll={false} aria-current={on ? "page" : undefined}
-              className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 border-b-[3px] px-4 text-[13px] ${on ? "border-hi font-bold text-ink" : "border-transparent font-medium text-mute hover:text-ink"}`}>
-              {t.label}
-              {t.badge ? <span className="flex h-[18px] min-w-[18px] items-center justify-center bg-ink px-1 text-[9.5px] font-bold text-hi">{t.badge}</span> : null}
-            </ButtonLink>
-          );
-        })}
-      </nav>
+    <TabsLayout
+      className="min-w-0"
+      nav={
+        <TabsNav
+          ariaLabel="Sales views"
+          activeKey={view}
+          items={tabs.map((t) => ({
+            key: t.key,
+            label: t.label,
+            badge: t.badge,
+            href: t.key === "board" ? "/admin/sales" : `/admin/sales?view=${t.key}`,
+            scroll: false,
+          }))}
+        />
+      }
+    >
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="mr-auto flex min-w-0 flex-col gap-1">
@@ -107,7 +109,7 @@ function Screen({ view }: { view: SalesView }) {
       {leadView && crm.hasMore ? <Button icon={LoadMoreIcon} disabled={crm.busy} onClick={crm.loadMore} variant="secondary">Load more leads ({crm.leads.length} of {crm.total})</Button> : null}
       <LeadDrawer />
       <ModalHost />
-    </div>
+    </TabsLayout>
   );
 }
 

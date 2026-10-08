@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { getActiveAdminEnvironment } from "@/core/env/active-environment";
 import { requirePermission } from "@/core/auth/access";
-import { ApiToolbar } from "./api-toolbar";
+import { TabsLayout } from "@/components/Tabs";
+import { ApiTabs, ApiToolbar } from "./api-toolbar";
 
 /**
  * Platform Admin → API Performance. Shell for the five views. Authorization
@@ -21,10 +22,18 @@ export default async function ApiPerformanceLayout({ children }: { children: Rea
           Times shown in IST.
         </p>
       </div>
-      <Suspense fallback={<div className="h-[88px]" />}>
-        <ApiToolbar defaultEnv={adminEnv === "prod" ? "production" : "all"} />
-      </Suspense>
-      {children}
+      <TabsLayout
+        nav={
+          <Suspense fallback={<div className="h-[44px]" />}>
+            <ApiTabs />
+          </Suspense>
+        }
+      >
+        <Suspense fallback={<div className="h-[38px]" />}>
+          <ApiToolbar defaultEnv={adminEnv === "prod" ? "production" : "all"} />
+        </Suspense>
+        {children}
+      </TabsLayout>
     </div>
   );
 }

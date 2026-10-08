@@ -38,7 +38,9 @@ concurrency:
 
 jobs:
   development:
-    if: github.event_name == 'schedule' || inputs.environment == 'development' || inputs.environment == 'both'
+    # DEV is manual-only; scheduled backups run exclusively in production.
+    # Explicit pre-migration backups remain available as a safety operation.
+    if: github.event_name == 'workflow_dispatch' && inputs.backup_type != 'scheduled' && (inputs.environment == 'development' || inputs.environment == 'both')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: development

@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
  * outright — so the workflow alone cannot promise hourly recovery points. Point
  * any real scheduler (Vercel Cron on a plan that allows hourly, cron-job.org,
  * Supabase pg_cron + pg_net, ...) at this route once an hour and it dispatches
- * the same workflow. The worker de-duplicates, so GitHub's cron and this route
+ * the production workflow. Development backups are manual-only. The worker
+ * de-duplicates, so GitHub's cron and this route
  * running in the same hour produce one backup, not two.
  *
  * Fail-closed: without `CRON_SECRET` configured the route refuses every call.
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
   }
 
   const result = await dispatchRecoveryWorkflow("database-backup.yml", {
-    environment: "both",
+    environment: "production",
     backup_type: "scheduled",
   });
   if (!result.dispatched) return Response.json({ dispatched: false, reason: result.reason }, { status: 502 });

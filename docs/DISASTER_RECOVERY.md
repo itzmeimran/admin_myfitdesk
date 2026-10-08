@@ -19,7 +19,7 @@ The workflow is scheduled at minutes 7 and 37 of every hour, in UTC (two chances
 - manual: retained indefinitely until an administrator requests deletion;
 - any backup with `protected = true`: never removed automatically.
 
-The scheduled worker creates one local dump and uploads it to each tier due in that run. Development and production always use different key prefixes (`development/...` and `production/...`) and separate GitHub Environment database secrets. The worker refuses to run unless both the configured environment and `BACKUP_DATABASE_IDENTIFIER` match the target database's `disaster_recovery_config` row.
+Scheduled backups run only for production. Development backups are created explicitly through Create backup or a manual/pre-migration workflow dispatch. The scheduled worker creates one local dump and uploads it to each tier due in that run. Development and production always use different key prefixes (`development/...` and `production/...`) and separate GitHub Environment database secrets. The worker refuses to run unless both the configured environment and `BACKUP_DATABASE_IDENTIFIER` match the target database's `disaster_recovery_config` row.
 
 ## Reliable hourly trigger
 
@@ -29,10 +29,20 @@ Fixes in this repository:
 
 - **Catch-up promotion.** The worker promotes a daily on the first scheduled run of any IST date that has none, and a monthly on the first run of day 1 in IST. The SQL duplicate check uses the same IST date. Backup filenames/storage keys retain their UTC timestamp convention; the admin screen displays and filters them in IST.
 - **De-duplication.** A plain hourly run is skipped if a scheduled hourly backup already exists inside the last 50 minutes, so two triggers in one hour give one backup.
-- **`GET /api/cron/backup`.** Dispatches the scheduled backup workflow for both environments. Requires `Authorization: Bearer $CRON_SECRET`; refuses everything (503) when `CRON_SECRET` is unset. It also needs the existing `BACKUP_GITHUB_*` variables.
+- **`GET /api/cron/backup`.** Dispatches the scheduled backup workflow for production only. Requires `Authorization: Bearer $CRON_SECRET`; refuses everything (503) when `CRON_SECRET` is unset. It also needs the existing `BACKUP_GITHUB_*` variables. The workflow independently excludes DEV for scheduled triggers.
 - **The UI reports reality.** A banner and System Health tiles show the last scheduled run, hourly runs in the last 24 h, and the longest gap, computed from real backup rows.
 
 **One thing must be done outside the code:** something has to call `/api/cron/backup` every hour. Set `CRON_SECRET` in Vercel, then use any of: Vercel Cron (`0 * * * *` — sub-daily schedules need a plan that allows them; a Hobby deployment with an hourly cron in `vercel.json` fails to deploy), cron-job.org, or Supabase pg_cron + pg_net. Keep the GitHub schedule as a fallback. Until this is wired up, hourly cadence is still at GitHub's discretion.
+
+### Active Supabase hourly trigger (2026-10-08)
+
+The `admin_myfitdesk` Vercel production deployment now has `CRON_SECRET`. The operator configured it to match the existing MyFitDesk PROD Vault `cron_secret` and redeployed. An authenticated pg_net request to the canonical admin endpoint returned HTTP 200 with `{"dispatched":true}` and started GitHub Actions run `37762217856`, which completed successfully.
+
+PROD hosts one active pg_cron job, `dispatch-database-backups` (job 38), with schedule `30 * * * *`. The verified cron timezone is GMT, so dispatch occurs at the top of each IST hour; worker startup and completion occur afterward. The user subsequently requested **production-only scheduled backups**: the route targets production and the workflow excludes DEV for both cron events and scheduled dispatches. Do not create a timer in DEV. GitHub's schedule remains a fallback and the existing worker de-duplicates recent hourly backups. The initial verification run started for both environments before this preference was provided.
+
+Reproducible operational configuration is in `supabase/apply/activate_hourly_backups.sql`; read-only checks are in `supabase/apply/verify_hourly_backups.sql`. This configures existing infrastructure without a schema migration or migration-history changes. Cron commands look up the secret from Vault at execution time and do not contain the plaintext token. If the shared secret is rotated, update both the tenant and admin deployments and the PROD Vault value together.
+
+A successful cron SQL run means the HTTP request was enqueued, not that the backup completed. Check the request's `net._http_response` status, GitHub job results, and ready/verified backup rows. The dashboard's trailing 24-hour count and longest gap will still reflect earlier missed hours until they leave that window.
 
 ## Private R2 bucket
 

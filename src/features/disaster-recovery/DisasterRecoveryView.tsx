@@ -181,7 +181,10 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
         </div>
       </div>
 
-      {data.health.configured ? <ScheduleBanner schedule={data.health.schedule} /> : null}
+      {data.health.configured && production ? <ScheduleBanner schedule={data.health.schedule} /> : null}
+      {data.health.configured && !production ? (
+        <p className="text-[12.5px] text-mute">Scheduled backups are disabled for development. Use Create backup whenever you need a recovery point.</p>
+      ) : null}
 
       <div className="overflow-x-auto border-b-[1.5px] border-ink">
         <div className="flex min-w-max gap-1">
@@ -300,9 +303,11 @@ export function DisasterRecoveryView({ data }: { data: DisasterRecoveryData }) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
               ["Last successful backup", formatDate(data.health.lastSuccessfulBackup)],
-              ["Next expected backup", data.health.schedule.status === "delayed" || data.health.schedule.status === "overdue" ? `Overdue (was ${formatDate(data.health.nextExpectedBackup)})` : formatDate(data.health.nextExpectedBackup)],
-              ["Hourly runs, last 24 h", `${data.health.schedule.runsLast24h} / 24`],
-              ["Longest gap, last 24 h", data.health.schedule.runsLast24h ? formatGap(data.health.schedule.longestGapMinutes) : "—"],
+              ...(production ? [
+                ["Next expected backup", data.health.schedule.status === "delayed" || data.health.schedule.status === "overdue" ? `Overdue (was ${formatDate(data.health.nextExpectedBackup)})` : formatDate(data.health.nextExpectedBackup)],
+                ["Hourly runs, last 24 h", `${data.health.schedule.runsLast24h} / 24`],
+                ["Longest gap, last 24 h", data.health.schedule.runsLast24h ? formatGap(data.health.schedule.longestGapMinutes) : "—"],
+              ] : [["Backup schedule", "Manual only"]]),
               ["Backup failures", String(data.health.backupFailures)],
               ["Open critical alerts", String(data.health.openCriticalAlerts)],
               ["Oldest retained", formatDate(data.health.oldestRetainedBackup)],

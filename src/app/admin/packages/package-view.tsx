@@ -36,9 +36,8 @@ import {
   ArchiveIcon,
   RestoreIcon,
   AlertIcon,
-  ToggleOnIcon,
-  ToggleOffIcon,
 } from "@/core/ui/icons";
+import { Toggle } from "@/components/Toggle";
 import { CancelIcon } from '@/core/ui/icons';
 
 /**
@@ -472,26 +471,22 @@ function TermVisibility({ pkg }: { pkg: SimplePackage }) {
     <div className="flex flex-col gap-2 border-t border-line pt-3">
       <span className={LABEL}>Terms offered to new gyms</span>
       <div className="flex flex-wrap gap-2">
-        {offerable.map((term) => {
-          const Icon = term.isPurchasable ? ToggleOnIcon : ToggleOffIcon;
-          return (
-            <Button icon={Icon}
-              key={term.key}
-              type="button"
-              disabled={isBusy(term.key)}
-              onClick={() =>
-                run(
-                  term.key,
-                  () => setTermOffered(term.cycleId as string, !term.isPurchasable),
-                  term.isPurchasable ? `${term.label} hidden from new gyms.` : `${term.label} is back on offer.`,
-                )
-              }
-              variant="secondary" size="sm" className={term.isPurchasable ? undefined : "opacity-70"}
-            >
-              {term.label}
-            </Button>
-          );
-        })}
+        {offerable.map((term) => (
+          <Toggle
+            key={term.key}
+            label={term.label}
+            checked={term.isPurchasable}
+            disabled={isBusy(term.key)}
+            onChange={(next) =>
+              run(
+                term.key,
+                () => setTermOffered(term.cycleId as string, next),
+                next ? `${term.label} is back on offer.` : `${term.label} hidden from new gyms.`,
+              )
+            }
+            className="w-[220px] items-center border-[1.5px] border-line bg-paper px-3"
+          />
+        ))}
       </div>
       <span className="text-[11px] text-mute3">
         Hiding a term stops new gyms choosing it. A gym already on it keeps renewing.

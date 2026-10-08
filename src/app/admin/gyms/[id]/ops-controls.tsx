@@ -24,7 +24,8 @@ import { SuspendSheet, ReactivateConfirm } from "../gym-row-actions";
 import { formatMinor } from "@/core/money/format";
 import { exactTime, relativeTime } from "@/features/gyms/ops/timeline-format";
 import { StatusPill } from "./ops-ui";
-import { ConfirmIcon, ExportIcon, ManageIcon, RestoreIcon, RetryIcon, SignOutIcon, SuspendIcon, ToggleOffIcon, ToggleOnIcon } from '@/core/ui/icons';
+import { Toggle } from "@/components/Toggle";
+import { ConfirmIcon, ExportIcon, ManageIcon, RestoreIcon, RetryIcon, SignOutIcon, SuspendIcon } from '@/core/ui/icons';
 import { iconForAction } from '@/core/ui/action-icons';
 
 /* ---------------------------------------------------------------- WhatsApp */
@@ -115,14 +116,10 @@ export function FlagRowControl({ organizationId, flag }: { organizationId: strin
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button icon={flag.isEnabled ? ToggleOnIcon : ToggleOffIcon}
-        type="button"
-        role="switch"
-        aria-checked={flag.isEnabled}
-        aria-label={`${flag.label}: ${flag.isEnabled ? "enabled" : "disabled"}`}
-        onClick={() => setOpen(true)}
-        variant="secondary" layout="control" size="custom" iconOnly className={`h-8 w-10 flex-shrink-0 border-[1.5px] border-ink ${flag.isEnabled ? "bg-ink text-hi" : "bg-paper text-mute"}`}
-      />
+      {/* Controlled by the stored flag: clicking opens the reason dialog and
+          the switch only moves once the change is saved and the page
+          refreshes, so it can never show a state that isn't real. */}
+      <Toggle checked={flag.isEnabled} onChange={() => setOpen(true)} ariaLabel={flag.label} />
       <FlagDialog open={open} onClose={() => setOpen(false)} organizationId={organizationId} flag={flag} />
     </>
   );

@@ -3,6 +3,7 @@
 import { ConfirmedForm } from '@/components/ConfirmedForm';
 import { Button } from "@/components/Button";
 import { ButtonLink } from "@/components/ButtonLink";
+import { PendingLink } from "@/components/NavigationPending";
 import { useState } from "react";
 
 import { usePathname } from "next/navigation";
@@ -168,11 +169,12 @@ export function AdminChrome({
                   const active = isActive(item.href);
                   const badge = badgeFor(item.href);
                   return (
-                    <ButtonLink
+                    <PendingLink
                       key={item.href}
                       href={item.href}
                       onClick={() => setMenuOpen(false)}
-                      variant="ghost" layout="control" size="custom" className={`flex min-h-[48px] items-center gap-3.5 border-l-2 px-3 text-[14px] ${
+                      aria-current={active ? "page" : undefined}
+                      className={`flex min-h-[48px] items-center gap-3.5 border-l-2 px-3 text-[14px] transition-colors ${
                         active
                           ? "border-hi bg-[#302620] font-bold text-paper"
                           : "border-transparent text-mute3 hover:bg-[#302620] hover:text-paper"
@@ -188,7 +190,7 @@ export function AdminChrome({
                           {badge}
                         </span>
                       ) : null}
-                    </ButtonLink>
+                    </PendingLink>
                   );
                 })}
               </div>

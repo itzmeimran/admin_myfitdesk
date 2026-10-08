@@ -20,10 +20,13 @@
   /* Extension: "connected / live" signal. The Clay & Rust palette has no
      green; this is used only for the pulsing live dot. */
   --live: #2f9e44;
+  /* Off-state track of the shared Toggle — same value as FitDeskApp's. */
+  --track: #d9cebf;
 }
 
 @theme inline {
   --color-live: var(--live);
+  --color-track: var(--track);
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-sand: var(--sand);
@@ -140,6 +143,28 @@ html[data-admin-env="prod"] body::before {
   100% {
     transform: scale(3.2);
     opacity: 0;
+  }
+}
+/* Top-of-page navigation progress bar (NavigationPending) — copied from
+   FitDeskApp. Reduced-motion users get a static full-width bar instead. */
+@keyframes nav-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .nav-progress-bar {
+    animation: nav-progress 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar {
+    width: 100% !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -353,12 +378,18 @@ html[data-admin-env="prod"] body::before {
 }
 
 /* Focus colors the control's own edge, without an outside ring or layout shift.
-   Unlayered rules also cover field utilities and selected widget borders. */
+   Unlayered rules also cover field utilities and selected widget borders.
+   Buttons and links use :focus-visible, not :focus: a mouse click leaves focus
+   on the element, which painted a permanent accent box around whichever tab or
+   nav link was just clicked (the Operations tab). Keyboard focus still shows it. */
 :is(input, select, textarea):focus,
-.mfd-button:focus {
+.mfd-button:focus-visible {
   outline: none;
   border-color: var(--accent) !important;
   box-shadow: none;
+}
+.mfd-button:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* Search fields put their visible border on a wrapper rather than the input. */

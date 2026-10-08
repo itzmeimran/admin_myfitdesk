@@ -530,10 +530,7 @@ export function FlagsSection({ supabase, gym, tz }: Ctx) {
                       : `Using the platform default (${f.defaultEnabled ? "on" : "off"})`}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <StatusPill tone={f.isEnabled ? "Healthy" : "No data"}>{f.isEnabled ? "Enabled" : "Disabled"}</StatusPill>
-                  <FlagRowControl organizationId={gym.id} flag={f} />
-                </div>
+                <FlagRowControl organizationId={gym.id} flag={f} />
               </div>
             ))}
           </div>

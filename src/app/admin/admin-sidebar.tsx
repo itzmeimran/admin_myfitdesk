@@ -1,12 +1,12 @@
 "use client";
 
 import { ConfirmedForm } from '@/components/ConfirmedForm';
-import { ButtonLink } from "@/components/ButtonLink";
+import { PendingLink, useNavigationPending } from "@/components/NavigationPending";
 
 import { usePathname } from "next/navigation";
 import { signOut } from "@/features/auth/actions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { SignOutIcon } from "@/core/ui/icons";
+import { SignOutIcon, SpinnerIcon } from "@/core/ui/icons";
 import { ICON_SIZE } from "@/core/ui/icon-size";
 import { NAV_ITEMS, visibleNavItems } from "./nav-items";
 
@@ -33,7 +33,12 @@ import { NAV_ITEMS, visibleNavItems } from "./nav-items";
  */
 export function AdminSidebar({ email, gymsCount, salesAttentionCount, permissions }: { email: string; gymsCount: number; salesAttentionCount: number | null; permissions: string[] }) {
   const pathname = usePathname();
+  const { pendingHref } = useNavigationPending();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
+  // The row a click came from shows a spinner until the page arrives.
+  const pendingPath = pendingHref ? pendingHref.split("?")[0] : null;
+  const isPendingFor = (href: string) =>
+    pendingPath !== null && (href === "/admin" ? pendingPath === href : pendingPath.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
   const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : href === '/admin/sales' && salesAttentionCount ? String(salesAttentionCount) : undefined);
 
@@ -58,12 +63,16 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
           {visibleNavItems(NAV_ITEMS, permissions).map((item) => {
             const active = isActive(item.href);
             const badge = badgeFor(item.href);
+            // A plain link, not a ButtonLink: .mfd-button carries a 1.5px
+            // border on all four sides (and recolours it on :focus), so the
+            // active row's `border-hi` drew a yellow box instead of
+            // FitDeskApp's single left bar. Same classes as its NavList.
             return (
-              <ButtonLink
+              <PendingLink
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                variant="ghost" layout="control" size="custom" className={`flex min-h-[44px] items-center gap-3 border-l-2 px-3 text-[13.5px] ${
+                className={`flex min-h-[44px] items-center gap-3.5 border-l-2 px-3 text-[14px] transition-colors ${
                   active
                     ? "border-hi bg-[#302620] font-bold text-paper"
                     : "border-transparent text-mute3 hover:bg-[#302620] hover:text-paper"
@@ -71,7 +80,9 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
               >
                 <item.icon size={ICON_SIZE.nav} className="flex-shrink-0" aria-hidden />
                 <span className="flex-1 truncate">{item.label}</span>
-                {badge ? (
+                {isPendingFor(item.href) ? (
+                  <SpinnerIcon size={13} className="flex-shrink-0 animate-spin text-mute3" aria-hidden />
+                ) : badge ? (
                   <span
                     aria-label={`${badge} ${item.href === '/admin/sales' ? 'need attention' : 'total'}`}
                     className="flex-shrink-0 text-[11px] font-bold tabular-nums text-mute3"
@@ -79,7 +90,7 @@ export function AdminSidebar({ email, gymsCount, salesAttentionCount, permission
                     {badge}
                   </span>
                 ) : null}
-              </ButtonLink>
+              </PendingLink>
             );
           })}
         </nav>

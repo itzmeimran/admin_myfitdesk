@@ -1,4 +1,3 @@
-import { ButtonLink } from "@/components/ButtonLink";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
 
 import { notFound } from "next/navigation";
@@ -20,6 +19,7 @@ import {
   WebhooksSection,
   WhatsAppSection,
 } from "./sections";
+import { SectionBody, SectionPicker } from "./section-picker";
 
 const SECTIONS = [
   { key: "command", label: "Command center" },
@@ -68,21 +68,9 @@ export default async function GymOperationsPage({
 
   return (
     <div className="flex flex-col gap-4">
-      <nav aria-label="Operations sections" className="flex gap-1.5 overflow-x-auto pb-1">
-        {SECTIONS.map((s) => (
-          <ButtonLink
-            key={s.key}
-            href={`${base}?section=${s.key}`}
-            aria-current={s.key === section ? "page" : undefined}
-            variant={s.key === section ? "primary" : "secondary"} tone={s.key === "danger" ? "danger" : "default"} size="sm" className={`flex-shrink-0 whitespace-nowrap ${s.key === section
-    ? "" : s.key === "danger"
-    ? "border-accent/50" : ""} `}
-          >
-            {s.label}
-          </ButtonLink>
-        ))}
-      </nav>
+      <SectionPicker base={base} current={section} sections={SECTIONS} />
 
+      <SectionBody>
       <Suspense key={section} fallback={<SectionSkeleton />}>
         {section === "command" ? <CommandSection {...ctx} /> : null}
         {section === "whatsapp" ? <WhatsAppSection {...ctx} /> : null}
@@ -97,6 +85,7 @@ export default async function GymOperationsPage({
         {section === "data" ? <DataSection {...ctx} /> : null}
         {section === "danger" ? <DangerSection {...ctx} /> : null}
       </Suspense>
+      </SectionBody>
     </div>
   );
 }

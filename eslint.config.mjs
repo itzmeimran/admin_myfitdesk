@@ -9,7 +9,9 @@ const eslintConfig = defineConfig([
   ...nextTs,
   {
     files: ["src/**/*.tsx"],
-    ignores: ["src/components/Button.tsx"],
+    // Button and Toggle are the two primitives that own a raw <button>
+    // (Toggle is a role="switch", not a push button).
+    ignores: ["src/components/Button.tsx", "src/components/Toggle.tsx"],
     plugins: { 'mfd-ui': { rules: { 'button-icon': buttonIcon, 'button-case': buttonCase } } },
     rules: {
       'mfd-ui/button-icon': 'error',

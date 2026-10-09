@@ -2,12 +2,13 @@
 
 import type { IconType } from "react-icons";
 import {
-  LuArrowLeft, LuArrowRightLeft, LuCalendar, LuCheck, LuClock, LuGitMerge, LuMail, LuMessageCircle, LuPhone, LuPlay, LuPlus,
+  LuArrowLeft, LuArrowRightLeft, LuCalendar, LuCheck, LuClock, LuFlag, LuGitMerge, LuMail, LuMessageCircle, LuPhone, LuPlay, LuPlus,
   LuStickyNote, LuTriangleAlert, LuUser, LuUsers, LuX, LuLock,
 } from "react-icons/lu";
 import { Button } from "@/components/Button";
 import { TabsNav } from "@/components/Tabs";
 import { Dropdown } from "@/components/Dropdown";
+import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
 import { CLOSED_LABEL, STAGE_LABEL, STAGE_OPTIONS, formatPhone, isClosedStage, type ActivityKind, type DemoStatus, type Lead } from "@/features/sales/model";
 import { useSalesCrm, type DrawerTab } from "@/features/sales/use-sales-crm";
 import { Chip, OwnerBadge } from "./crm-ui";
@@ -66,11 +67,12 @@ function Drawer({ lead: l }: { lead: Lead }) {
             { label: "Schedule follow-up", act: open({ kind: "activity", id: l.id, tab: "followup" }) },
           ];
 
-  const moreLinks: { label: string; act: () => void; disabled?: boolean; note?: string }[] = [
+  const moreLinks: { label: string; act: () => void; disabled?: boolean; note?: string; danger?: boolean }[] = [
+    ...(l.stage === "demo_req" ? [{ label: "Log activity", act: open({ kind: "activity", id: l.id, tab: "log" }) }] : []),
     { label: "Reassign", act: open({ kind: "reassign", id: l.id }), disabled: !canReassign, note: canReassign ? "" : "Only a manager or admin can reassign this lead" },
     { label: l.priority === "high" ? "Remove high priority" : "Mark high priority", act: () => commands.togglePriority(l.id) },
     ...(converted || closed ? [] : [{ label: l.organizationId?'Confirm paid conversion':'Create / link gym', act: () => commands.moveLead(l.id, "converted") }]),
-    ...(closed || converted ? [] : [{ label: "Mark lost / not interested", act: open({ kind: "lost", id: l.id, outcome: "Lost" }) }]),
+    ...(closed || converted ? [] : [{ label: "Mark lost / not interested", act: open({ kind: "lost", id: l.id, outcome: "Lost" }), danger: true }]),
   ];
 
   const contactLinks = [
@@ -79,7 +81,11 @@ function Drawer({ lead: l }: { lead: Lead }) {
     ...(l.email?[{ label: "Email", href: `mailto:${l.email}`, Icon: LuMail, aria: `Email ${l.contact}` }]:[]),
   ];
 
-  const stageChip = converted ? "ink" : closed ? "sand" : "outline";
+  const menuItems: ActionMenuItem[] = moreLinks.map((m) => ({
+    key: m.label, label: m.label, onSelect: m.act, disabled: m.disabled, hint: m.note || undefined, danger: m.danger, separated: m.danger,
+  }));
+  // The design keeps "Log activity" out of the button row for demo requests (it sits in the ⋯ menu).
+  const rowActions = l.stage === "demo_req" ? actions.slice(0, 2) : actions;
   const primary = actions[0];
 
   return (
@@ -99,16 +105,18 @@ function Drawer({ lead: l }: { lead: Lead }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Chip tone={stageChip}>{STAGE_LABEL[l.stage]}</Chip>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-[190px]">
+              <Dropdown ariaLabel="Stage" size="sm" value={l.stage} onChange={(v) => commands.moveLead(l.id, v as Lead["stage"])} options={STAGE_OPTIONS} />
+            </div>
             {l.conversion ? <Chip tone="mute">Account · {l.conversion.account}</Chip> : null}
-            {l.priority === "high" ? <Chip tone="accent">High priority</Chip> : null}
-            <span className="ml-auto flex items-center gap-1.5 text-[12px] text-mute"><OwnerBadge user={owner} size={22} />{owner.name}</span>
+            {l.priority === "high" ? <Chip tone="accent"><span className="inline-flex items-center gap-1"><LuFlag size={12} aria-hidden />High priority</span></Chip> : null}
+            <span className="ml-auto flex items-center gap-1.5 text-[12px] text-mute"><OwnerBadge user={owner} size={24} />{owner.name}</span>
           </div>
 
           <div className="grid grid-cols-3 gap-1.5">
             {contactLinks.map(({ label, href, Icon, aria }) => (
-              <a key={label} href={href} aria-label={aria} className="flex min-h-[40px] items-center justify-center gap-[7px] border-[1.5px] border-line text-[12px] font-bold text-ink hover:border-ink hover:bg-sand hover:text-ink">
+              <a key={label} href={href} aria-label={aria} className="flex min-h-[42px] items-center justify-center gap-[7px] border-[1.5px] border-line text-[12.5px] font-bold text-ink hover:border-ink hover:bg-sand hover:text-ink">
                 <Icon size={15} aria-hidden />{label}
               </a>
             ))}
@@ -124,19 +132,9 @@ function Drawer({ lead: l }: { lead: Lead }) {
             </div>
           ) : null}
 
-          <div className="hidden flex-col gap-3 md:flex">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {actions.map((a) => <Button icon={iconForAction(a.label)} key={a.label} type="button" variant={a.primary ? "primary" : "secondary"} size="sm" onClick={a.act} className="border-ink">{a.label}</Button>)}
-              <div className="ml-auto w-[170px]">
-                <Dropdown ariaLabel="Move to stage" size="sm" value={l.stage} onChange={(v) => commands.moveLead(l.id, v as Lead["stage"])} options={STAGE_OPTIONS} />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-x-3.5 gap-y-1">
-              {moreLinks.map((m) => (
-                <Button key={m.label} type="button" variant="text" size="custom" disabled={m.disabled} title={m.note} onClick={m.act}
-                  className={`min-h-[30px] text-[12.5px] font-bold ${m.disabled ? "text-[#a99d91]" : "text-ink"}`}>{m.label}</Button>
-              ))}
-            </div>
+          <div className="hidden items-center gap-1.5 md:flex">
+            {rowActions.map((a) => <Button icon={iconForAction(a.label)} key={a.label} type="button" variant={a.primary ? "primary" : "secondary"} size="sm" onClick={a.act} className="min-w-0 flex-1 border-ink">{a.label}</Button>)}
+            <ActionMenu ariaLabel="More actions" size="md" menuWidth={260} items={menuItems} />
           </div>
 
           <TabsNav

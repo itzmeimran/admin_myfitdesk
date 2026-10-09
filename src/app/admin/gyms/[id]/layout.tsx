@@ -3,7 +3,10 @@ import { ButtonLink } from "@/components/ButtonLink";
 import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
+import { loose } from "@/core/db/loose-client";
+import { formatZonedDateTime } from "@/core/dates/format";
 import { getGymDetail } from "@/features/gyms/detail";
+import type { GymDeletionStatus } from "@/features/gyms/GymDeletionControl";
 import { listAssignablePackages } from "@/features/gyms/queries";
 import { getGymOwnerInvitation } from "@/features/gyms/onboarding";
 import { BackIcon, AlertIcon } from "@/core/ui/icons";
@@ -23,9 +26,8 @@ import { LiveIndicator } from "./live-indicator";
  *
  * Header restyled to match the Claude Design "MyFitDesk Gym Detail" canvas:
  * a square initials mark, name + status pill, a one-line location/enrolled/
- * record-id meta row, and a deletion-request banner when
- * `deletion_requested_at` is set (real column, already on `GymDetail` —
- * no new query needed).
+ * record-id meta row, and a deletion-request banner that reads the current
+ * recovery deadline when `deletion_requested_at` is set.
  */
 export default async function GymDetailLayout({
   children,
@@ -43,6 +45,23 @@ export default async function GymDetailLayout({
   ]);
 
   if (!gym) notFound();
+
+  const deletionResult = gym.deletionRequestedAt
+    ? await loose(supabase).rpc("gym_deletion_status", { p_organization_id: gym.id })
+    : null;
+  const deletion = deletionResult?.data as GymDeletionStatus | null;
+  const deadline = deletion ? `${formatZonedDateTime(deletion.purgeAfter, IST_TIME_ZONE)} IST` : null;
+  const deletionMessage = deletionResult?.error
+    ? "The gym is isolated. Deletion status could not be loaded. Review its deletion controls before taking action."
+    : deletion?.hasError
+      ? "Cleanup needs attention and will retry. The gym remains isolated."
+      : deletion?.state === "purging"
+        ? "Permanent cleanup is in progress. The recovery window has ended."
+        : deletion
+          ? deletion.canRestore
+            ? `The gym is isolated. Restore it before ${deadline} to cancel automatic deletion.`
+            : `The recovery window ended ${deadline}. Automatic cleanup is due and the gym remains isolated.`
+          : "This earlier request has no automatic deletion deadline. The gym is isolated and can still be restored.";
 
   return (
     <GymRealtimeProvider key={gym.id} organizationId={gym.id}>
@@ -65,14 +84,16 @@ export default async function GymDetailLayout({
           </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="text-[13px] font-bold text-accent">
-              Owner requested account deletion —{" "}
+              Gym pending deletion —{" "}
               {new Date(gym.deletionRequestedAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, day: "numeric", month: "short" })}
             </span>
             <span className="text-[12px] leading-relaxed text-ink2">
-              {gym.owner ? `Requested by ${gym.owner.name}. ` : ""}
-              This app has no automated deletion pipeline yet — nothing happens until an admin acts manually.
+              {deletionMessage}
             </span>
           </span>
+          <ButtonLink variant="text" href={`/admin/gyms/${gym.id}/operations?section=danger`}>
+            Manage deletion
+          </ButtonLink>
         </div>
       ) : null}
 

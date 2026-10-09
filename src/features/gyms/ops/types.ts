@@ -231,6 +231,14 @@ export type TimelineEvent = {
   requestId: string | null;
   ipAddress: string | null;
   origin: string;
+  recordName: string | null;
+  recordExists: boolean;
+  memberExists: boolean;
+  memberDeleted: boolean;
+  groupCount?: number;
+  groupPlan?: string | null;
+  groupAmountMinor?: number | null;
+  groupHasImportant?: boolean;
 };
 
 export const EXPORT_DATASETS = [

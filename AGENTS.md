@@ -18,6 +18,8 @@ The user confirmed on 2026-10-01 that MyFitDesk repositories use serial migratio
 
 `1028_gym_deletion_due_dispatch.sql` is assigned to deadline-driven deletion dispatch and hourly database-only timer recovery (2026-10-07). It depends on 1027, preserves the enabled flag and existing deadlines, and replaces idle app polling. Activation must use the updated script requiring both migrations.
 
+`1029_admin_gym_activity_read.sql` is assigned to the read-only gym Activity Log API (2026-10-09). It preserves existing writers/history and adds member-ID grouping, snapshot-name and actor-name filtering, stable pagination and record-link checks. Apply with the matching admin UI after review; do not reuse 1029.
+
 ## Admin action confirmation
 
 User confirmed 2026-10-04: all user-triggered admin mutations require an explicit "Are you sure?" decision before the write, visible pending feedback, and duplicate-click prevention. Use the existing ConfirmDialog or ActionConfirmationProvider; mutation forms use ConfirmedForm. Preserve stronger typed confirmations for destructive/production actions. Navigation, search, filters, opening forms, and read-only refreshes do not need confirmation. Do not autosave editable CRM/inbox notes without an explicit confirmed Save.

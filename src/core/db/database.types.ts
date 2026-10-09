@@ -2135,6 +2135,24 @@ export type Database = {
           type: string
         }[]
       }
+      admin_gym_activity: {
+        Args: {
+          p_organization_id: string
+          p_search?: string
+          p_actor_search?: string
+          p_actor_type?: string
+          p_category?: string
+          p_status?: string
+          p_from?: string
+          p_to?: string
+          p_sort_dir?: string
+          p_limit?: number
+          p_offset?: number
+          p_member_id?: string
+          p_group_by_member?: boolean
+        }
+        Returns: Json
+      }
       admin_gym_timeline: {
         Args: {
           p_actor_type?: string

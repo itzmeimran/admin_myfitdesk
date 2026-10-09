@@ -72,6 +72,7 @@ export function SearchBox({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={placeholder}
         className="w-full border-0 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-mute2"
       />
     </label>

@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
 import { camelize } from "@/core/text/camelize";
+import { changedKeys, safeText, sanitizeAuditValue } from "./timeline-format";
 import type {
   AccessInfo,
   CheckFinding,
@@ -179,6 +180,7 @@ export async function getNotes(supabase: Client, organizationId: string): Promis
 
 export type TimelineFilters = {
   search?: string;
+  actorSearch?: string;
   category?: string;
   actorType?: string;
   status?: string;
@@ -193,10 +195,12 @@ export async function getTimeline(
   filters: TimelineFilters,
   limit: number,
   offset: number,
-): Promise<{ rows: TimelineEvent[]; total: number }> {
-  const { data, error } = await supabase.rpc("admin_gym_timeline", {
+  options: { groupByMember?: boolean; memberId?: string } = {},
+): Promise<{ rows: TimelineEvent[]; total: number; eventTotal: number }> {
+  const { data, error } = await supabase.rpc("admin_gym_activity", {
     p_organization_id: organizationId,
     p_search: filters.search || undefined,
+    p_actor_search: filters.actorSearch || undefined,
     p_category: filters.category || undefined,
     p_actor_type: filters.actorType || undefined,
     p_status: filters.status || undefined,
@@ -205,12 +209,26 @@ export async function getTimeline(
     p_sort_dir: filters.sortDir ?? "desc",
     p_limit: limit,
     p_offset: offset,
+    p_member_id: options.memberId,
+    p_group_by_member: options.groupByMember ?? false,
   });
   if (error) fail(error, "Couldn't load the activity timeline");
-  const rows = data ?? [];
+  type ActivityRow = Database["public"]["Functions"]["admin_gym_timeline"]["Returns"][number] & {
+    record_name: string | null;
+    record_exists: boolean;
+    member_exists: boolean;
+    member_deleted: boolean;
+    group_count: number;
+    group_plan: string | null;
+    group_amount_minor: number | null;
+    group_has_important: boolean;
+  };
+  const payload = data as unknown as { rows: ActivityRow[]; total: number; event_total: number };
+  const rows = payload?.rows ?? [];
   return {
-    total: rows[0]?.total_count ?? 0,
-    rows: rows.map((r) => ({
+    total: payload?.total ?? 0,
+    eventTotal: payload?.event_total ?? payload?.total ?? 0,
+    rows: rows.map((r) => sanitizeTimelineEvent({
       eventId: r.event_id,
       source: r.source,
       occurredAt: r.occurred_at,
@@ -235,6 +253,32 @@ export async function getTimeline(
       requestId: r.request_id,
       ipAddress: r.ip_address,
       origin: r.origin,
+      recordName: r.record_name,
+      recordExists: r.record_exists,
+      memberExists: r.member_exists,
+      memberDeleted: r.member_deleted,
+      groupCount: r.group_count ?? 1,
+      groupPlan: r.group_plan,
+      groupAmountMinor: r.group_amount_minor,
+      groupHasImportant: r.group_has_important,
     })),
+  };
+}
+
+/** Strip secrets and photo locations before any RSC/client/CSV serialization.
+ * Keep the changed-field evidence from the original snapshots: two redacted
+ * values can look equal even when the underlying photo actually changed. */
+export function sanitizeTimelineEvent(event: TimelineEvent): TimelineEvent {
+  const sanitize = (value: Record<string, unknown> | null) => value === null ? null : sanitizeAuditValue(value) as Record<string, unknown>;
+  return {
+    ...event,
+    changedFields: changedKeys(event),
+    actorLabel: safeText(event.actorLabel),
+    memberName: event.memberName ? safeText(event.memberName) : null,
+    recordName: event.recordName ? safeText(event.recordName) : null,
+    groupPlan: event.groupPlan ? safeText(event.groupPlan) : null,
+    oldValues: sanitize(event.oldValues),
+    newValues: sanitize(event.newValues),
+    detail: sanitize(event.detail),
   };
 }

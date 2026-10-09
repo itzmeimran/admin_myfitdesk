@@ -30,6 +30,7 @@ const MAX_ROWS = 10_000;
 
 const bodySchema = z.object({
   search: z.string().max(200).optional(),
+  actorSearch: z.string().max(200).optional(),
   category: z.string().max(40).optional(),
   actorType: z.string().max(40).optional(),
   status: z.string().max(20).optional(),
@@ -59,6 +60,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         search: f.search,
         category: f.category,
         actorType: f.actorType,
+        actorSearch: f.actorSearch,
         status: f.status,
         from: f.from ? zonedDayRange(f.from, tz)?.start : undefined,
         to: f.to ? zonedDayRange(f.to, tz)?.end : undefined,
@@ -73,7 +75,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       p_filters: parsed.data,
       p_rows: rows.length,
     });
-    if (logError) return NextResponse.json({ error: logError.message }, { status: 403 });
+    if (logError) return NextResponse.json({ error: "The activity export could not be recorded. Retry." }, { status: 403 });
 
     const headers = ["Time", "Action", "Details", "Changes", "Actor", "Role", "Category", "Status", "Source", "Reference"];
     const body = rows.map((e) => [
@@ -101,6 +103,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "The export failed.";
-    return NextResponse.json({ error: message }, { status: /not authorized/i.test(message) ? 403 : 500 });
+    return NextResponse.json({ error: "The activity export is unavailable. Retry." }, { status: /not authorized/i.test(message) ? 403 : 500 });
   }
 }

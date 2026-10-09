@@ -173,6 +173,36 @@ export async function getGymDetail(
   const raw = (Array.isArray(data) ? data[0] : data) as AdminGymDetailJson | null;
   if (!raw) return null;
 
+  // The RPC only reports a queued package when the live admin_gym_detail
+  // carries migration 1013's `pending` key. A queued package is the
+  // difference between "No package / overdue" and "Upcoming package", so read
+  // it straight from the subscription row (admins can SELECT it, 1002) when
+  // the RPC didn't supply one.
+  if (raw.subscription && !raw.subscription.pending) {
+    const { data: queued } = await supabase
+      .from("organization_subscriptions")
+      .select("pending_package_id, pending_period_start, pending_period_end")
+      .eq("organization_id", organizationId)
+      .maybeSingle();
+    if (queued?.pending_package_id && queued.pending_period_start && queued.pending_period_end) {
+      const { data: pk } = await supabase
+        .from("platform_packages")
+        .select("id, name, code, billing_period, price_minor, currency")
+        .eq("id", queued.pending_package_id)
+        .maybeSingle();
+      raw.subscription.pending = {
+        package_id: queued.pending_package_id,
+        package_name: pk?.name ?? null,
+        package_code: pk?.code ?? null,
+        billing_period: pk?.billing_period ?? null,
+        price_minor: pk?.price_minor ?? null,
+        currency: pk?.currency ?? null,
+        period_start: queued.pending_period_start,
+        period_end: queued.pending_period_end,
+      };
+    }
+  }
+
   const o = raw.organization;
   const status: GymStatus = o.suspended_at
     ? "Suspended"

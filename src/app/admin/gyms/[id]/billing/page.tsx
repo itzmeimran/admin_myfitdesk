@@ -144,8 +144,9 @@ export default async function GymBillingPage({
             ) : null}
           </div>
           <p className="text-[12px] text-ink2">
-            Starts {formatShortDate(new Date(sub.pending.periodStart), now)}, the day the current package ends —
-            today&apos;s access, price and caps are unaffected until then.
+            {new Date(sub.pending.periodStart) <= now
+              ? `Was due to start ${formatShortDate(new Date(sub.pending.periodStart), now)}. The gym has paid for it; it activates on the next daily activation run.`
+              : `Starts ${formatShortDate(new Date(sub.pending.periodStart), now)}, the day the current package ends — today's access, price and caps are unaffected until then.`}
           </p>
         </section>
       ) : null}

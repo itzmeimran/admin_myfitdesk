@@ -118,6 +118,18 @@ export async function changeSubscriptionPackage(organizationId: string, packageI
   return { error: null };
 }
 
+/** migration 1031 — applies (or queues, if the gym's current period hasn't
+ * ended) a package the gym already paid for but never received. */
+export async function applyPaidPayment(paymentId: string): Promise<ActionResult> {
+  await assertPermission("subscriptions.manage");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_apply_paid_payment", { p_payment_id: paymentId });
+  if (error) return { error: error.message };
+  revalidateGyms();
+  revalidatePath("/admin/gyms/[id]", "layout");
+  return { error: null };
+}
+
 /** Undoes a queued "Change package" before it activates — a no-op target
  * (nothing scheduled) comes back as an error rather than silently
  * succeeding twice. */

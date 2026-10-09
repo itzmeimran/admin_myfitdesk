@@ -64,6 +64,39 @@ type AdminGymBillingHistoryRow = {
   total_count: number;
 };
 
+export type UnappliedPayment = {
+  paymentId: string;
+  invoiceNumber: string;
+  packageName: string;
+  billingPeriod: string;
+  amount: string;
+  paidAt: string | null;
+  coverageEnd: string;
+};
+
+/** Paid-for packages the subscription never received (migration 1031). A
+ * missing function (migration not applied yet) reads as "none" rather than
+ * breaking the Billing tab. */
+export async function getUnappliedPayments(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+): Promise<UnappliedPayment[]> {
+  const { data, error } = await supabase.rpc("admin_unapplied_payments", { p_organization_id: organizationId });
+  if (error) {
+    if (error.code === "PGRST202") return [];
+    throw new Error(`Failed to check unapplied payments: ${error.message}`);
+  }
+  return (data ?? []).map((row) => ({
+    paymentId: row.payment_id,
+    invoiceNumber: row.invoice_number ?? "—",
+    packageName: row.package_name,
+    billingPeriod: row.billing_period,
+    amount: formatMinorWhole(row.amount_minor, row.currency),
+    paidAt: row.paid_at,
+    coverageEnd: row.period_end,
+  }));
+}
+
 export async function getGymBillingHistory(
   supabase: SupabaseClient<Database>,
   organizationId: string,

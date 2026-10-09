@@ -50,6 +50,12 @@ Reference app (read-only source of truth for conventions/schema, do not edit): `
   - **I independently re-ran `tsc --noEmit` / `eslint` / `npm run build` myself after the agent's own report** (all clean) rather than trusting its self-report alone, and spot-read every new/changed file — the `admin_package_mix()` phantom-MRR bug earlier in this file is exactly the kind of thing a "trust the agent" pass would have missed.
   - **Also discovered mid-session and resolved:** a prior background agent had run `git init`/commit/push to a real GitHub remote (`github.com/itzmeimran/admin_myfitdesk`) without being asked — caught by checking `git status`/`git remote -v`, verified no secrets were ever committed (`.env.local` never appears in any commit), flagged to and confirmed-owned by the user. Take-away for future sessions: check `git log`/`git remote -v` right after any agent that might plausibly run `git` commands, don't wait until it surfaces on its own.
 
+## Milestone: Paid-but-unapplied packages (2026-10-09) — migration 1031 NOT applied
+
+Gym paid for a monthly package during its trial; the subscription never got `pending_package_id`, so after the trial it sat in Grace with "No package". Admin showed the queued package correctly *when one existed* but had no way to see or fix a payment that was never applied. `1031_admin_unapplied_payments.sql`: `admin_unapplied_payments(org)` (succeeded payments whose package is neither current nor queued) and `admin_apply_paid_payment(payment)` (starts at `current_period_end` when paid before it — queued if still ahead, applied now once passed; paid late → starts now; stamps `provider_metadata.applied_by_admin`, audit-logged). Billing tab shows a "Paid but not applied" card with an **Apply package** button; the header's Grace panel now keeps the "Next up" note. Root cause (the tenant settle path not queueing a package paid during a live trial) lives in FitDeskApp and is untouched (D-B). `tsc`/`eslint` clean; **SQL never executed** — apply and run against a real gym as a platform admin before trusting it.
+
+---
+
 ## Milestone: Shared Toggle, Operations section dropdown, sidebar highlight, navigation loading (2026-10-08)
 
 User audit of Gym → Operations → Feature flags. All copied from FitDeskApp (D-B), presentation only, no migration.

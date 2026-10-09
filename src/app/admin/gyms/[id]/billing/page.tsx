@@ -4,7 +4,7 @@ import { IST_TIME_ZONE } from "@/core/dates/ist";
 import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { getGymDetail } from "@/features/gyms/detail";
-import { getGymBillingHistory } from "@/features/gyms/billing";
+import { getGymBillingHistory, getUnappliedPayments } from "@/features/gyms/billing";
 import { listAssignablePackages } from "@/features/gyms/queries";
 import { FilterSelect } from "@/components/FilterSelect";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -19,6 +19,7 @@ import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import { PAYMENT_METHODS } from "@/features/gyms/payment-method";
 import { BillingActions } from "./billing-actions";
 import { AutoPaySummary } from "./autopay-summary";
+import { UnappliedPayments } from "./unapplied-payments";
 
 const SORT_ALLOWLIST = new Set(["created_at", "amount_minor", "status", "paid_at"]);
 
@@ -57,7 +58,7 @@ export default async function GymBillingPage({
   const { page, pageSize, offset } = parsePagination(sp);
 
   const supabase = await createClient();
-  const [gym, { rows, total }, packages] = await Promise.all([
+  const [gym, { rows, total }, packages, unapplied] = await Promise.all([
     getGymDetail(supabase, id),
     getGymBillingHistory(supabase, id, {
       status,
@@ -71,6 +72,7 @@ export default async function GymBillingPage({
       offset,
     }),
     listAssignablePackages(supabase),
+    getUnappliedPayments(supabase, id),
   ]);
   if (!gym) notFound();
 
@@ -81,6 +83,7 @@ export default async function GymBillingPage({
 
   return (
     <div className="flex flex-col gap-4">
+      <UnappliedPayments payments={unapplied} />
       <AutoPaySummary organizationId={id} />
       <section className="flex flex-col gap-4 border-2 border-ink bg-paper p-4 md:flex-row">
         <div className="flex flex-1 flex-col gap-2.5">

@@ -98,9 +98,14 @@ export function buildSubscriptionPanelView(gym: GymDetail, now: Date = new Date(
       headline: { value: String(overdue), unit: overdue === 1 ? "day overdue" : "days overdue", compact: false },
       anchor: { label: readOnly ? "Read-only since" : "Grace ends", value: formatZonedDate(graceEnd, tz) },
       meter: { pct: 100, ticks, from, mid: "Past due", to },
-      note: readOnly
-        ? "Access is read-only. Extend the subscription or change the package to restore it."
-        : `Payment is overdue. Access turns read-only in ${plural(graceLeft, "day")} unless extended.`,
+      note: [
+        readOnly
+          ? "Access is read-only. Extend the subscription or change the package to restore it."
+          : `Payment is overdue. Access turns read-only in ${plural(graceLeft, "day")} unless extended.`,
+        pendingNote,
+      ]
+        .filter(Boolean)
+        .join(" "),
       noteMuted: false,
     };
   }

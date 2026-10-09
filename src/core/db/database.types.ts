@@ -2267,6 +2267,26 @@ export type Database = {
           period_start: string | null
         }[]
       }
+      admin_unapplied_payments: {
+        Args: { p_organization_id: string }
+        Returns: {
+          amount_minor: number
+          billing_period: string
+          currency: string
+          duration_days: number
+          invoice_number: string | null
+          package_id: string
+          package_name: string
+          paid_at: string | null
+          payment_id: string
+          period_end: string
+          period_start: string | null
+        }[]
+      }
+      admin_apply_paid_payment: {
+        Args: { p_payment_id: string }
+        Returns: undefined
+      }
       admin_resend_gym_owner_invitation: {
         Args: { p_invitation_id: string }
         Returns: Json

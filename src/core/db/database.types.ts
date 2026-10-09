@@ -705,6 +705,7 @@ export type Database = {
       organizations: {
         Row: {
           address_line: string | null
+          tagline: string | null
           city: string | null
           closes_at: string | null
           contact_email: string | null
@@ -736,6 +737,7 @@ export type Database = {
         }
         Insert: {
           address_line?: string | null
+          tagline?: string | null
           city?: string | null
           closes_at?: string | null
           contact_email?: string | null
@@ -762,6 +764,7 @@ export type Database = {
         }
         Update: {
           address_line?: string | null
+          tagline?: string | null
           city?: string | null
           closes_at?: string | null
           contact_email?: string | null
@@ -2954,6 +2957,10 @@ export type Database = {
       }
       admin_set_plan_status: {
         Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_set_organization_tagline: {
+        Args: { p_organization_id: string; p_tagline: string | null }
         Returns: undefined
       }
       admin_suspend_organization: {

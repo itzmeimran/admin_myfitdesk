@@ -20,12 +20,18 @@ export default async function GymSettingsPage({ params }: { params: Promise<{ id
   const [gym, config] = await Promise.all([getGymDetail(supabase, id), getGymConfiguration(supabase, id)]);
   if (!gym) notFound();
 
+  // Read straight from organizations (platform admins have a SELECT policy on
+  // it, 1002) rather than growing admin_gym_detail(). Any error — e.g. the
+  // tenant's 0112 column not applied on this project — just hides the value.
+  const { data: taglineRow } = await supabase.from("organizations").select("tagline").eq("id", id).maybeSingle();
+  const tagline = taglineRow?.tagline ?? "";
+
   return (
     <div className="flex flex-col gap-4">
       <section className="flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4">
         <h2 className="mfd-micro-label">General</h2>
         <GymLogoUpload organizationId={gym.id} gymName={gym.name} logoUrl={gym.logoUrl} />
-        <GymProfileForm gym={gym} />
+        <GymProfileForm gym={gym} tagline={tagline} />
       </section>
 
       <section className="flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4">

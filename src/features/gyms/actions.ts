@@ -258,6 +258,9 @@ const profileSchema = z.object({
   defaultTimezone: z.string().trim().max(60).optional().default(""),
   defaultCurrency: z.string().trim().max(10).optional().default(""),
   gracePeriodDays: z.coerce.number().int().min(0, "Grace period must be zero or more days."),
+  // Optional; blank clears it. Same 120-character limit as the tenant app
+  // (organizations.tagline's CHECK, FitDeskApp migration 0112).
+  tagline: z.string().trim().max(120, "Keep the tagline under 120 characters.").optional().default(""),
 });
 
 export type ProfileFormState = { error: string | null; success?: boolean };
@@ -283,6 +286,7 @@ export async function updateGymProfile(_prev: ProfileFormState, formData: FormDa
     defaultTimezone: formData.get("defaultTimezone"),
     defaultCurrency: formData.get("defaultCurrency"),
     gracePeriodDays: formData.get("gracePeriodDays"),
+    tagline: formData.get("tagline") ?? undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
@@ -304,6 +308,20 @@ export async function updateGymProfile(_prev: ProfileFormState, formData: FormDa
     p_grace_period_days: parsed.data.gracePeriodDays,
   });
   if (error) return { error: error.message };
+
+  // Separate RPC (1030) so the profile function's signature stays unchanged.
+  // Only touched when the form actually sent the field.
+  if (formData.has("tagline")) {
+    const { error: taglineError } = await supabase.rpc("admin_set_organization_tagline", {
+      p_organization_id: parsed.data.organizationId,
+      p_tagline: parsed.data.tagline || null,
+    });
+    if (taglineError) {
+      revalidateGyms();
+      revalidatePath("/admin/gyms/[id]", "layout");
+      return { error: `Other details were saved, but the tagline wasn't: ${taglineError.message}` };
+    }
+  }
 
   revalidateGyms();
   revalidatePath("/admin/gyms/[id]", "layout");

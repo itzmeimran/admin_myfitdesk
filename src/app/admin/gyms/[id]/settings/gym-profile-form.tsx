@@ -10,6 +10,7 @@ import { updateGymProfile, type ProfileFormState } from "@/features/gyms/actions
 import { useToast } from "@/components/Toast";
 import { ConfirmIcon } from "@/core/ui/icons";
 
+const TAGLINE_MAX = 120;
 const initialState: ProfileFormState = { error: null };
 
 /** The Settings tab's "General" section, made real (task brief §10/§2's
@@ -17,7 +18,8 @@ const initialState: ProfileFormState = { error: null };
  * its own uploader (gym-logo-upload.tsx); this RPC never touches it.
  * Deliberately excludes every secret-bearing table (payment/WhatsApp integrations) per the
  * brief's own "do NOT expose sensitive secrets" instruction. */
-export function GymProfileForm({ gym }: { gym: GymDetail }) {
+export function GymProfileForm({ gym, tagline }: { gym: GymDetail; tagline: string }) {
+  const [taglineValue, setTaglineValue] = useState(tagline);
   const toast = useToast();
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(updateGymProfile, initialState);
@@ -42,6 +44,24 @@ export function GymProfileForm({ gym }: { gym: GymDetail }) {
       <input type="hidden" name="organizationId" value={gym.id} />
       <div className="flex flex-wrap gap-3">
         <Field label="Gym name" name="name" defaultValue={gym.name} required basis={260} />
+        <label className="flex flex-col gap-1" style={{ flexBasis: "100%", flexGrow: 1 }}>
+          <span className="flex items-baseline justify-between text-[9px] font-bold uppercase tracking-[0.12em] text-mute">
+            Gym tagline (optional)
+            <span className={`tabular-nums ${taglineValue.length >= TAGLINE_MAX ? "text-accent" : ""}`}>
+              {taglineValue.length}/{TAGLINE_MAX}
+            </span>
+          </span>
+          <input
+            type="text"
+            name="tagline"
+            value={taglineValue}
+            onChange={(e) => setTaglineValue(e.target.value)}
+            maxLength={TAGLINE_MAX}
+            placeholder="e.g. Unisex Gym • Fully Air-Conditioned"
+            className="w-full border-[1.5px] border-line bg-paper px-2.5 py-2 text-[13px] text-ink outline-none focus:border-ink"
+          />
+          <span className="text-[11px] text-mute3">Shown under the gym name on receipts and invoices.</span>
+        </label>
         <Field label="City" name="city" defaultValue={gym.city ?? ""} basis={180} />
         <Field label="State" name="state" defaultValue={gym.state ?? ""} basis={180} />
         <Field label="Country" name="country" defaultValue={gym.country ?? ""} basis={160} />

@@ -312,47 +312,56 @@ function LiveBanner({ billingModel, hasPackages }: { billingModel: "legacy" | "d
 
 // ──────────────────────────────── Pricing ───────────────────────────────
 
+const TH = "text-[10px] font-bold uppercase tracking-[0.14em] text-mute";
+
 function PricingCard({ pkg }: { pkg: SimplePackage }) {
   const [state, formAction, isPending] = useActionState(savePricing, initialState);
   useActionResult(state, undefined, "Pricing saved.");
+  const { run, isBusy } = useMutation();
 
-  const quarterly = pkg.terms.find((t) => t.key === "quarterly");
-  const halfYearly = pkg.terms.find((t) => t.key === "half_yearly");
-  const annual = pkg.terms.find((t) => t.key === "annual");
-
-  // Local copies drive the preview table so the ladder updates as the admin
-  // types, before anything is written. Keyed on pkg.id via the parent below
+  // Local copies drive the owner-pays column so the ladder updates as the
+  // admin types, before anything is written. Keyed on pkg.id via the parent
   // so switching packages remounts this form with fresh values.
   const [monthly, setMonthly] = useState(String(pkg.monthlyPriceMinor / 100 || ""));
-  const [quarterlyOff, setQuarterlyOff] = useState(String(quarterly?.discountPercent ?? 0));
-  const [halfYearlyOff, setHalfYearlyOff] = useState(String(halfYearly?.discountPercent ?? 0));
-  const [annualOff, setAnnualOff] = useState(String(annual?.discountPercent ?? 0));
-
+  const [discountInputs, setDiscountInputs] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      TERMS.filter((t) => t.key !== "monthly").map((t) => [
+        t.key,
+        String(pkg.terms.find((x) => x.key === t.key)?.discountPercent ?? 0),
+      ]),
+    ),
+  );
   const monthlyMinor = toMinorUnits(monthly) ?? 0;
-  const discounts: Record<string, number> = {
-    monthly: 0,
-    quarterly: Number(quarterlyOff) || 0,
-    half_yearly: Number(halfYearlyOff) || 0,
-    annual: Number(annualOff) || 0,
+  const FIELD_NAME: Record<string, string> = {
+    quarterly: "quarterlyDiscount",
+    half_yearly: "halfYearlyDiscount",
+    annual: "annualDiscount",
   };
 
   return (
-    <ConfirmedForm confirmation="Save these package changes? They can affect what gym owners see." action={formAction} className={CARD}>
+    <ConfirmedForm
+      confirmation="Save these package changes? They can affect what gym owners see."
+      action={formAction}
+      className={CARD}
+    >
       <input type="hidden" name="planId" value={pkg.id} />
 
-      <div className="flex flex-col gap-0.5">
-        <h2 className="font-display text-[17px] tracking-[-0.02em]">Pricing — {pkg.name}</h2>
-        <p className="text-[11.5px] text-mute">
-          A longer term is that many months of the monthly price — the discount is what makes it worth
-          taking.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="font-display text-[26px] tracking-[-0.02em]">Pricing</h2>
+          <p className="text-[13px] text-mute">Set the monthly price. Longer terms are derived from it.</p>
+        </div>
+        <Button pending={isPending} icon={ConfirmIcon} type="submit" disabled={isPending} variant="primary" size="lg">
+          {isPending ? "Saving…" : "Save pricing"}
+        </Button>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1" style={{ flexBasis: 180 }}>
-          <span className={LABEL}>
-            Monthly price (₹)<span className="text-accent"> *</span>
-          </span>
+      <label className="mt-2 flex flex-col gap-2">
+        <span className={TH}>
+          Monthly price<span className="text-accent"> *</span>
+        </span>
+        <span className="flex w-fit items-baseline gap-2 border-b-2 border-ink pb-1 pr-6">
+          <span className="font-display text-[32px] text-mute3">₹</span>
           <input
             type="number"
             name="monthlyPrice"
@@ -362,85 +371,82 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
             value={monthly}
             onChange={(e) => setMonthly(e.target.value)}
             placeholder="1499"
-            className={INPUT}
+            className="w-[200px] bg-transparent font-display text-[48px] leading-none tracking-[-0.02em] text-ink outline-none"
           />
-          <span className="text-[10.5px] text-mute3">Everything else is derived from this.</span>
-        </label>
+        </span>
+      </label>
 
-        <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
-          <span className={LABEL}>Quarterly discount (%)</span>
-          <input
-            type="number"
-            name="quarterlyDiscount"
-            min="0"
-            max="99"
-            step="1"
-            value={quarterlyOff}
-            onChange={(e) => setQuarterlyOff(e.target.value)}
-            className={INPUT}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
-          <span className={LABEL}>Half-Yearly discount (%)</span>
-          <input
-            type="number"
-            name="halfYearlyDiscount"
-            min="0"
-            max="99"
-            step="1"
-            value={halfYearlyOff}
-            onChange={(e) => setHalfYearlyOff(e.target.value)}
-            className={INPUT}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1" style={{ flexBasis: 150 }}>
-          <span className={LABEL}>Annual discount (%)</span>
-          <input
-            type="number"
-            name="annualDiscount"
-            min="0"
-            max="99"
-            step="1"
-            value={annualOff}
-            onChange={(e) => setAnnualOff(e.target.value)}
-            className={INPUT}
-          />
-        </label>
-      </div>
-
-      <div className="flex flex-col border-t border-line pt-3">
-        <span className={LABEL}>What a gym owner will see</span>
-        <div className="mt-2 flex flex-col gap-2">
+      <div className="mt-2 overflow-x-auto">
+        <div className="min-w-[560px]">
+          <div className="grid grid-cols-[1.2fr_1fr_1.6fr_0.7fr_auto] items-center gap-3 border-b-2 border-ink pb-3">
+            <span className={TH}>Term</span>
+            <span className={TH}>Discount</span>
+            <span className={TH}>Owner pays</span>
+            <span className={`${TH} text-right`}>Gyms</span>
+            <span className={`${TH} w-16 text-right`}>Offered</span>
+          </div>
           {TERMS.map((term) => {
             const current = pkg.terms.find((t) => t.key === term.key);
+            const isBase = term.key === "monthly";
+            const discount = isBase ? 0 : Number(discountInputs[term.key]) || 0;
             const list = listPriceMinor(monthlyMinor, term);
-            const discount = discounts[term.key] ?? 0;
             const pays = effectivePriceMinor(list, discount);
             const perMonth = Math.round(pays / term.months);
+            const gyms = current?.gymCount ?? 0;
             return (
               <div
                 key={term.key}
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line pb-2 last:border-0 last:pb-0"
+                className="grid grid-cols-[1.2fr_1fr_1.6fr_0.7fr_auto] items-center gap-3 border-b border-line py-4"
               >
-                <span className="w-[92px] text-[12.5px] font-bold">{term.label}</span>
-                <span className="flex items-baseline gap-2">
-                  {discount > 0 ? (
-                    <span className="text-[12px] text-mute3 line-through">{formatMinorWhole(list, pkg.currency)}</span>
-                  ) : null}
-                  <span className="font-display text-[18px] tracking-[-0.02em]">
+                <span className="font-display text-[18px] tracking-[-0.01em]">{term.label}</span>
+                {isBase ? (
+                  <span className="text-[13px] text-mute">Base</span>
+                ) : (
+                  <label className="flex w-[100px] items-center border-[1.5px] border-line bg-paper focus-within:border-ink">
+                    <input
+                      type="number"
+                      name={FIELD_NAME[term.key]}
+                      aria-label={`${term.label} discount (%)`}
+                      min="0"
+                      max="99"
+                      step="1"
+                      value={discountInputs[term.key]}
+                      onChange={(e) => setDiscountInputs((d) => ({ ...d, [term.key]: e.target.value }))}
+                      className="min-w-0 flex-1 bg-transparent px-2.5 py-2 font-bold text-[15px] text-ink outline-none"
+                    />
+                    <span className="pr-2.5 text-[13px] text-mute">%</span>
+                  </label>
+                )}
+                <span className="flex flex-col">
+                  <span className="font-display text-[20px] tracking-[-0.02em]">
                     {formatMinorWhole(pays, pkg.currency)}
                   </span>
+                  <span className="text-[12px] text-mute">
+                    {isBase
+                      ? "per month"
+                      : `${formatMinorWhole(perMonth, pkg.currency)}/mo${
+                          discount > 0 ? ` · was ${formatMinorWhole(list, pkg.currency)}` : ""
+                        }`}
+                  </span>
                 </span>
-                <span className="text-[11.5px] text-mute">
-                  {formatMinorWhole(perMonth, pkg.currency)} / month
-                  {discount > 0 ? ` · ${discount}% off` : ""}
+                <span className="text-right text-[13px] text-mute">
+                  {current?.cycleId ? `${gyms} ${gyms === 1 ? "gym" : "gyms"}` : "On save"}
                 </span>
-                <span className="ml-auto text-[11px] text-mute3">
-                  {current?.cycleId
-                    ? `${current.gymCount} ${current.gymCount === 1 ? "gym" : "gyms"}`
-                    : "Will be created on save"}
+                <span className="flex w-16 justify-end">
+                  <Toggle
+                    ariaLabel={`${term.label} offered to new gyms`}
+                    checked={current?.cycleId ? current.isPurchasable : true}
+                    disabled={!current?.cycleId || isBusy(term.key)}
+                    onChange={(next) =>
+                      current?.cycleId
+                        ? run(
+                            term.key,
+                            () => setTermOffered(current.cycleId as string, next),
+                            next ? `${term.label} is back on offer.` : `${term.label} hidden from new gyms.`,
+                          )
+                        : undefined
+                    }
+                  />
                 </span>
               </div>
             );
@@ -448,50 +454,11 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-        <Button pending={isPending} icon={ConfirmIcon} type="submit" disabled={isPending} variant="primary" size="lg">
-          {isPending ? "Saving…" : "Save pricing"}
-        </Button>
-        <span className="text-[11px] leading-relaxed text-mute3">
-          Repricing never changes what a gym already paid — it applies from their next renewal.
-        </span>
-      </div>
-
-      <TermVisibility pkg={pkg} />
-    </ConfirmedForm>
-  );
-}
-
-function TermVisibility({ pkg }: { pkg: SimplePackage }) {
-  const { run, isBusy } = useMutation();
-  const offerable = pkg.terms.filter((t) => t.cycleId);
-  if (offerable.length === 0) return null;
-
-  return (
-    <div className="flex flex-col gap-2 border-t border-line pt-3">
-      <span className={LABEL}>Terms offered to new gyms</span>
-      <div className="flex flex-wrap gap-2">
-        {offerable.map((term) => (
-          <Toggle
-            key={term.key}
-            label={term.label}
-            checked={term.isPurchasable}
-            disabled={isBusy(term.key)}
-            onChange={(next) =>
-              run(
-                term.key,
-                () => setTermOffered(term.cycleId as string, next),
-                next ? `${term.label} is back on offer.` : `${term.label} hidden from new gyms.`,
-              )
-            }
-            className="w-[220px] items-center border-[1.5px] border-line bg-paper px-3"
-          />
-        ))}
-      </div>
-      <span className="text-[11px] text-mute3">
-        Hiding a term stops new gyms choosing it. A gym already on it keeps renewing.
+      <span className="text-[11px] leading-relaxed text-mute3">
+        Repricing never changes what a gym already paid — it applies from their next renewal. Hiding a term stops
+        new gyms choosing it; a gym already on it keeps renewing.
       </span>
-    </div>
+    </ConfirmedForm>
   );
 }
 

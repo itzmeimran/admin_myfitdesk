@@ -332,6 +332,15 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
     ),
   );
   const monthlyMinor = toMinorUnits(monthly) ?? 0;
+  // Compared against the saved package (props), so the button re-disables
+  // once a save refreshes the page and the form matches the database again.
+  const dirty =
+    monthlyMinor !== pkg.monthlyPriceMinor ||
+    TERMS.some(
+      (t) =>
+        t.key !== "monthly" &&
+        (Number(discountInputs[t.key]) || 0) !== (pkg.terms.find((x) => x.key === t.key)?.discountPercent ?? 0),
+    );
   const FIELD_NAME: Record<string, string> = {
     quarterly: "quarterlyDiscount",
     half_yearly: "halfYearlyDiscount",
@@ -351,7 +360,15 @@ function PricingCard({ pkg }: { pkg: SimplePackage }) {
           <h2 className="font-display text-[26px] tracking-[-0.02em]">Pricing</h2>
           <p className="text-[13px] text-mute">Set the monthly price. Longer terms are derived from it.</p>
         </div>
-        <Button pending={isPending} icon={ConfirmIcon} type="submit" disabled={isPending} variant="primary" size="lg">
+        <Button
+          pending={isPending}
+          icon={ConfirmIcon}
+          type="submit"
+          disabled={isPending || !dirty}
+          title={dirty ? undefined : "No changes to save"}
+          variant="primary"
+          size="lg"
+        >
           {isPending ? "Saving…" : "Save pricing"}
         </Button>
       </div>

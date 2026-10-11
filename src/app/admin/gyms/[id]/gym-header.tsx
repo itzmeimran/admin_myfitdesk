@@ -10,6 +10,7 @@ import { ImageLightbox } from "@/components/ImageLightbox";
 import { GymSubscriptionPanel } from "./gym-subscription-panel";
 import { CopyButton } from "./copy-button";
 import { buildSubscriptionPanelView } from "./subscription-view";
+import { mailHref, telHref } from "@/features/gyms/overview-rules";
 
 /**
  * The gym header card: identity and contact facts on the left, the
@@ -46,7 +47,7 @@ export function GymHeader({
   const FACT =
     "min-w-0 border-line px-4 py-2.5 border-b-[1.5px] odd:border-r-[1.5px] [&:nth-last-child(-n+2)]:border-b-0 " +
     "xl:border-b-0 xl:border-r-0 xl:border-l-[1.5px] xl:px-6 xl:py-0 xl:first:border-l-0 xl:first:pl-0 xl:odd:border-r-0";
-  const FACT_LABEL = "mb-1 text-[9.5px] font-bold uppercase tracking-[0.14em] text-mute2";
+  const FACT_LABEL = "mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-mute";
   const FACT_VALUE = "flex min-w-0 items-center gap-1.5 text-[13.5px] font-medium text-ink";
 
   return (
@@ -94,24 +95,32 @@ export function GymHeader({
             <dt className={FACT_LABEL}>Phone</dt>
             {ownerPhone ? (
               <dd className={FACT_VALUE}>
-                <span className="truncate">{ownerPhone}</span>
+                {telHref(ownerPhone) ? (
+                  <a href={telHref(ownerPhone) as string} className="truncate underline decoration-line underline-offset-2 hover:text-accent">{ownerPhone}</a>
+                ) : (
+                  <span className="truncate">{ownerPhone}</span>
+                )}
                 <CopyButton value={ownerPhone} label="Phone" />
               </dd>
             ) : (
-              <dd className={`${FACT_VALUE} text-mute3`}>Not provided</dd>
+              <dd className={`${FACT_VALUE} text-mute`}>Not provided</dd>
             )}
           </div>
           <div className={FACT}>
             <dt className={FACT_LABEL}>Email</dt>
             {ownerEmail ? (
               <dd className={FACT_VALUE}>
-                <span className="truncate" title={ownerEmail}>
-                  {ownerEmail}
-                </span>
+                {mailHref(ownerEmail) ? (
+                  <a href={mailHref(ownerEmail) as string} title={ownerEmail} className="truncate underline decoration-line underline-offset-2 hover:text-accent">{ownerEmail}</a>
+                ) : (
+                  <span className="truncate" title={ownerEmail}>
+                    {ownerEmail}
+                  </span>
+                )}
                 <CopyButton value={ownerEmail} label="Email" />
               </dd>
             ) : (
-              <dd className={`${FACT_VALUE} text-mute3`}>Not provided</dd>
+              <dd className={`${FACT_VALUE} text-mute`}>Not provided</dd>
             )}
           </div>
           <div className={FACT}>

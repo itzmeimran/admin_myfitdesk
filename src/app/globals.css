@@ -309,7 +309,7 @@ html[data-admin-env="prod"] body::before {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.13em;
-  color: var(--mute2);
+  color: var(--mute);
 }
 
 /* 2. 1280px max-width content cap — the tenant dashboard caps at 4xl
@@ -439,4 +439,21 @@ html[data-admin-env="prod"] body::before {
 }
 .mfd-button:is(:disabled, [aria-disabled="true"]) :where(svg, span, strong) {
   color: inherit;
+}
+
+/* Admin sidebar width. Default 236px; a 72px icon rail on tablets (768-1023px)
+ * and whenever the admin collapses it. `html[data-sidebar]` is set from the
+ * saved choice by the sidebar; no attribute = follow the breakpoint. */
+:root { --sidebar-w: 236px; }
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  html:not([data-sidebar="expanded"]) { --sidebar-w: 72px; }
+  html:not([data-sidebar="expanded"]) .mfd-sb-hide { display: none; }
+  html:not([data-sidebar="expanded"]) .mfd-sb-center,
+  html:not([data-sidebar="expanded"]) .mfd-sb-item { justify-content: center; padding-inline: 0; gap: 0; }
+}
+@media (min-width: 768px) {
+  html[data-sidebar="collapsed"] { --sidebar-w: 72px; }
+  html[data-sidebar="collapsed"] .mfd-sb-hide { display: none; }
+  html[data-sidebar="collapsed"] .mfd-sb-center,
+  html[data-sidebar="collapsed"] .mfd-sb-item { justify-content: center; padding-inline: 0; gap: 0; }
 }

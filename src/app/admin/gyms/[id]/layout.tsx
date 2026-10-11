@@ -5,17 +5,17 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/core/db/server-client";
 import { loose } from "@/core/db/loose-client";
 import { formatZonedDateTime } from "@/core/dates/format";
-import { getGymDetail } from "@/features/gyms/detail";
 import type { GymDeletionStatus } from "@/features/gyms/GymDeletionControl";
 import { listAssignablePackages } from "@/features/gyms/queries";
 import { getGymOwnerInvitation } from "@/features/gyms/onboarding";
-import { BackIcon, AlertIcon } from "@/core/ui/icons";
+import { AlertIcon } from "@/core/ui/icons";
+import { GymBreadcrumb } from "./gym-breadcrumb";
+import { getGymCached } from "./get-gym";
 import { GymHeader } from "./gym-header";
 import { TabsLayout } from "@/components/Tabs";
 import { GymDetailTabs } from "./gym-detail-tabs";
 import { OwnerInvitationCard } from "./owner-invitation-card";
 import { GymRealtimeProvider } from "./gym-realtime-provider";
-import { LiveIndicator } from "./live-indicator";
 
 /**
  * Platform Admin → Gyms → [Gym Name]. Shared shell for every
@@ -39,7 +39,7 @@ export default async function GymDetailLayout({
   const { id } = await params;
   const supabase = await createClient();
   const [gym, packages, ownerInvitation] = await Promise.all([
-    getGymDetail(supabase, id),
+    getGymCached(id),
     listAssignablePackages(supabase),
     getGymOwnerInvitation(supabase, id),
   ]);
@@ -66,13 +66,7 @@ export default async function GymDetailLayout({
   return (
     <GymRealtimeProvider key={gym.id} organizationId={gym.id}>
     <div className="flex flex-col gap-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <ButtonLink variant="text" href="/admin/gyms" className="flex items-center gap-1.5 text-[11.5px] font-bold text-mute hover:text-ink">
-          <BackIcon size={13} aria-hidden />
-          All gyms
-        </ButtonLink>
-        <LiveIndicator />
-      </div>
+      <GymBreadcrumb name={gym.name} status={gym.status} gymCode={gym.gymCode} />
 
       {gym.deletionRequestedAt ? (
         <div role="alert" className="flex flex-wrap items-center gap-3 border-[1.5px] border-accent bg-accent/8 p-3.5">

@@ -45,6 +45,8 @@ type TabsNavProps = {
   fill?: boolean;
   /** Keep the segmented bar pinned to the top of the page while scrolling. */
   sticky?: boolean;
+  /** Pages with their own sticky bar (40px): pin the tabs and rail below it. */
+  belowStickyBar?: boolean;
   className?: string;
 };
 
@@ -57,6 +59,7 @@ export function TabsNav({
   size = "md",
   fill = false,
   sticky = false,
+  belowStickyBar = false,
   className = "",
 }: TabsNavProps) {
   const barRef = useRef<HTMLDivElement>(null);
@@ -125,6 +128,7 @@ export function TabsNav({
     );
   }
 
+  const railStick = belowStickyBar ? "xl:sticky xl:top-14" : "xl:sticky xl:top-4";
   const barProps = isLinks ? {} : { role: "tablist", "aria-label": ariaLabel };
   const bar = (
     <div
@@ -139,13 +143,13 @@ export function TabsNav({
     <div
       {...barProps}
       aria-orientation={isLinks ? undefined : "vertical"}
-      className="hidden border-l-[1.5px] border-line xl:sticky xl:top-4 xl:flex xl:flex-col"
+      className={`hidden border-l-[1.5px] border-line xl:flex xl:flex-col ${railStick}`}
     >
       {items.map((item) => renderItem(item, "rail"))}
     </div>
   );
 
-  const stickyClass = sticky ? "md:sticky md:top-0 md:z-10 md:bg-paper" : "";
+  const stickyClass = sticky ? `md:sticky ${belowStickyBar ? "md:top-10" : "md:top-0"} md:z-10 md:bg-paper` : "";
   const segmentedOnly = variant === "segmented";
 
   // Link tabs are navigation landmarks; button tabs are a tablist (set above).
@@ -156,7 +160,7 @@ export function TabsNav({
           {bar}
         </nav>
         {segmentedOnly ? null : (
-          <nav aria-label={ariaLabel} className="hidden xl:block xl:sticky xl:top-4">
+          <nav aria-label={ariaLabel} className={`hidden xl:block ${railStick}`}>
             {rail}
           </nav>
         )}

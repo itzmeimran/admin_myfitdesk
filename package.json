@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:dr": "node --test scripts/disaster-recovery-policy.test.mjs",
     "test:ist": "node --test scripts/ist-calendar.test.cjs",
+    "test:gym-overview": "node --test scripts/gym-overview.test.cjs",
     "test:activity": "node --test scripts/activity-log.test.cjs",
     "test:activity:sql": "node scripts/activity-log-sql.test.mjs",
     "test:buttons": "node --test scripts/button-system.test.cjs",

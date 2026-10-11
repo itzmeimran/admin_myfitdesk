@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
+import { checkPermission } from "@/core/auth/access";
 
 const noteSchema = z.object({
   organizationId: z.string().uuid(),
@@ -19,6 +20,11 @@ export async function addGymNote(_previous: AddGymNoteState, formData: FormData)
     category: formData.get("category") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the note and try again." };
+
+  // The RPC only checks "active platform admin"; editing and deleting notes
+  // need gyms.manage, so adding one does too.
+  const allowed = await checkPermission("gyms.manage");
+  if (!allowed.ok) return { error: allowed.error };
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_add_gym_note", {

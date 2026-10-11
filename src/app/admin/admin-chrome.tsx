@@ -47,6 +47,10 @@ export function AdminChrome({
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
   const initials = email.slice(0, 2).toUpperCase();
+  // Sections name themselves; a gym's own name is in its breadcrumb, so its
+  // pages read "Gyms" here rather than a stale "All gyms".
+  const sectionLabel =
+    pathname === "/admin" ? "Overview" : (NAV_ITEMS.find((item) => item.href !== "/admin" && pathname.startsWith(item.href))?.label ?? "Platform");
   const badgeFor = (href: string) => (href === "/admin/gyms" ? String(gymsCount) : href === '/admin/sales' && salesAttentionCount ? String(salesAttentionCount) : undefined);
 
   return (
@@ -61,7 +65,7 @@ export function AdminChrome({
       <div className="mr-auto flex min-w-0 items-center gap-2.5">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[10px] font-bold uppercase tracking-[0.13em] text-mute">Platform</span>
-          <span className="truncate text-[13.5px] font-bold tracking-[-0.01em]">All gyms</span>
+          <span className="truncate text-[13.5px] font-bold tracking-[-0.01em]">{pathname === "/admin/gyms" ? "All gyms" : sectionLabel}</span>
         </div>
         <EnvironmentPill compact />
       </div>

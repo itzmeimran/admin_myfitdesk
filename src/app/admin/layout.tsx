@@ -78,7 +78,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
         <AdminSidebar email={email} gymsCount={gymsCount} salesAttentionCount={salesAttentionCount} permissions={permissions} />
 
-        <div className="flex h-dvh flex-1 flex-col md:ml-[236px] md:min-w-0">
+        <div className="flex h-dvh flex-1 flex-col md:ml-[var(--sidebar-w)] md:min-w-0">
           <header className="flex flex-shrink-0 items-center gap-3 border-b-[1.5px] border-ink bg-paper px-4 py-3 md:px-6">
             <AdminChrome email={email} gymsCount={gymsCount} alertsCount={alertsCount} salesAttentionCount={salesAttentionCount} permissions={permissions} />
           </header>

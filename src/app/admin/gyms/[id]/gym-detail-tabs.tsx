@@ -53,6 +53,7 @@ export function GymDetailTabs({
       ariaLabel="Gym detail sections"
       activeKey={active}
       sticky
+      belowStickyBar
       items={TABS.map((tab) => ({ key: tab.href, label: tab.label, href: `${base}${tab.href}`, meta: counts[tab.href] }))}
     />
   );

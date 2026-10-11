@@ -54,13 +54,14 @@ export function NotesPanel({ organizationId, notes, timeZone }: { organizationId
 
   return (
     <div className="flex flex-col gap-2.5">
-      <AdminNotesForm organizationId={organizationId} />
+      <AdminNotesForm organizationId={organizationId} categories={[...new Set(notes.map((note) => note.category).filter((c): c is string => Boolean(c)))]} />
       {notes.length ? (
         <div className="divide-y divide-line border-[1.5px] border-line bg-paper">
           {notes.map((note) => (
             <article key={note.id} className="flex flex-col gap-1.5 px-3.5 py-3">
-              <div className="flex flex-wrap items-center gap-2 text-[10.5px] text-mute3">
-                <span>{exactTime(note.createdAt, timeZone)}</span>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-mute">
+                <strong className="font-bold text-ink2">{note.createdByEmail ?? "Platform admin"}</strong>
+                <time dateTime={note.createdAt} title={exactTime(note.createdAt, timeZone)}>{exactTime(note.createdAt, timeZone)}</time>
                 {note.category ? <span className="bg-sand px-1.5 py-0.5 font-bold uppercase tracking-[0.08em] text-ink2">{note.category}</span> : null}
                 {note.updatedAt ? <span>· edited {exactTime(note.updatedAt, timeZone)}</span> : null}
                 <span className="ml-auto flex gap-3">
@@ -93,12 +94,11 @@ export function NotesPanel({ organizationId, notes, timeZone }: { organizationId
               ) : (
                 <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-ink">{note.content}</p>
               )}
-              <span className="text-[10.5px] text-mute">— {note.createdByEmail ?? "Platform admin"}</span>
             </article>
           ))}
         </div>
       ) : (
-        <div className="border-[1.5px] border-line bg-paper px-4 py-8 text-center text-[12.5px] text-mute">No private notes yet.</div>
+        <div className="border-[1.5px] border-line bg-paper px-4 py-5 text-center text-[12.5px] text-mute">No private notes yet. Add one above to leave context for other admins.</div>
       )}
       <ConfirmDialog
         open={toDelete !== null}

@@ -117,4 +117,6 @@ export {
   LuCircleAlert as FailedIcon,
   LuMessageSquare as ConversationIcon,
   LuKanban as CrmIcon,
+  LuFingerprint as SmartAccessIcon,
+  LuKeyRound as TokenIcon,
 } from "react-icons/lu";

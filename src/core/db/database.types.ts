@@ -2054,6 +2054,14 @@ export type Database = {
         Returns: Json
       }
       admin_update_gym_note: { Args: { p_content: string; p_note_id: string }; Returns: undefined }
+      // --- Smart Access (1032); hand-patched like the other entries here.
+      admin_list_smart_access_requests: { Args: { p_status?: string | null }; Returns: Json[] }
+      admin_review_smart_access_request: { Args: { p_request_id: string; p_approve: boolean; p_reason: string; p_admin_notes?: string | null }; Returns: Json }
+      admin_update_biometric_integration: { Args: { p_organization_id: string; p_configuration_status: string; p_enabled: boolean; p_reason: string; p_integration_name?: string | null }; Returns: Json }
+      admin_issue_biometric_ingest_token: { Args: { p_organization_id: string; p_reason: string }; Returns: string }
+      admin_set_package_smart_access: { Args: { p_package_id: string; p_included: boolean; p_reason: string }; Returns: Json }
+      admin_list_smart_access_packages: { Args: Record<string, never>; Returns: Json[] }
+      admin_list_biometric_sync_jobs: { Args: { p_organization_id: string; p_limit?: number }; Returns: Json[] }
       admin_delete_gym_note: { Args: { p_note_id: string }; Returns: undefined }
       admin_set_alert_status: { Args: { p_action: string; p_alert_id: string; p_note?: string }; Returns: undefined }
       admin_adjust_whatsapp_credits: { Args: { p_delta: number; p_organization_id: string; p_reason: string }; Returns: Json }

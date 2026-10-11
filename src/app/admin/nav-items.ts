@@ -9,6 +9,7 @@ import {
   SettingsIcon,
   DatabaseIcon,
   ApiPerformanceIcon,
+  SmartAccessIcon,
   type IconType,
 } from "@/core/ui/icons";
 import type { Permission } from "@/core/auth/permissions";
@@ -52,6 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Overview", icon: OverviewIcon },
   { href: "/admin/gyms", label: "Gyms", icon: GymsIcon, permission: "gyms.view" },
   { href: "/admin/sales", label: "Sales", icon: CrmIcon, permission: "sales.view" },
+  { href: "/admin/smart-access", label: "Smart Access", icon: SmartAccessIcon, permission: "gyms.view" },
   { href: "/admin/packages", label: "Packages", icon: PackagesIcon, permission: "packages.view" },
   { href: "/admin/revenue", label: "Platform revenue", icon: RevenueIcon, permission: "revenue.view" },
   { href: "/admin/whatsapp-credits", label: "WhatsApp credits", icon: WhatsAppIcon, permission: "whatsapp.view" },

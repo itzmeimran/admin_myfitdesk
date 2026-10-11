@@ -4,6 +4,7 @@ import { WhatsAppCreditsView } from "@/features/whatsapp-credits/WhatsAppCredits
 import {
   listWhatsAppCreditGyms,
   listWhatsAppCreditPackages,
+  getWhatsAppRechargeIncome,
 } from "@/features/whatsapp-credits/queries";
 
 import { getMetaSpending } from "@/features/whatsapp-credits/meta-spend";
@@ -26,6 +27,9 @@ export default async function WhatsAppCreditsPage({ searchParams }: { searchPara
     listWhatsAppCreditGyms(supabase, { search, limit: pageSize, offset }),
     getMetaSpending({ period: first(sp.period), from: first(sp.from), to: first(sp.to) }),
   ]);
+  const income = spending.status === "ready"
+    ? await getWhatsAppRechargeIncome(supabase, { from: spending.selection.from, to: spending.selection.to, currency: spending.currency })
+    : { status: "unavailable" as const, error: "Load Meta spending to compare recharge income for the same period." };
 
   return (
     <WhatsAppCreditsView
@@ -36,6 +40,7 @@ export default async function WhatsAppCreditsPage({ searchParams }: { searchPara
       pageSize={pageSize}
       searchParams={sp}
       spending={spending}
+      income={income}
     />
   );
 }

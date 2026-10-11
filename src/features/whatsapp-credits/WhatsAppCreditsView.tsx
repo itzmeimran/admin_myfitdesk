@@ -23,6 +23,8 @@ import type {
   WhatsAppCreditPackage,
 } from "./queries";
 import { MetaSpendingView } from "./MetaSpendingView";
+import { RechargeProfitView } from "./RechargeProfitView";
+import type { RechargeIncomeReport } from "./recharge-income";
 import type { MetaSpendReport } from "./meta-spend-logic";
 import { ConfirmIcon } from '@/core/ui/icons';
 
@@ -56,6 +58,7 @@ export function WhatsAppCreditsView({
   pageSize,
   searchParams,
   spending,
+  income,
 }: {
   packages: WhatsAppCreditPackage[];
   gyms: WhatsAppCreditGym[];
@@ -64,6 +67,7 @@ export function WhatsAppCreditsView({
   pageSize: number;
   searchParams: Record<string, string | string[] | undefined>;
   spending: MetaSpendReport;
+  income: RechargeIncomeReport;
 }) {
   const mutation = useMutation();
   const [editing, setEditing] = useState<WhatsAppCreditPackage | "new" | null>(null);
@@ -83,6 +87,7 @@ export function WhatsAppCreditsView({
       </div>
 
       <MetaSpendingView report={spending} />
+      <RechargeProfitView income={income} spending={spending} />
 
       <CreditPackageCatalog
         packages={packages}

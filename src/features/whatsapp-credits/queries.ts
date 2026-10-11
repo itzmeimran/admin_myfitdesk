@@ -2,6 +2,32 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
+import { assertPermission } from "@/core/auth/access";
+import type { RechargeIncomeReport } from "./recharge-income";
+
+/** The existing admin-gated RPC sums succeeded purchase payment snapshots at
+ * paid_at (created_at for legacy rows). Read only its recharge fields: its old
+ * locally estimated Meta cost and margin are deliberately never used. */
+export async function getWhatsAppRechargeIncome(
+  supabase: SupabaseClient<Database>,
+  range: { from: string; to: string; currency: string },
+): Promise<RechargeIncomeReport> {
+  await assertPermission("whatsapp.view");
+  try {
+    const { data, error } = await supabase.rpc("admin_whatsapp_profitability", {
+      p_from: range.from, p_to: range.to, p_currency: range.currency,
+    });
+    if (error) return { status: "unavailable", error: "Recharge income could not be loaded. Refresh to try again." };
+    const raw = data as { currency?: unknown; recharge_income_minor?: unknown; recharge_count?: unknown; credits_sold?: unknown } | null;
+    const wholeAmount = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+    if (!raw || raw.currency !== range.currency || !wholeAmount(raw.recharge_income_minor) || !wholeAmount(raw.recharge_count) || !wholeAmount(raw.credits_sold)) {
+      return { status: "unavailable", error: "Complete recharge payment data is unavailable. No profit total is shown." };
+    }
+    return { status: "ready", ...range, incomeMinor: raw.recharge_income_minor, rechargeCount: raw.recharge_count, creditsSold: raw.credits_sold };
+  } catch {
+    return { status: "unavailable", error: "Recharge income could not be loaded. Refresh to try again." };
+  }
+}
 
 export type WhatsAppCreditPackage = {
   id: string;

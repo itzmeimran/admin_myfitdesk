@@ -75,3 +75,36 @@ test('Meta access failure produces unavailable spending, never a calculated subs
     const report = await getMetaSpending({}); assert.equal(report.status, 'unavailable'); assert(!('totals' in report));
   } finally { global.fetch = original; }
 });
+
+test('profit uses actual collected income minus Meta charges, including zero income and losses', () => {
+  const { rechargeProfit } = load('src/features/whatsapp-credits/recharge-income.ts');
+  const selection = spendSelection({}, now);
+  const income = { status: 'ready', currency: 'INR', from: selection.from, to: selection.to, incomeMinor: 200, rechargeCount: 1, creditsSold: 25000 };
+  const spending = { status: 'ready', currency: 'INR', selection, totals: { costMinor: 4388.27 } };
+  assert.equal(rechargeProfit(income, spending), -4188.27);
+  assert.equal(rechargeProfit({ ...income, incomeMinor: 5000 }, spending), 611.73);
+  assert.equal(rechargeProfit({ ...income, incomeMinor: 0 }, spending), -4388.27);
+  assert.equal(rechargeProfit({ ...income, incomeMinor: 4388.27 }, spending), 0);
+  assert.equal(rechargeProfit({ ...income, currency: 'USD' }, spending), null);
+  assert.equal(rechargeProfit({ ...income, to: '2026-10-01T00:00:00Z' }, spending), null);
+  assert.equal(rechargeProfit({ status: 'unavailable', error: 'failed' }, spending), null);
+});
+
+test('recharge query uses the exact Meta period and ignores the legacy estimated margin', async () => {
+  const { getWhatsAppRechargeIncome } = load('src/features/whatsapp-credits/queries.ts', {
+    'server-only': {}, '@/core/auth/access': { assertPermission: async p => assert.equal(p, 'whatsapp.view') },
+  });
+  const range = { from: '2026-09-22T18:30:00.000Z', to: now.toISOString(), currency: 'INR' };
+  const client = { rpc: async (name, args) => {
+    assert.equal(name, 'admin_whatsapp_profitability');
+    assert.deepEqual(args, { p_from: range.from, p_to: range.to, p_currency: 'INR' });
+    return { data: { currency: 'INR', recharge_income_minor: 200, recharge_count: 1, credits_sold: 25000,
+      estimated_meta_cost_minor: 999999, gross_margin_minor: -999799 }, error: null };
+  } };
+  assert.deepEqual(await getWhatsAppRechargeIncome(client, range), { status: 'ready', ...range, incomeMinor: 200, rechargeCount: 1, creditsSold: 25000 });
+  for (const data of [null, {}, { currency: 'USD', recharge_income_minor: 200, recharge_count: 1, credits_sold: 25000 }]) {
+    const result = await getWhatsAppRechargeIncome({ rpc: async () => ({ data, error: null }) }, range);
+    assert.equal(result.status, 'unavailable'); assert(!('incomeMinor' in result));
+  }
+  assert.equal((await getWhatsAppRechargeIncome({ rpc: async () => ({ data: null, error: { message: 'network' } }) }, range)).status, 'unavailable');
+});

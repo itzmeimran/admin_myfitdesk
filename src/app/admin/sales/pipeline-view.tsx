@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/Button";
 import { Dropdown } from "@/components/Dropdown";
 import { LuChevronDown, LuChevronLeft, LuChevronRight, LuListFilter, LuSearch, LuX } from "react-icons/lu";
@@ -132,7 +132,7 @@ export function PipelineView() {
           <Button icon={CancelIcon} type="button" variant="secondary" size="md" onClick={crm.clearFilters}>Clear filters</Button>
         </div>
       ) : (
-        <div className="flex min-w-0 flex-col items-start gap-2.5 pb-2 md:snap-x md:snap-mandatory md:flex-row md:overflow-x-auto lg:snap-none">
+        <PipelineBoard>
           {BOARD_COLUMNS.map((col, idx) => {
             const cards = shown.filter((l) => columnOf(l.stage) === col.key);
             const onThisPhone = idx === mobileIdx;
@@ -164,8 +164,63 @@ export function PipelineView() {
               </section>
             );
           })}
-        </div>
+        </PipelineBoard>
       )}
+    </div>
+  );
+}
+
+function PipelineBoard({ children }: { children: ReactNode }) {
+  const boardRef = useRef<HTMLDivElement>(null);
+  const boardId = useId();
+  const [canScroll, setCanScroll] = useState({ left: false, right: false });
+
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+
+    const update = () => {
+      const left = board.scrollLeft > 1;
+      const right = board.scrollLeft + board.clientWidth < board.scrollWidth - 1;
+      setCanScroll((previous) => previous.left === left && previous.right === right ? previous : { left, right });
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(board);
+    board.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => {
+      observer.disconnect();
+      board.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  const scroll = (direction: -1 | 1) => {
+    const board = boardRef.current;
+    if (!board) return;
+    const column = board.firstElementChild;
+    const gap = Number.parseFloat(window.getComputedStyle(board).columnGap) || 0;
+    const step = column ? column.getBoundingClientRect().width + gap : board.clientWidth;
+    board.scrollBy({
+      left: direction * step,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+    });
+  };
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="hidden items-center justify-end gap-2 md:flex" role="group" aria-label="Scroll pipeline stages">
+        <Button icon={LuChevronLeft} variant="secondary" size="sm" aria-controls={boardId}
+          disabled={!canScroll.left} onClick={() => scroll(-1)}>
+          Scroll left
+        </Button>
+        <Button icon={LuChevronRight} variant="secondary" size="sm" aria-controls={boardId}
+          disabled={!canScroll.right} onClick={() => scroll(1)}>
+          Scroll right
+        </Button>
+      </div>
+      <div ref={boardRef} id={boardId} className="flex min-w-0 flex-col items-start gap-2.5 pb-2 md:snap-x md:snap-mandatory md:flex-row md:overflow-x-auto lg:snap-none">
+        {children}
+      </div>
     </div>
   );
 }

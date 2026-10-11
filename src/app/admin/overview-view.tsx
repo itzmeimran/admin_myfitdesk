@@ -3,6 +3,7 @@
 import { PeriodSelector } from "@/components/PeriodSelector";
 import { Button } from "@/components/Button";
 import { ButtonLink } from "@/components/ButtonLink";
+import { ColumnBarChart } from "@/components/ColumnBarChart";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { OverviewPeriod } from "@/features/overview/queries";
 import type {
@@ -209,27 +210,11 @@ export function OverviewView({
               </div>
               <span className="text-[11.5px] text-mute2">Yearly packages normalised to a monthly figure</span>
             </div>
-            <div className="flex items-end gap-1 border-b-[1.5px] border-ink pb-0" style={{ height: 176 }}>
-              {trend.map((w) => (
-                <div key={w.label + w.value} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
-                  <span className="text-[10px] font-bold" style={{ color: w.last ? INK : "var(--mute2)" }}>
-                    ₹{Math.round(w.value)}k
-                  </span>
-                  <span
-                    className="block w-full"
-                    style={{ height: `${w.heightPct}%`, background: w.last ? "var(--hi)" : INK }}
-                    title={`Week of ${w.label || "—"}: ₹${w.value.toFixed(1)}k recurring`}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="mt-1.5 flex gap-1">
-              {trend.map((w, i) => (
-                <span key={i} className="flex-1 truncate text-center text-[10px] text-mute2">
-                  {w.label}
-                </span>
-              ))}
-            </div>
+            <ColumnBarChart label="Recurring revenue over the last 12 weeks" bars={trend.map((w, i) => ({
+              key: String(i), label: w.label, valueLabel: `₹${Math.round(w.value)}k`, heightPct: w.heightPct,
+              color: w.last ? "var(--hi)" : INK, valueColor: w.last ? INK : "var(--mute2)",
+              title: `Week of ${w.label || "—"}: ₹${w.value.toFixed(1)}k recurring`,
+            }))} />
             {/* TODO(missing-narrative): the mock's per-week movement
                 sentence ("Growth came from 6 new gyms and 2 Starter→Growth
                 upgrades...") isn't derivable from admin_revenue_trend,

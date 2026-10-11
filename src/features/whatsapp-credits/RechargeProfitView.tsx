@@ -2,6 +2,7 @@
 
 import { formatMinor } from "@/core/money/format";
 import { formatCalendarDate } from "@/core/dates/format";
+import { ColumnBarChart } from "@/components/ColumnBarChart";
 import type { MetaSpendReport } from "./meta-spend-logic";
 import { rechargeProfit, type RechargeIncomeReport } from "./recharge-income";
 
@@ -28,12 +29,17 @@ export function RechargeProfitView({ income, spending }: { income: RechargeIncom
             <span className="text-[10.5px] leading-relaxed">{tile.detail}</span>
           </div>)}
       </div>
-      <div className="flex flex-col gap-4 border-[1.5px] border-line bg-paper p-4" aria-label="Earned versus spent">
-        {[{ label: "Earned", amount: income.incomeMinor, color: "bg-hi" }, { label: "Spent", amount: spending.totals.costMinor, color: "bg-accent" }].map(row =>
-          <div key={row.label} className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between gap-3 text-[12px]"><span className="font-bold">{row.label}</span><span>{formatMinor(row.amount, income.currency)}</span></div>
-            <div className="h-3 bg-sand" aria-hidden><div className={`h-full ${row.color}`} style={{ width: `${row.amount / (Math.max(income.incomeMinor, spending.totals.costMinor) || 1) * 100}%` }} /></div>
-          </div>)}
+      <div className="flex flex-col gap-4 border-[1.5px] border-line bg-paper p-4">
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-mute">Earned vs spent</h3>
+          <p className="mt-1 text-[11.5px] text-mute2">Totals for the selected period · {income.currency}</p>
+        </div>
+        <ColumnBarChart label="Recharge earnings versus Meta spending for the selected period" columnMaxWidth={120}
+          bars={[{ label: "Earned", amount: income.incomeMinor, color: "var(--hi)" }, { label: "Spent on Meta", amount: spending.totals.costMinor, color: "var(--accent)" }].map(row => ({
+            key: row.label, label: row.label, valueLabel: formatMinor(row.amount, income.currency), color: row.color,
+            heightPct: row.amount / (Math.max(income.incomeMinor, spending.totals.costMinor) || 1) * 80,
+            title: `${row.label}: ${formatMinor(row.amount, income.currency)}`,
+          }))} />
       </div>
       <p className="text-[10.5px] leading-relaxed text-mute3">Earnings use the amounts actually paid, not today&apos;s package prices. Free grants and refunded purchases are excluded. Profit/loss is income minus all managed-account Meta message charges, before taxes, payment fees and other costs. Recharges can be collected before their credits are used.</p>
     </>}

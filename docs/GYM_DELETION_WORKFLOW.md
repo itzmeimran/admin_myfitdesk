@@ -17,6 +17,14 @@ For standalone DEV/PROD SQL Editor scripts, deployment variable templates and cl
 - Completion is recorded only after database, file and eligible-account cleanup succeeds. Failure leaves the gym isolated and arms a retry after a 15-minute lease. HTTP/transport failures use 5, 10, 20, 40 then 60-minute backoff. Only one HTTP request is tracked at a time, and active worker leases prevent concurrent deletion. Deletion history is at `/admin/gyms/deletions`, including cleanup that continues after the organization row is gone.
 - Earlier deletion requests have no automatic deadline and are not enrolled. They remain restorable. Request/restore/claim serialize through row locks; duplicate requests cannot create multiple active jobs.
 
+## Admin deletion visibility
+
+Open **Gyms → Gym deletions**. Pending requests shows organizations with `deletion_requested_at`, including earlier requests without a cleanup job. Cleanup history shows all scheduled jobs, including restored gyms and cleanup that continues after the organization row disappears. Database deletions shows historical organization deletion audit records, including deletions before the automatic cleanup lifecycle was installed. Each view has database pagination and an exact record count.
+
+Pending entries show the gym name, code, city, owner, recorded requester, reason and recovery deadline, with links to gym data and deletion controls. Historical audit entries confirm only database deletion, not external file or account cleanup. Completed lifecycle jobs confirm all cleanup stages; their minimal receipts deliberately no longer retain gym names or requester identities. Missing information is labelled instead of inventing a name or linking to a removed gym.
+
+These reads run in a server-only route helper after checking `gyms.view` against the selected environment's authenticated admin session. They use that environment's existing service credentials without expanding tenant RLS or database grants. This visibility change needs no SQL migration and does not change requests, deadlines, activation or cleanup behavior.
+
 ## Backups and deletion receipts
 
 A minimal UUID/timestamp/state receipt survives final deletion; reasons, request actor and account IDs are erased. These receipts, lifecycle configuration and private scheduler journal are excluded from platform backups. The recovery worker reinstalls migrations 1027 and 1028 before leaving maintenance. Receipts isolate any gym reintroduced from an older backup; scheduled cleanup removes its restored records again.
@@ -42,6 +50,7 @@ When adding a tenant table, rerun the isolation installer/verification. Every te
 
 ## Local verification
 
+- `node --test scripts/gym-deletion-visibility.test.cjs`: permission checks before elevated reads, requester/data links, IST deadlines, expired recovery windows, partial cleanup and historical deletion labels.
 - `node scripts/gym-deletion-sql-test.cjs <path-to-PGlite>`: real PostgreSQL execution of both migrations twice, owner Settings requests through tenant RLS (7 days), admin request validation (3–7 days), rejection of staff/cross-gym requests, AutoPay guard, restore, expired deadline, direct/indirect RLS and write isolation, shared queue exclusion, lease exclusion, FK closure, cross-gym rollback, unchanged second-gym snapshots, preference/OTP/account protection, retry, old-backup tombstones and scheduler activation/configuration validation. Extension APIs are stubbed locally: focused scheduler checks cover idle/future HTTP exclusion, event timers, coalescing, bounded transport backoff, leases, missed responses, timer repair and upgrade idempotence. Live pg_cron execution still needs a DEV rehearsal.
 - `node --test scripts/gym-deletion-worker.test.cjs`: exact folder boundaries, foreign path rejection, database/storage failure handling, finalization order and preservation of shared users.
 - Typechecks and touched-file lint in both repositories. These checks do not replace the disposable-gym rehearsal on the installed Supabase schema.

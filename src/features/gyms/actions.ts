@@ -277,6 +277,28 @@ const profileSchema = z.object({
 
 export type ProfileFormState = { error: string | null; success?: boolean };
 
+const ownerNameSchema = z.object({
+  organizationId: z.uuid(),
+  staffId: z.uuid(),
+  firstName: z.string().trim().min(1, "Enter the owner's first name.").max(100),
+  lastName: z.string().trim().max(100),
+});
+
+export async function updateGymOwnerName(_prev: ProfileFormState, formData: FormData): Promise<ProfileFormState> {
+  await assertPermission("gyms.manage");
+  const parsed = ownerNameSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the owner's name." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_update_gym_owner_name", {
+    p_organization_id: parsed.data.organizationId, p_staff_id: parsed.data.staffId,
+    p_first_name: parsed.data.firstName, p_last_name: parsed.data.lastName,
+  });
+  if (error) return { error: error.message };
+  revalidateGyms();
+  revalidatePath("/admin/gyms/[id]", "layout");
+  return { error: null, success: true };
+}
+
 /**
  * Settings tab's "Edit gym" form (task brief §2/§10) —
  * `admin_update_organization_profile()` (supabase/migrations/1009_admin_

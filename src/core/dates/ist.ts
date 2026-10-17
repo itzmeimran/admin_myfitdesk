@@ -34,6 +34,16 @@ export function parseIstDay(value: string | null | undefined): string | null {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : null;
 }
 
+/** Inclusive whole-month report range; the current month ends today in IST. */
+export function collectionMonthRange(month: string, today: string): { from: string; to: string } | null {
+  const from = parseIstDay(`${month}-01`);
+  if (!from || !parseIstDay(today) || month > today.slice(0, 7)) return null;
+  const lastDay = new Date(`${from}T12:00:00Z`);
+  lastDay.setUTCMonth(lastDay.getUTCMonth() + 1, 0);
+  const last = lastDay.toISOString().slice(0, 10);
+  return { from, to: last > today ? today : last };
+}
+
 /** Short IST date, e.g. "17 Oct 2026". */
 export function formatIstDay(value: string | Date): string {
   const date = typeof value === "string" ? new Date(`${value}T00:00:00+05:30`) : value;

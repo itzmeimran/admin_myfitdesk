@@ -29,6 +29,14 @@ function load(file, mocks = {}) {
   return m.exports;
 }
 const ist = load("src/core/dates/ist.ts");
+
+test("collection month selection handles past years, leap years and the current IST month", () => {
+  assert.deepEqual(ist.collectionMonthRange("2026-09", "2026-10-17"), { from: "2026-09-01", to: "2026-09-30" });
+  assert.deepEqual(ist.collectionMonthRange("2024-02", "2026-10-17"), { from: "2024-02-01", to: "2024-02-29" });
+  assert.deepEqual(ist.collectionMonthRange("2025-02", "2026-10-17"), { from: "2025-02-01", to: "2025-02-28" });
+  assert.deepEqual(ist.collectionMonthRange("2026-10", "2026-10-17"), { from: "2026-10-01", to: "2026-10-17" });
+  for (const month of ["2026-11", "2026-13", "2026-00", "2026-9", "invalid"]) assert.equal(ist.collectionMonthRange(month, "2026-10-17"), null);
+});
 const dates = load("src/core/dates/format.ts");
 const ranges = load("src/core/dates/zoned-range.ts");
 const { buildSubscriptionPanelView } = load("src/app/admin/gyms/[id]/subscription-view.ts");

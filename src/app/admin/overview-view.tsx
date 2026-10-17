@@ -8,6 +8,7 @@ import { AlertIcon, GymsIcon, PackagesIcon, RevenueIcon, CalendarIcon, ConfirmIc
 import { resolveOverviewRange, type OverviewData, type FollowUp, type CapacityRow } from "@/features/overview/model";
 import { OverviewCollectionsChart } from "./overview-collections-chart";
 import { OverviewPeriodControl } from "./overview-period-control";
+import { OverviewCollectionMonth } from "./overview-collection-month";
 import { OverviewMetricSkeleton, OverviewChartSkeleton } from "./overview-skeleton";
 
 function money(value: number | null, currency = "INR") { return value === null ? "Unavailable" : value % 100 ? formatMinor(value, currency) : formatMinorWhole(value, currency); }
@@ -65,7 +66,7 @@ export function OverviewView({ data, permissions }: { data: OverviewData; permis
 
     <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <section aria-labelledby="overview-collections" className="flex min-w-0 flex-col gap-3.5">
-        <SectionHeader id="overview-collections" aside={<span className="bg-hi px-2.5 py-1 text-[11px] font-bold text-on-hi">{data.periodLabel}</span>}>Collections</SectionHeader>
+        <SectionHeader id="overview-collections" aside={<OverviewCollectionMonth from={data.rangeFrom} to={data.rangeTo} label={data.periodLabel} today={istDateKey(now)} monthly={data.period === "month"} />}>Collections</SectionHeader>
         <NavigationPendingContent pathname="/admin" fallback={<OverviewChartSkeleton />}>
           <div className={CARD}>
             <div className="flex flex-wrap items-end justify-between gap-3 p-5 pb-0">

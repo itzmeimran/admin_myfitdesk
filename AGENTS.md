@@ -20,6 +20,8 @@ The user confirmed on 2026-10-01 that MyFitDesk repositories use serial migratio
 
 `1029_admin_gym_activity_read.sql` is assigned to the read-only gym Activity Log API (2026-10-09). It preserves existing writers/history and adds member-ID grouping, snapshot-name and actor-name filtering, stable pagination and record-link checks. Apply with the matching admin UI after review; do not reuse 1029.
 
+`1033_admin_owner_profile.sql` is assigned to editing gym-owner names and reading owner login verification separately from optional organization contact fields (2026-10-17). It preserves authentication flags and scopes every read/write to an organization and owner membership. Do not reuse 1033.
+
 ## Admin action confirmation
 
 User confirmed 2026-10-04: all user-triggered admin mutations require an explicit "Are you sure?" decision before the write, visible pending feedback, and duplicate-click prevention. Use the existing ConfirmDialog or ActionConfirmationProvider; mutation forms use ConfirmedForm. Preserve stronger typed confirmations for destructive/production actions. Navigation, search, filters, opening forms, and read-only refreshes do not need confirmation. Do not autosave editable CRM/inbox notes without an explicit confirmed Save.

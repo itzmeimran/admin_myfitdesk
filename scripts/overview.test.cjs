@@ -191,6 +191,7 @@ test("overview renders ordered metrics, useful empty states and an honest zero-w
     "./NavigationPending": { PendingLink: ({ children, pendingChildren, ...props }) => { void pendingChildren; return React.createElement("a", props, children); } },
     "@/components/NavigationPendingContent": { NavigationPendingContent: ({ children }) => children },
     "./overview-period-control": { OverviewPeriodControl: () => React.createElement("div", { "data-period-control": true }) },
+    "./overview-collection-month": { OverviewCollectionMonth: () => React.createElement("div", { "data-month-control": true }) },
   };
   const { OverviewView } = load("src/app/admin/overview-view.tsx", mocks);
   const html = renderToStaticMarkup(React.createElement(OverviewView, { data: build(), permissions: { gyms: true, revenue: true, packages: true } }));
@@ -217,4 +218,21 @@ test("custom ranges are inclusive IST days, clamped to today and to the maximum 
   const data = build({ period: "custom", custom: { from: "2026-10-01", to: "2026-10-03" } });
   assert.equal(data.collections.buckets.length === 0 || data.collections.buckets.length <= 3, true);
   assert.equal(data.rangeFrom, "2026-10-01");
+});
+
+test("past month collections include every IST day and exclude neighbouring receipts", () => {
+  const data = build({ period: "custom", custom: { from: "2026-09-01", to: "2026-09-30" }, periodPayments: [
+    payment({ id: "before", paid_at: "2026-08-31T18:29:59.999Z", amount_minor: 999 }),
+    payment({ id: "first", paid_at: "2026-08-31T18:30:00Z", amount_minor: 10000 }),
+    payment({ id: "last", paid_at: "2026-09-30T18:29:59.999Z", amount_minor: 20000, refunded_minor: 5000 }),
+    payment({ id: "after", paid_at: "2026-09-30T18:30:00Z", amount_minor: 999 }),
+  ] });
+  assert.equal(data.collections.grossMinor, 30000);
+  assert.equal(data.collections.refundsMinor, 5000);
+  assert.equal(data.collections.netMinor, 25000);
+  assert.equal(data.collections.buckets.length, 30);
+  assert.equal(data.collections.buckets.reduce((sum, bucket) => sum + bucket.amountMinor, 0), 30000);
+  assert.equal(data.rangeFrom, "2026-09-01");
+  assert.equal(data.rangeTo, "2026-09-30");
+  assert.equal(data.mrrMinor, build().mrrMinor, "past collections do not move today's MRR snapshot");
 });

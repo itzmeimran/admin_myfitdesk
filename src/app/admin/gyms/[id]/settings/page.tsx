@@ -6,19 +6,24 @@ import { getGymConfiguration } from "@/features/gyms/config";
 import { pillTone, PILL_CLASS } from "@/core/ui/status-style";
 import { GymProfileForm } from "./gym-profile-form";
 import { GymLogoUpload } from "./gym-logo-upload";
+import { getOwnerAccount } from "@/features/gyms/owner-account";
+import { hasPermission, requirePermission } from "@/core/auth/access";
+import { OwnerNameForm } from "./owner-name-form";
 
 /**
  * Settings tab (task brief §10) — General is a real, writable form
- * (admin_update_organization_profile); Account and Configuration are
- * read-only status displays. No secrets are ever fetched or rendered here
+ * (admin_update_organization_profile); Account also edits the owner's name.
+ * Configuration displays status only. No secrets are ever fetched or rendered here
  * (see features/gyms/config.ts's own docblock) — Configuration shows
  * connection status only, never a key, token, or webhook secret.
  */
 export default async function GymSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+  const access = await requirePermission("gyms.view");
   const { id } = await params;
   const supabase = await createClient();
   const [gym, config] = await Promise.all([getGymDetail(supabase, id), getGymConfiguration(supabase, id)]);
   if (!gym) notFound();
+  const ownerAccount = gym.owner ? await getOwnerAccount(supabase, id, gym.owner.staffId) : null;
 
   // Read straight from organizations (platform admins have a SELECT policy on
   // it, 1002) rather than growing admin_gym_detail(). Any error — e.g. the
@@ -44,8 +49,14 @@ export default async function GymSettingsPage({ params }: { params: Promise<{ id
             </span>
           </Row>
           <Row k="Created" v={new Date(gym.createdAt).toLocaleDateString("en-IN", { timeZone: IST_TIME_ZONE, day: "numeric", month: "long", year: "numeric" })} />
-          <Row k="Verification" v={gym.contactEmail ? "Contact email on file" : "No contact email on file"} />
+          <Row k="Owner login email" v={ownerAccount ? (ownerAccount.email ? `${ownerAccount.email} · ${ownerAccount.email_verified ? "Verified" : "Verification not recorded"}` : "Email login not used") : "Verification unavailable"} />
+          <Row k="Owner mobile" v={ownerAccount ? (ownerAccount.phone ? `${ownerAccount.phone} · ${ownerAccount.phone_verified ? "Verified" : ownerAccount.whatsapp_otp_available ? "WhatsApp OTP available" : "On file"}` : "No owner mobile on file") : "Verification unavailable"} />
         </dl>
+        <p className="text-[11px] text-mute">Owner login verification is separate from the optional gym contact details. WhatsApp OTP uses its own verification flow.</p>
+        {gym.owner && ownerAccount && hasPermission(access, "gyms.manage") ? <OwnerNameForm
+          key={gym.owner.staffId} organizationId={gym.id} staffId={gym.owner.staffId}
+          firstName={ownerAccount.first_name} lastName={ownerAccount.last_name ?? ""}
+        /> : null}
       </section>
 
       <section className="flex flex-col gap-3 border-[1.5px] border-line bg-paper p-4">
@@ -76,7 +87,7 @@ function Row({ k, v, children }: { k: string; v?: string; children?: React.React
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line pb-1.5">
       <dt className="text-mute">{k}</dt>
-      <dd className="text-right font-bold capitalize text-ink">{children ?? v}</dd>
+      <dd className="min-w-0 break-words text-right font-bold text-ink">{children ?? v}</dd>
     </div>
   );
 }

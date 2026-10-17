@@ -69,7 +69,8 @@ export function DatePicker({
    * (`Select`'s default, 42px) so the two line up side by side. */
   size?: "compact" | "field";
   className?: string;
-  mode?: "single" | "range";
+  /** Month mode selects a whole month and emits its first day (YYYY-MM-01). */
+  mode?: "single" | "range" | "month";
   rangeValue?: DateRange;
   defaultRangeValue?: DateRange;
   /** Range mode: fires when the person presses Apply with both endpoints
@@ -82,10 +83,13 @@ export function DatePicker({
   dateHint?: (date: string) => string | undefined;
 }) {
   const [innerValue, setInnerValue] = useState(defaultValue);
+  const isMonth = mode === "month";
   const value = calendarDate(controlledValue ?? innerValue);
-  const min = calendarDate(rawMin) || undefined;
-  const max = calendarDate(rawMax) || undefined;
+  const minDate = calendarDate(rawMin), maxDate = calendarDate(rawMax);
+  const min = (isMonth && minDate ? `${minDate.slice(0, 7)}-01` : minDate) || undefined;
+  const max = (isMonth && maxDate ? `${maxDate.slice(0, 7)}-01` : maxDate) || undefined;
   const today = calendarDate(rawToday) || todayIsoDate();
+  const todayValue = isMonth ? `${today.slice(0, 7)}-01` : today;
   const isRange = mode === "range";
   const [innerRange, setInnerRange] = useState(defaultRangeValue);
   const rawRange = rangeValue ?? innerRange;
@@ -104,7 +108,7 @@ export function DatePicker({
   const wrapRef = useRef<HTMLDivElement>(null);
   const selectedValue = isRange ? range.from : value;
   const displayValue = isRange && range.from && range.to ? `${formatTriggerDate(range.from)} – ${formatTriggerDate(range.to)}`
-    : !isRange && value ? formatTriggerDate(value) : "";
+    : !isRange && value ? isMonth ? formatMonth(value.slice(0, 7)) : formatTriggerDate(value) : "";
   const inputRef = useRef<HTMLInputElement>(null);
   const [invalid, setInvalid] = useState(false);
   function unavailable() {
@@ -117,6 +121,7 @@ export function DatePicker({
     onChange?.(date);
   }
   function chooseDate(date: string) {
+    if (isMonth) date = `${date.slice(0, 7)}-01`;
     if (unavailable() || isDateDisabled?.(date) || (min && date < min) || (max && date > max)) return;
     if (!isRange) {
       change(date);
@@ -215,11 +220,11 @@ export function DatePicker({
     });
   }
 
-  const monthCells = buildMonthCells(viewMonth);
-  const prevMonth = shiftMonth(viewMonth, -1);
-  const nextMonth = shiftMonth(viewMonth, 1);
-  const prevDisabled = disabled || Boolean(min && prevMonth < min.slice(0, 7));
-  const nextDisabled = disabled || Boolean(max && nextMonth > max.slice(0, 7));
+  const monthCells = isMonth ? Array.from({ length: 12 }, (_, index) => `${viewMonth.slice(0, 4)}-${String(index + 1).padStart(2, "0")}-01`) : buildMonthCells(viewMonth);
+  const prevMonth = shiftMonth(viewMonth, isMonth ? -12 : -1);
+  const nextMonth = shiftMonth(viewMonth, isMonth ? 12 : 1);
+  const prevDisabled = disabled || Boolean(min && (isMonth ? `${prevMonth.slice(0, 4)}-12` : prevMonth) < min.slice(0, 7));
+  const nextDisabled = disabled || Boolean(max && (isMonth ? `${nextMonth.slice(0, 4)}-01` : nextMonth) > max.slice(0, 7));
   // While the end is awaited, the highlight follows the pointer; otherwise it
   // is the draft exactly as picked.
   const previewEnd = awaitingEnd ? (hoverDate ?? draft.from) : draft.to;
@@ -251,17 +256,17 @@ export function DatePicker({
               type="button"
               disabled={prevDisabled}
               onClick={() => setViewMonth(prevMonth)}
-              aria-label="Previous month"
+              aria-label={isMonth ? "Previous year" : "Previous month"}
               className="press-scale flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-mute transition-colors hover:border-ink hover:text-ink"
             >
               <PrevPageIcon size={ICON_SIZE.button} aria-hidden />
             </Button>
-            <span className="font-display text-[14px] tracking-[-0.02em]">{formatMonth(viewMonth)}</span>
+            <span className="font-display text-[14px] tracking-[-0.02em]">{isMonth ? viewMonth.slice(0, 4) : formatMonth(viewMonth)}</span>
             <Button variant="ghost" size="sm" iconOnly
               type="button"
               disabled={nextDisabled}
               onClick={() => setViewMonth(nextMonth)}
-              aria-label="Next month"
+              aria-label={isMonth ? "Next year" : "Next month"}
               className="press-scale flex h-8 w-8 items-center justify-center border-[1.5px] border-line text-mute transition-colors hover:border-ink hover:text-ink  "
             >
               <NextPageIcon size={ICON_SIZE.button} aria-hidden />
@@ -274,17 +279,17 @@ export function DatePicker({
               : canApply ? "No dates selected. Apply to remove the range."
               : "Choose a start date, then an end date."}
           </p> : null}
-          <div className="grid grid-cols-7 border-b border-line pb-1.5" aria-hidden>
+          {!isMonth ? <div className="grid grid-cols-7 border-b border-line pb-1.5" aria-hidden>
             {WEEKDAYS.map((day) => (
               <span key={day} className="text-center text-[8.5px] font-bold uppercase tracking-[0.08em] text-mute2">
                 {day}
               </span>
             ))}
-          </div>
+          </div> : null}
 
-          <div className="mt-1.5 grid grid-cols-7 gap-0.5" role="grid" aria-label={formatMonth(viewMonth)}
+          <div className={`mt-1.5 grid ${isMonth ? "grid-cols-3 gap-1" : "grid-cols-7 gap-0.5"}`} role="grid" aria-label={isMonth ? viewMonth.slice(0, 4) : formatMonth(viewMonth)}
             onKeyDown={(event) => {
-              const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+              const offsets: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: isMonth ? -3 : -7, ArrowDown: isMonth ? 3 : 7 };
               const step = offsets[event.key];
               if (!step) return;
               event.preventDefault();
@@ -299,8 +304,8 @@ export function DatePicker({
               if (!cell) return <span key={`blank-${index}`} aria-hidden className="h-8" />;
               const isEndpoint = isRange && (cell === rangeFrom || cell === rangeTo);
               const inRange = isRange && Boolean(rangeFrom && rangeTo && cell >= rangeFrom && cell <= rangeTo);
-              const isSelected = isRange ? inRange : cell === value;
-              const isToday = cell === today;
+              const isSelected = isRange ? inRange : isMonth ? cell.slice(0, 7) === value.slice(0, 7) : cell === value;
+              const isToday = cell === todayValue;
               const isDisabled = disabled || Boolean((max && cell > max) || (min && cell < min) || isDateDisabled?.(cell));
               return (
                 <Button variant="ghost" layout="control" size="custom"
@@ -310,9 +315,9 @@ export function DatePicker({
                   role="gridcell"
                   disabled={isDisabled}
                   title={dateHint?.(cell)}
-                  aria-label={`${formatFullDate(cell)}${isRange && cell === rangeFrom ? ", range start" : ""}${isRange && cell === rangeTo ? ", range end" : ""}`}
+                  aria-label={`${isMonth ? formatMonth(cell.slice(0, 7)) : formatFullDate(cell)}${isRange && cell === rangeFrom ? ", range start" : ""}${isRange && cell === rangeTo ? ", range end" : ""}`}
                   aria-selected={isSelected}
-                  aria-current={isToday ? "date" : undefined}
+                  aria-current={isToday ? isMonth ? "true" : "date" : undefined}
                   onClick={() => chooseDate(cell)}
                   onPointerEnter={() => { if (awaitingEnd) setHoverDate(cell); }}
                   onFocus={() => { if (awaitingEnd) setHoverDate(cell); }}
@@ -326,7 +331,7 @@ export function DatePicker({
                         : "text-ink hover:bg-sand"
                   } disabled:text-mute3/35`}
                 >
-                  {Number(cell.slice(-2))}
+                  {isMonth ? new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" }).format(new Date(`${cell}T12:00:00Z`)) : Number(cell.slice(-2))}
                 </Button>
               );
             })}
@@ -346,19 +351,19 @@ export function DatePicker({
           ) : !inline && !required && selectedValue ? <Button variant="text" size="sm" type="button" onClick={() => {
             change("");
             setOpen(false);
-          }} className="mt-2 min-h-[36px] text-[12px] font-bold text-mute underline">Clear date</Button> : null}
+          }} className="mt-2 min-h-[36px] text-[12px] font-bold text-mute underline">{isMonth ? "Clear month" : "Clear date"}</Button> : null}
           {today ? (
             <div className="mt-2.5 flex items-center justify-between border-t border-line pt-2.5">
-              <span className="text-[9.5px] text-mute">Dates use IST</span>
+              <span className="text-[9.5px] text-mute">{isMonth ? "Months use IST" : "Dates use IST"}</span>
               <Button variant="text" size="sm" icon={CalendarIcon}
                 type="button"
-                disabled={disabled || (!isRange && value === today) || Boolean((max && today > max) || (min && today < min) || isDateDisabled?.(today))}
+                disabled={disabled || (!isRange && value === todayValue) || Boolean((max && todayValue > max) || (min && todayValue < min) || isDateDisabled?.(todayValue))}
                 onClick={() => {
-                  chooseDate(today);
+                  chooseDate(todayValue);
                 }}
                 className="text-[10.5px] font-bold text-accent hover:underline disabled:text-mute3"
               >
-                Today
+                {isMonth ? "This month" : "Today"}
               </Button>
             </div>
           ) : null}
@@ -372,7 +377,7 @@ export function DatePicker({
       {!inline ? <Button variant="secondary" layout="control" size="custom"
         type="button"
         disabled={disabled}
-        aria-label={isRange ? `${ariaLabel}: ${displayValue || "no range selected"}` : value ? `${ariaLabel}: ${formatFullDate(value)}` : `${ariaLabel}: no date selected`}
+        aria-label={isRange ? `${ariaLabel}: ${displayValue || "no range selected"}` : value ? `${ariaLabel}: ${isMonth ? displayValue : formatFullDate(value)}` : `${ariaLabel}: no ${isMonth ? "month" : "date"} selected`}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-invalid={invalid || undefined}
@@ -387,7 +392,7 @@ export function DatePicker({
         <span
           className={`min-w-0 flex-1 truncate font-semibold ${size === "field" ? "text-[13px]" : "text-[11.5px]"} ${displayValue ? "text-ink" : "text-mute2"}`}
         >
-          {displayValue || placeholder || (isRange ? "Select date range" : "Select date")}
+          {displayValue || placeholder || (isRange ? "Select date range" : isMonth ? "Select month" : "Select date")}
         </span>
       </Button> : null}
       {invalid ? <p role="alert" className="mt-1 text-[12px] text-accent">{isRange ? "Choose a complete range within the allowed dates." : value ? "Choose a date within the allowed range." : "Choose a date."}</p> : null}

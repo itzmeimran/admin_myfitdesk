@@ -2999,6 +2999,14 @@ export type Database = {
         Args: { p_organization_id: string; p_logo_url: string | null }
         Returns: undefined
       }
+      admin_gym_owner_account: {
+        Args: { p_organization_id: string; p_staff_id: string }
+        Returns: Json
+      }
+      admin_update_gym_owner_name: {
+        Args: { p_organization_id: string; p_staff_id: string; p_first_name: string; p_last_name: string }
+        Returns: undefined
+      }
       admin_update_organization_profile: {
         Args: {
           p_address_line?: string

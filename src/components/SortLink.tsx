@@ -41,14 +41,14 @@ export function SortLink({
   params.delete("page");
 
   return (
-    <th scope="col" aria-sort={active ? (currentDir === "asc" ? "ascending" : "descending") : "none"} className={`mfd-micro-label border-b border-line px-3 py-2.5 ${align === "right" ? "text-right" : ""} ${className}`}>
+    <th scope="col" aria-sort={active ? (currentDir === "asc" ? "ascending" : "descending") : "none"} className={`group/sort mfd-micro-label border-b border-line px-3 py-2.5 ${align === "right" ? "text-right" : ""} ${className}`}>
       <ButtonLink variant="ghost" layout="control" size="custom"
         href={`${pathname}?${params.toString()}`}
         className={`inline-flex items-center gap-1 transition-colors hover:text-ink ${active ? "text-ink" : ""}`}
         aria-label={`Sort by ${typeof children === "string" ? children : sortKey}, ${nextDir === "asc" ? "ascending" : "descending"}`}
       >
         {children}
-        {triangle ? <ColumnSortIcon size={10} aria-hidden className={`${active ? "fill-current text-accent" : "text-mute"} ${!active || currentDir === "desc" ? "rotate-180" : ""}`} /> : <span aria-hidden="true" className="text-[9px]">
+        {triangle ? <ColumnSortIcon size={12} aria-hidden className={`!h-3 !w-3 shrink-0 text-ink/75 opacity-0 group-hover/sort:opacity-100 group-focus-within/sort:opacity-100 ${active ? "fill-current" : ""} ${!active || currentDir === "desc" ? "rotate-180" : ""}`} /> : <span aria-hidden="true" className="text-[9px]">
           {active ? (currentDir === "asc" ? "▲" : "▼") : "↕"}
         </span>}
       </ButtonLink>

@@ -50,7 +50,7 @@ test("current MRR preserves settled discounted price and ignores current catalog
 });
 
 test("missing, duplicate, refunded or pricing-review evidence is unavailable instead of catalogue-based MRR", () => {
-  for (const currentPayments of [[], null, [payment(), payment({ id: "duplicate" })], [payment({ refunded_minor: 100 })], [payment({ pricing_review_required: true })], [payment({ period_start: "2026-09-30T00:00:00Z" })]]) {
+  for (const currentPayments of [[], null, [payment(), payment({ id: "duplicate" })], [payment(), payment({ id: "reviewed-duplicate", pricing_review_required: true })], [payment({ refunded_minor: 100 })], [payment({ pricing_review_required: true })], [payment({ period_start: "2026-09-30T00:00:00Z" })]]) {
     const data = build({ currentPayments });
     assert.equal(data.mrrMinor, null); assert.equal(data.plans[0].mrrMinor, null); assert.equal(data.missingPrices, 1);
   }

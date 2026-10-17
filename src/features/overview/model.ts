@@ -53,11 +53,11 @@ export function recordedRefund(payment: OverviewPayment): number | null {
 export function currentPrice(subscription: OverviewSubscription, payments: OverviewPayment[]): { amountMinor: number; currency: string } | null {
   if (!subscription.package_id || !subscription.current_period_start) return null;
   const matches = payments.filter(payment => payment.organization_id === subscription.organization_id && payment.package_id === subscription.package_id
-    && ["succeeded", "refunded"].includes(payment.status) && payment.pricing_review_required === false
+    && ["succeeded", "refunded"].includes(payment.status)
     && timestamp(payment.period_start) === timestamp(subscription.current_period_start) && timestamp(payment.period_end) === timestamp(subscription.current_period_end));
   // Multiple receipts might be installments, duplicates or adjustments. There
   // is no reliable contract-price snapshot to resolve those cases here.
-  if (matches.length !== 1 || matches[0].status !== "succeeded" || recordedRefund(matches[0]) !== 0) return null;
+  if (matches.length !== 1 || matches[0].status !== "succeeded" || matches[0].pricing_review_required !== false || recordedRefund(matches[0]) !== 0) return null;
   const payment = matches[0];
   const amountMinor = normalizeMonthly(payment.amount_minor, payment.period_start, payment.period_end);
   return amountMinor === null || !payment.currency ? null : { amountMinor, currency: payment.currency };

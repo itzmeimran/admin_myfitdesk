@@ -23,6 +23,28 @@ Open **Gyms → Gym deletions**. Pending requests shows organizations with `dele
 
 Pending entries show the gym name, code, city, owner, recorded requester, reason and recovery deadline, with links to gym data and deletion controls. Historical audit entries confirm only database deletion, not external file or account cleanup. Completed lifecycle jobs confirm all cleanup stages; their minimal receipts deliberately no longer retain gym names or requester identities. Missing information is labelled instead of inventing a name or linking to a removed gym.
 
+The page shows separate database, upload and login-account evidence, timestamps in IST, worker attempts and the last cleanup error. A historical gym ID is kept separate from a current gym reusing its code, with the current record's creation date and a separate link. An existing record with the exact historical ID is flagged for review instead of presented as currently deleted. Counts are deletion events or cleanup jobs, not a combined total of deleted/current gyms.
+
+**Inspect cleanup now** is a permission-gated, read-only action for recorded database deletions. It checks the exact organization ID, recursively lists that UUID folder in Supabase Storage and the environment's explicitly verified R2 inventory (including retired/mirrored buckets), and checks account IDs recoverable from retained staff/invitation audit events. It shows file counts per bucket, account absence/reference/review counts and an inspection timestamp. Bucket failures, missing inventory and bounded scan limits produce incomplete results, never a successful cleanup claim. This inspection does not delete files/accounts, infer identity from reused contact details, reconstruct missing rosters, or independently scan every tenant database table. Referenced accounts may need retention; unreferenced observations require review of other surviving dependencies before deletion. Backups/CDN caches/provider records are outside the live folder check.
+
+### DEV audit — 17 October 2026
+
+Read-only audit of DEV `pgedlnxuuelmtpmbkdwm`: 0 pending requests, 1 completed automatic job, 7 historical database deletion events. Each historical organization ID is absent. Hunk Fitness's old ID `a4fb7057-7960-4d4e-95dc-3ffa942fbc8e` was deleted on 7 October, 11:11 IST. Current Hunk fitness ID `b7edc0d5-0cda-4e3a-9c0f-56510bb37790` was created on 16 October, 19:39 IST, reuses `HF-1026A`, and has a trial ending 30 October, 19:39 IST. Its trial status is consistent with its own dates.
+
+| Historical gym | Stored file objects found | Recovered account IDs still present |
+| --- | ---: | ---: |
+| Fitness Zone | 0 | 1 |
+| Demo Gym | 0 | 1 |
+| Haider fitness | 1 | 1 |
+| Mr Fit | 9 | 1 |
+| Gold's Gym | 8 | 1 |
+| Steel Fitness | 2 | 1 |
+| Hunk Fitness | 0 | 1 |
+
+The 20 stored objects include mirrored copies in R2; all three Supabase buckets were empty for these UUID folders. The recovered accounts had no current DEV staff membership or platform-admin reference, but this does not establish that every account is safe to delete or reconstruct the full historical roster. No database, auth or storage records were changed. Historical cleanup needs a separately confirmed operation after dependency review; the current Hunk fitness record is not a cleanup target.
+
+Implementation verified with typecheck, touched-file lint, 17 focused visibility/inspection tests, the live DEV read-only queries above and static previews of the actual card/loading components at desktop and narrow widths. A signed-in, deployed Server Action/navigation check remains for rollout; no deployment or push was performed for this change.
+
 These reads run in a server-only route helper after checking `gyms.view` against the selected environment's authenticated admin session. They use that environment's existing service credentials without expanding tenant RLS or database grants. This visibility change needs no SQL migration and does not change requests, deadlines, activation or cleanup behavior.
 
 ## Backups and deletion receipts
@@ -51,6 +73,7 @@ When adding a tenant table, rerun the isolation installer/verification. Every te
 ## Local verification
 
 - `node --test scripts/gym-deletion-visibility.test.cjs`: permission checks before elevated reads, requester/data links, IST deadlines, expired recovery windows, partial cleanup and historical deletion labels.
+- `node --test scripts/gym-deletion-inspection.test.cjs`: read-only inspection, exact UUID scoping, paginated folder traversal, missing inventory, recoverable account checks and authorization.
 - `node scripts/gym-deletion-sql-test.cjs <path-to-PGlite>`: real PostgreSQL execution of both migrations twice, owner Settings requests through tenant RLS (7 days), admin request validation (3–7 days), rejection of staff/cross-gym requests, AutoPay guard, restore, expired deadline, direct/indirect RLS and write isolation, shared queue exclusion, lease exclusion, FK closure, cross-gym rollback, unchanged second-gym snapshots, preference/OTP/account protection, retry, old-backup tombstones and scheduler activation/configuration validation. Extension APIs are stubbed locally: focused scheduler checks cover idle/future HTTP exclusion, event timers, coalescing, bounded transport backoff, leases, missed responses, timer repair and upgrade idempotence. Live pg_cron execution still needs a DEV rehearsal.
 - `node --test scripts/gym-deletion-worker.test.cjs`: exact folder boundaries, foreign path rejection, database/storage failure handling, finalization order and preservation of shared users.
 - Typechecks and touched-file lint in both repositories. These checks do not replace the disposable-gym rehearsal on the installed Supabase schema.

@@ -5,14 +5,14 @@ import { loose } from "@/core/db/loose-client";
 import type { GymDeletionRow } from "@/features/gyms/deletion-display";
 
 export type DeletionView = "pending" | "jobs" | "deleted";
-type Gym = { id: string; name: string; gym_code: string | null; city: string | null; deletion_requested_at: string | null };
-type Job = { id: string; organization_id: string; requested_at: string; purge_after: string; state: GymDeletionRow["state"]; completed_at: string | null; database_deleted_at: string | null; requested_by: string | null; reason: string | null; last_error: string | null };
-type Audit = { id: number; target_organization_id: string; at: string; admin_id: string | null; actor_role: string | null; gym_name: string | null; gym_code: string | null; city: string | null; requested_at: string | null };
+type Gym = { id: string; name: string; gym_code: string | null; city: string | null; created_at: string; deletion_requested_at: string | null };
+type Job = { id: string; organization_id: string; requested_at: string; purge_after: string; state: GymDeletionRow["state"]; completed_at: string | null; database_deleted_at: string | null; requested_by: string | null; reason: string | null; last_error: string | null; attempts: number };
+type Audit = { id: number; target_organization_id: string; at: string; admin_id: string | null; actor_role: string | null; gym_name: string | null; gym_code: string | null; city: string | null; requested_at: string | null; gym_created_at: string | null };
 type Staff = { organization_id: string; user_id: string; first_name: string | null; last_name: string | null; email: string | null; role: string };
-const GYM_FIELDS = "id,name,gym_code,city,deletion_requested_at";
-const JOB_FIELDS = "id,organization_id,requested_at,purge_after,state,completed_at,database_deleted_at,requested_by,reason,last_error";
+const GYM_FIELDS = "id,name,gym_code,city,created_at,deletion_requested_at";
+const JOB_FIELDS = "id,organization_id,requested_at,purge_after,state,completed_at,database_deleted_at,requested_by,reason,last_error,attempts";
 // Only project the display fields; never return entire historical snapshots.
-const AUDIT_FIELDS = "id,target_organization_id,at,admin_id,actor_role,gym_name:old_values->>name,gym_code:old_values->>gym_code,city:old_values->>city,requested_at:old_values->>deletion_requested_at";
+const AUDIT_FIELDS = "id,target_organization_id,at,admin_id,actor_role,gym_name:old_values->>name,gym_code:old_values->>gym_code,city:old_values->>city,requested_at:old_values->>deletion_requested_at,gym_created_at:old_values->>created_at";
 const DELETE_ACTIONS = ["organizations.delete", "organization.deleted", "organization.deletion_completed"];
 function missingJobs(error: { code?: string } | null) { return error?.code === "42P01" || error?.code === "PGRST205"; }
 function staffName(staff: Staff | undefined) {
@@ -69,6 +69,11 @@ export async function getGymDeletions({ view, limit, offset }: { view: DeletionV
       if (result.error) throw result.error;
       gyms = result.data ?? [];
     }
+    // Codes can be reused after deletion. Match the current record separately,
+    // never attach its owner or lifecycle to the historical organization's ID.
+    const codes = [...new Set(audits.map(a => a.gym_code).filter((code): code is string => Boolean(code)))];
+    const codeMatches = codes.length ? await db.from("organizations").select(GYM_FIELDS).in("gym_code", codes).returns<Gym[]>() : { data: [], error: null };
+    if (codeMatches.error) throw codeMatches.error;
     const requestsResult = view !== "deleted" ? await db.from("admin_audit_log").select("target_organization_id,admin_id,actor_role,requested_at:new_values->>deletion_requested_at")
         .in("target_organization_id", organizationIds).in("entity_type", ["organization", "organizations"])
         .not("new_values->>deletion_requested_at", "is", null).is("old_values->>deletion_requested_at", null).order("at", { ascending: false })
@@ -91,14 +96,14 @@ export async function getGymDeletions({ view, limit, offset }: { view: DeletionV
       return {
         organizationId, gymName: gym?.name ?? null, gymCode: gym?.gym_code ?? null, city: gym?.city ?? null,
         ownerName: staffName(owner), actorName: admin?.email ?? staffName(actor) ?? (!actorId && recordedRole === "system" ? "System" : null), actorRole: admin ? "platform admin" : recordedRole ?? actor?.role ?? null,
-        gymExists: Boolean(gym),
+        gymExists: Boolean(gym), gymCreatedAt: gym?.created_at ?? null,
       };
     }
     const jobRow = (job: Job): GymDeletionRow => {
       const request = requests.find(a => a.target_organization_id === job.organization_id && Date.parse(a.requested_at) === Date.parse(job.requested_at));
       return {
         ...details(job.organization_id, job.requested_by ?? request?.admin_id ?? null, request?.actor_role), id: job.id, requestedAt: job.requested_at, purgeAfter: job.purge_after,
-        completedAt: job.completed_at, databaseDeletedAt: job.database_deleted_at, state: job.state, hasError: Boolean(job.last_error), reason: job.reason,
+        completedAt: job.completed_at, databaseDeletedAt: job.database_deleted_at, state: job.state, hasError: Boolean(job.last_error), reason: job.reason, attempts: job.attempts, cleanupError: job.last_error,
       };
     };
     const rows: GymDeletionRow[] = view === "jobs" ? jobs.map(jobRow) : view === "pending" ? gyms.map(gym => {
@@ -111,6 +116,9 @@ export async function getGymDeletions({ view, limit, offset }: { view: DeletionV
       ...details(audit.target_organization_id, audit.admin_id, audit.actor_role), id: `audit:${audit.id}`, gymName: audit.gym_name,
       gymCode: audit.gym_code, city: audit.city, requestedAt: audit.requested_at, purgeAfter: null, completedAt: null, databaseDeletedAt: audit.at,
       state: "database_deleted", hasError: false, reason: null,
+      gymCreatedAt: audit.gym_created_at,
+      otherGymsWithSameCode: (codeMatches.data ?? []).filter(gym => gym.gym_code === audit.gym_code && gym.id !== audit.target_organization_id)
+        .map(gym => ({ organizationId: gym.id, name: gym.name, createdAt: gym.created_at })),
     }));
     return { ...base, rows };
   } catch {

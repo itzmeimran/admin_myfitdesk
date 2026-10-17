@@ -26,6 +26,7 @@ import {
   AlertIcon,
   ReadOnlyIcon,
   SuspendIcon,
+  DeleteIcon,
   type IconType,
 } from "@/core/ui/icons";
 
@@ -157,7 +158,7 @@ export default async function GymsPage({ searchParams }: { searchParams: Promise
             sortDir,
           }}
         />
-        <ButtonLink href="/admin/gyms/deletions" variant="secondary" size="sm">Gym deletions</ButtonLink>
+        <ButtonLink icon={DeleteIcon} href="/admin/gyms/deletions" variant="secondary" size="sm">Gym deletions</ButtonLink>
         <InviteGymOwnerSheet
           packages={assignablePackages}
           defaults={{ trialDays: platformDefaults.trialDays, country: platformDefaults.country }}

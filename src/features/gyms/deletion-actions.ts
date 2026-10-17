@@ -16,6 +16,7 @@ export async function requestGymDeletion(input: { organizationId: string; days: 
   });
   if (error) return { error: error.message };
   revalidatePath("/admin/gyms");
+  revalidatePath("/admin/gyms/deletions");
   revalidatePath("/admin/gyms/[id]", "layout");
   revalidatePath("/admin/system/disaster-recovery");
   return { error: null };
@@ -27,6 +28,7 @@ export async function restoreGymDeletion(organizationId: string) {
   const { error } = await loose(await createClient()).rpc("restore_gym_deletion", { p_organization_id: organizationId });
   if (error) return { error: error.message };
   revalidatePath("/admin/gyms");
+  revalidatePath("/admin/gyms/deletions");
   revalidatePath("/admin/gyms/[id]", "layout");
   revalidatePath("/admin/system/disaster-recovery");
   return { error: null };

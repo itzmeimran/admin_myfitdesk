@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { Sheet } from "@/components/Sheet";
@@ -20,13 +20,15 @@ export function GymDeletionControl({ organizationId, name, status, legacyRequest
   const [reason, setReason] = useState("");
   const [typedName, setTypedName] = useState("");
   const [pending, startTransition] = useTransition();
+  const inFlight = useRef(false);
   const toast = useToast();
   const router = useRouter();
   const environment = useAdminEnvironment();
   const deadline = status ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" }).format(new Date(status.purgeAfter)) : null;
 
   function apply() {
-    if (pending) return;
+    if (inFlight.current || confirmation === null) return;
+    inFlight.current = true;
     startTransition(async () => {
       const restoring = confirmation === "restore";
       try {
@@ -36,6 +38,7 @@ export function GymDeletionControl({ organizationId, name, status, legacyRequest
         setConfirmation(null); setOpen(false); setReason(""); setTypedName("");
         router.refresh();
       } catch { toast.error("Couldn't apply this change. Refresh and try again."); }
+      finally { inFlight.current = false; }
     });
   }
 
@@ -43,9 +46,9 @@ export function GymDeletionControl({ organizationId, name, status, legacyRequest
     <strong className="text-[13px] text-ink">{status || legacyRequested ? "Gym pending deletion" : "Delete gym"}</strong>
     <p className="text-[12px] text-mute">{status ? `The gym is isolated. Recovery ends ${deadline} IST. After that, its records, uploads and eligible login accounts are permanently removed.` : legacyRequested ? "This is an earlier deletion request. It has no automatic deletion deadline and can still be restored." : "Isolate this gym for 3–7 days. Restore it during that window, or its data will be permanently removed automatically."}</p>
     {status?.hasError ? <p className="text-[12px] text-accent">Cleanup needs attention and will retry. The gym remains isolated.</p> : null}
-    {status || legacyRequested ? <Button icon={RestoreIcon} disabled={pending || (status !== null && !status.canRestore)} onClick={() => setConfirmation("restore")}>
+    {status || legacyRequested ? <Button icon={RestoreIcon} pending={pending} pendingLabel="Restoring gym…" disabled={status !== null && !status.canRestore} onClick={() => setConfirmation("restore")}>
       {status && !status.canRestore ? "Recovery window ended" : "Restore gym"}
-    </Button> : <Button icon={DeleteIcon} variant="secondary" tone="danger" onClick={() => { setReason(""); setTypedName(""); setDays("7"); setOpen(true); }}>Initiate deletion</Button>}
+    </Button> : <Button icon={DeleteIcon} pending={pending} pendingLabel="Scheduling deletion…" variant="secondary" tone="danger" onClick={() => { setReason(""); setTypedName(""); setDays("7"); setOpen(true); }}>Initiate deletion</Button>}
     <Sheet open={open} title={`Delete ${name}`} eyebrow="Recoverable for 3–7 days" onClose={() => { if (!pending) setOpen(false); }}>
       <div className="flex flex-col gap-4">
         <p className="text-[12px] text-mute">Gym access and changes will be blocked immediately. Automatic deletion is permanent once the recovery deadline passes. Existing suspension and billing dates are preserved if you restore.</p>

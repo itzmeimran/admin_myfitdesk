@@ -1,18 +1,41 @@
-import { DAY_MS, IST_TIME_ZONE, istDateKey, istDayDifference, istPeriodRange } from "@/core/dates/ist";
+import { DAY_MS, IST_TIME_ZONE, formatIstDay, istCustomRange, istDateKey, istDayDifference, istPeriodRange } from "@/core/dates/ist";
 import { EXPIRY_WARNING_DAYS } from "@/features/gyms/subscription-rules";
 
-export type OverviewPeriod = "month" | "quarter" | "year";
+export type OverviewPeriod = "month" | "quarter" | "year" | "custom";
+export type CustomRange = { from: string; to: string };
+export type Grouping = "daily" | "weekly" | "monthly";
+export type ResolvedRange = { start: Date; end: Date; label: string; grouping: Grouping; fromKey: string; toKey: string; text: string };
+
+/** One place that turns a preset or custom selection into IST bounds, so the
+ * totals, the chart buckets and the picker all describe the same window. A
+ * custom period without a usable range falls back to the current month. */
+export function resolveOverviewRange(period: OverviewPeriod, now: Date, custom?: CustomRange | null): ResolvedRange {
+  const today = istDateKey(now);
+  if (period === "custom" && custom) {
+    const range = istCustomRange(custom.from, custom.to, now);
+    const days = Math.round((+range.end - +range.start) / DAY_MS);
+    return { start: range.start, end: range.end, label: range.label, fromKey: range.fromKey, toKey: range.toKey, text: range.label,
+      grouping: days <= 31 ? "daily" : days <= 120 ? "weekly" : "monthly" };
+  }
+  const preset = period === "custom" ? "month" : period;
+  const range = istPeriodRange(preset, now);
+  const fromKey = istDateKey(range.start);
+  const lastDay = istDateKey(new Date(Math.min(+range.end - 1, +now)));
+  const toKey = lastDay > today ? today : lastDay;
+  return { start: range.start, end: range.end, label: range.label, fromKey, toKey, text: `${formatIstDay(fromKey)} – ${formatIstDay(toKey)}`,
+    grouping: preset === "month" ? "daily" : preset === "quarter" ? "weekly" : "monthly" };
+}
 export type OverviewGym = { organization_id: string; name: string; state: string; member_count: number; branch_count: number; member_cap: number | null; branch_cap: number | null; created_at: string };
 export type OverviewSubscription = { organization_id: string; package_id: string | null; status: string; current_period_start: string | null; current_period_end: string; grace_days: number };
 export type OverviewPackage = { id: string; plan_id: string | null; name: string; price_minor: number; currency: string; duration_days: number };
 export type OverviewPayment = { id: string; organization_id: string; package_id: string | null; amount_minor: number; currency: string; status: string; paid_at: string | null; created_at: string; period_start: string | null; period_end: string | null; refunded_minor: string | number | null; pricing_review_required: boolean };
 export type FollowUp = { id: string; organizationId: string; gym: string; reason: string; date: string; timing: string; href: string; action: string; priority: number };
-export type CapacityRow = { id: string; organizationId: string; gym: string; detail: string; over: boolean };
+export type CapacityRow = { id: string; organizationId: string; gym: string; detail: string; over: boolean; resource: "members" | "branches"; used: number; cap: number };
 export type PlanRow = { id: string; name: string; gyms: number; mrrMinor: number | null; currency: string; unavailable: number };
 export type CollectionBucket = { key: string; label: string; from: string; to: string; amountMinor: number };
 export type WebhookTelemetry = { total: number; signatureFailures: number; processingFailures: number };
 export type OverviewData = {
-  asOf: string; period: OverviewPeriod; periodLabel: string; rangeStart: string; rangeEnd: string; grouping: "daily" | "weekly" | "monthly";
+  asOf: string; period: OverviewPeriod; periodLabel: string; rangeStart: string; rangeEnd: string; rangeFrom: string; rangeTo: string; rangeText: string; grouping: Grouping;
   totalGyms: number; payingGyms: number; members: number; branches: number;
   mrrMinor: number | null; mrrCurrency: string; missingPrices: number; mrrNote: string;
   plans: PlanRow[]; followUps: FollowUp[]; capacity: CapacityRow[];
@@ -63,16 +86,16 @@ export function currentPrice(subscription: OverviewSubscription, payments: Overv
   return amountMinor === null || !payment.currency ? null : { amountMinor, currency: payment.currency };
 }
 
-export function collectionBuckets(payments: OverviewPayment[], period: OverviewPeriod, now: Date): CollectionBucket[] {
-  const { start, end } = istPeriodRange(period, now);
+export function collectionBuckets(payments: OverviewPayment[], period: OverviewPeriod, now: Date, custom?: CustomRange | null): CollectionBucket[] {
+  const { start, end, grouping } = resolveOverviewRange(period, now, custom);
   const through = Math.min(+end, +now + 1);
   const buckets: CollectionBucket[] = [];
   for (let cursor = +start; cursor < through;) {
     const date = new Date(cursor);
-    const next = period === "year" ? Date.parse(`${istDateKey(date).slice(0, 7)}-01T00:00:00+05:30`) + 32 * DAY_MS : cursor + (period === "month" ? 1 : 7) * DAY_MS;
-    const nextBoundary = period === "year" ? Date.parse(`${istDateKey(new Date(next)).slice(0, 7)}-01T00:00:00+05:30`) : next;
+    const next = grouping === "monthly" ? Date.parse(`${istDateKey(date).slice(0, 7)}-01T00:00:00+05:30`) + 32 * DAY_MS : cursor + (grouping === "daily" ? 1 : 7) * DAY_MS;
+    const nextBoundary = grouping === "monthly" ? Date.parse(`${istDateKey(new Date(next)).slice(0, 7)}-01T00:00:00+05:30`) : next;
     const to = Math.min(nextBoundary, through);
-    buckets.push({ key: istDateKey(date), from: date.toISOString(), to: new Date(to).toISOString(), label: new Intl.DateTimeFormat("en-IN", { timeZone: IST_TIME_ZONE, ...(period === "year" ? { month: "short" } : { day: "numeric", month: "short" }) }).format(date), amountMinor: 0 });
+    buckets.push({ key: istDateKey(date), from: date.toISOString(), to: new Date(to).toISOString(), label: new Intl.DateTimeFormat("en-IN", { timeZone: IST_TIME_ZONE, ...(grouping === "monthly" ? { month: "short" } : { day: "numeric", month: "short" }) }).format(date), amountMinor: 0 });
     cursor = to;
   }
   for (const payment of payments) {
@@ -121,11 +144,11 @@ export function buildFollowUps(gyms: OverviewGym[], subscriptions: OverviewSubsc
   return rows.sort((a, b) => a.priority - b.priority || timestamp(a.date) - timestamp(b.date) || a.id.localeCompare(b.id));
 }
 
-export function buildOverview({ gyms, subscriptions, packages, currentPayments, periodPayments, attempts, stuckOrders, webhooks, period, now, notices = [] }: {
+export function buildOverview({ gyms, subscriptions, packages, currentPayments, periodPayments, attempts, stuckOrders, webhooks, period, custom = null, now, notices = [] }: {
   gyms: OverviewGym[]; subscriptions: OverviewSubscription[]; packages: OverviewPackage[]; currentPayments: OverviewPayment[] | null; periodPayments: OverviewPayment[] | null; attempts: OverviewPayment[] | null;
-  stuckOrders: number | null; webhooks: WebhookTelemetry | null; period: OverviewPeriod; now: Date; notices?: string[];
+  stuckOrders: number | null; webhooks: WebhookTelemetry | null; period: OverviewPeriod; custom?: CustomRange | null; now: Date; notices?: string[];
 }): OverviewData {
-  const range = istPeriodRange(period, now);
+  const range = resolveOverviewRange(period, now, custom);
   const plans = new Map<string, PlanRow>();
   let payingGyms = 0, missingPrices = 0;
   for (const gym of gyms) {
@@ -169,15 +192,15 @@ export function buildOverview({ gyms, subscriptions, packages, currentPayments, 
     if (cap === null || cap < 0 || (used === 0 && cap !== 0) || (used < cap && (resource === "branches" || cap === 0 || used / cap < 0.9))) continue;
     if (used === 0 && cap === 0) continue;
     const label = resource === "members" ? "Member" : "Branch";
-    capacity.push({ id: `${gym.organization_id}:${resource}`, organizationId: gym.organization_id, gym: gym.name, detail: `${label} limit ${used > cap ? "exceeded" : used === cap ? "reached" : "nearly reached"} · ${used} of ${cap}`, over: used > cap });
+    capacity.push({ id: `${gym.organization_id}:${resource}`, organizationId: gym.organization_id, gym: gym.name, detail: `${label} limit ${used > cap ? "exceeded" : used === cap ? "reached" : "nearly reached"} · ${used} of ${cap}`, over: used > cap, resource, used, cap });
   }
   return {
-    asOf: now.toISOString(), period, periodLabel: range.label, rangeStart: range.start.toISOString(), rangeEnd: range.end.toISOString(), grouping: period === "month" ? "daily" : period === "quarter" ? "weekly" : "monthly",
+    asOf: now.toISOString(), period, periodLabel: range.label, rangeStart: range.start.toISOString(), rangeEnd: range.end.toISOString(), rangeFrom: range.fromKey, rangeTo: range.toKey, rangeText: range.text, grouping: range.grouping,
     totalGyms: gyms.length, payingGyms, members: gyms.reduce((sum, row) => sum + row.member_count, 0), branches: gyms.reduce((sum, row) => sum + row.branch_count, 0),
     mrrMinor, mrrCurrency, missingPrices, mrrNote: mrrCurrencies.size > 1 ? "Multiple currencies; no exchange-rate conversion is applied." : !money(knownMrr) ? "The total exceeds the supported safe monetary range." : missingPrices ? `${missingPrices} paying ${missingPrices === 1 ? "gym has" : "gyms have"} no unambiguous, unrefunded receipt matching current coverage. Catalogue prices are not substituted.` : "Current paid coverage, after recorded pricing discounts. Calendar cycles use their actual month count; day-based cycles use an average calendar month. Gateway fees are not deducted.",
     plans: planRows, followUps: buildFollowUps(gyms, subscriptions, attempts ?? [], now), capacity: capacity.sort((a, b) => Number(b.over) - Number(a.over) || a.gym.localeCompare(b.gym)),
     recentCount: recent.length, recentGyms: recent.slice(0, 5).map(gym => ({ id: gym.organization_id, name: gym.name, status: gym.state === "trialing" ? "Free trial" : gym.state === "read_only" ? "Read-only" : gym.state.charAt(0).toUpperCase() + gym.state.slice(1), joinedAt: gym.created_at })),
-    collections: { grossMinor, refundsMinor, netMinor: grossMinor !== null && refundsMinor !== null ? grossMinor - refundsMinor : null, currency: [...currencies][0] ?? "INR", paymentCount: eligible.length, buckets: reliableCollections ? collectionBuckets(eligible, period, now) : [], error: !reliableCollections },
+    collections: { grossMinor, refundsMinor, netMinor: grossMinor !== null && refundsMinor !== null ? grossMinor - refundsMinor : null, currency: [...currencies][0] ?? "INR", paymentCount: eligible.length, buckets: reliableCollections ? collectionBuckets(eligible, period, now, custom) : [], error: !reliableCollections },
     monitoring: { webhooks, stuckOrders, recentFailedGyms: attempts === null ? null : new Set(buildFollowUps(gyms, [], attempts, now).map(row => row.organizationId)).size }, notices,
   };
 }

@@ -2,9 +2,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
 import { loose } from "@/core/db/loose-client";
-import { DAY_MS, istPeriodRange } from "@/core/dates/ist";
-import { buildOverview, type OverviewGym, type OverviewPackage, type OverviewPayment, type OverviewPeriod, type OverviewSubscription, type WebhookTelemetry } from "./model";
-export type { OverviewData, OverviewPeriod } from "./model";
+import { DAY_MS } from "@/core/dates/ist";
+import { buildOverview, resolveOverviewRange, type CustomRange, type OverviewGym, type OverviewPackage, type OverviewPayment, type OverviewPeriod, type OverviewSubscription, type WebhookTelemetry } from "./model";
+export type { CustomRange, OverviewData, OverviewPeriod } from "./model";
 
 type OverviewStats = { total_gyms: number; in_grace_count: number; read_only_count: number };
 type PageResult<T> = { data: T[] | null; error: { message: string } | null };
@@ -23,9 +23,9 @@ async function allRows<T>(page: (from: number, to: number) => PromiseLike<PageRe
   }
 }
 
-export async function getOverviewData(supabase: SupabaseClient<Database>, period: OverviewPeriod = "month", webhooks: WebhookTelemetry | null = null, now = new Date()) {
+export async function getOverviewData(supabase: SupabaseClient<Database>, period: OverviewPeriod = "month", webhooks: WebhookTelemetry | null = null, now = new Date(), custom: CustomRange | null = null) {
   const db = loose(supabase);
-  const range = istPeriodRange(period, now);
+  const range = resolveOverviewRange(period, now, custom);
   const through = new Date(Math.min(+range.end, +now + 1)).toISOString();
   const [gyms, subscriptions, packages] = await Promise.all([
     allRows<OverviewGym>((from, to) => db.rpc("admin_gym_directory").order("organization_id").range(from, to)),
@@ -49,7 +49,7 @@ export async function getOverviewData(supabase: SupabaseClient<Database>, period
   if (currentPayments.status === "rejected") notices.push("Current subscription receipts could not be loaded. MRR is unavailable for affected plans.");
   if (periodPayments.status === "rejected") notices.push("Collections could not be loaded for this period. Other snapshot information is still available.");
   if (attempts.status === "rejected") notices.push("Recent failed-payment follow-ups could not be loaded; subscription follow-ups are still shown.");
-  return buildOverview({ gyms, subscriptions, packages, period, now, webhooks, notices,
+  return buildOverview({ gyms, subscriptions, packages, period, custom, now, webhooks, notices,
     currentPayments: currentPayments.status === "fulfilled" ? currentPayments.value : null,
     periodPayments: periodPayments.status === "fulfilled" ? periodPayments.value : null,
     attempts: attempts.status === "fulfilled" ? attempts.value : null,

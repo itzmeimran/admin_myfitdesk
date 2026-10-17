@@ -190,15 +190,31 @@ test("overview renders ordered metrics, useful empty states and an honest zero-w
     "next/link": ({ children, ...props }) => React.createElement("a", props, children),
     "./NavigationPending": { PendingLink: ({ children, pendingChildren, ...props }) => { void pendingChildren; return React.createElement("a", props, children); } },
     "@/components/NavigationPendingContent": { NavigationPendingContent: ({ children }) => children },
+    "./overview-period-control": { OverviewPeriodControl: () => React.createElement("div", { "data-period-control": true }) },
   };
   const { OverviewView } = load("src/app/admin/overview-view.tsx", mocks);
   const html = renderToStaticMarkup(React.createElement(OverviewView, { data: build(), permissions: { gyms: true, revenue: true, packages: true } }));
-  const labels = ["Total gyms", "Paying gyms", "Monthly recurring revenue", "Collections"];
+  const labels = ["Monthly recurring revenue", "Collections", "Paying gyms", "Total gyms"];
   assert.ok(labels.every((label, i) => i === 0 || html.indexOf(label) > html.indexOf(labels[i - 1])));
-  assert.match(html, /No accounts need attention today/);
-  assert.match(html, /No webhook events in the last 24 hours/);
-  assert.match(html, /No subscription payments collected in October/);
+  assert.match(html, /No accounts need follow-up/);
+  assert.match(html, /No webhook events received/);
+  assert.match(html, /No settled receipts in October/);
   assert.match(html, /Branch limit reached · 1 of 1/);
   assert.doesNotMatch(html, /No package \(trialing\)|Needs attention today|Accounts at risk|Not implemented yet/);
   assert.equal((html.match(/Manage packages/g) ?? []).length, 1);
+});
+
+test("custom ranges are inclusive IST days, clamped to today and to the maximum span", () => {
+  const today = "2026-10-17";
+  const clamped = model.resolveOverviewRange("custom", now, { from: "2026-09-01", to: "2999-01-01" });
+  assert.equal(clamped.fromKey, "2026-09-01"); assert.equal(clamped.toKey, today);
+  assert.equal(clamped.start.toISOString(), "2026-08-31T18:30:00.000Z");
+  const day = model.resolveOverviewRange("custom", now, { from: today, to: today });
+  assert.equal(day.grouping, "daily"); assert.equal(+day.end - +day.start, 86_400_000);
+  assert.equal(model.resolveOverviewRange("custom", now, { from: "2020-01-01", to: today }).grouping, "monthly");
+  assert.equal(model.resolveOverviewRange("custom", now, { from: "2020-01-01", to: today }).fromKey > "2020-01-01", true);
+  assert.equal(model.resolveOverviewRange("custom", now, null).grouping, "daily");
+  const data = build({ period: "custom", custom: { from: "2026-10-01", to: "2026-10-03" } });
+  assert.equal(data.collections.buckets.length === 0 || data.collections.buckets.length <= 3, true);
+  assert.equal(data.rangeFrom, "2026-10-01");
 });

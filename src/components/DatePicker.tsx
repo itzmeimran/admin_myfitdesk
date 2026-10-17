@@ -95,7 +95,9 @@ export function DatePicker({
   // committed `range` so the calendar can stay open on a finished selection
   // — the person gets to see it, adjust it or clear it — and only Apply
   // commits.
-  const [draft, setDraft] = useState<DateRange>(EMPTY_RANGE);
+  // An inline calendar has no open/close moment to seed from, so it starts on
+  // the applied range.
+  const [draft, setDraft] = useState<DateRange>(() => inline && isRange ? { from: range.from, to: range.to } : EMPTY_RANGE);
   const [hoverDate, setHoverDate] = useState<string | null>(null);
   const awaitingEnd = isRange && Boolean(draft.from && !draft.to);
   const [open, setOpen] = useState(false);

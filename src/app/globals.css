@@ -127,6 +127,14 @@ html[data-admin-env="prod"] body::before {
     transform: translateY(0);
   }
 }
+@keyframes bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
 @keyframes live-dot {
   0%, 100% {
     opacity: 1;

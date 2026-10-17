@@ -37,6 +37,7 @@ const { Button } = load("src/components/Button.tsx");
 const { ConfirmIcon } = load("src/core/ui/icons.ts");
 const { ButtonLink } = load("src/components/ButtonLink.tsx", {
   "next/link": ({ children, ...props }) => React.createElement("a", props, children),
+  "./NavigationPending": { PendingLink: ({ children, pendingChildren, ...props }) => { void pendingChildren; return React.createElement("a", props, children); } },
 });
 const html = (component, props) => renderToStaticMarkup(React.createElement(component, props));
 
@@ -173,6 +174,10 @@ test("button icons stay direct flex children and loading renders one glyph", () 
   assert.match(markup, /<\/svg><span class="flex-1">Save<\/span><\/button>/);
   const link = html(ButtonLink, { href: '/admin', children: 'Open' });
   assert.doesNotMatch(link, /<svg/);
+  const pendingPageLink = ButtonLink({ href: "/admin/gyms?page=2", iconOnly: true, "aria-label": "Next page", children: React.createElement(ConfirmIcon) });
+  const pendingMarkup = renderToStaticMarkup(pendingPageLink.props.pendingChildren);
+  assert.equal((pendingMarkup.match(/<svg/g) ?? []).length, 1);
+  assert.match(pendingMarkup, /animate-spin/);
 });
 
 test("dynamic action labels use the same icons as fixed action buttons", () => {

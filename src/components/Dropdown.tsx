@@ -14,6 +14,7 @@ export function Dropdown({ value, options, onChange, ariaLabel, size = "md", cla
   size?: "md" | "sm";
   align?: "left" | "right";
   disabled?: boolean;
+  pending?: boolean;
   id?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;

@@ -106,9 +106,12 @@ export function PendingLink({
   onClick,
   scroll,
   target,
+  children,
+  pendingChildren,
   ...rest
-}: Omit<ComponentProps<typeof Link>, "href"> & { href: string }) {
-  const { navigate } = useNavigationPending();
+}: Omit<ComponentProps<typeof Link>, "href"> & { href: string; pendingChildren?: ReactNode }) {
+  const { navigate, pending, pendingHref } = useNavigationPending();
+  const active = pending && pendingHref === href;
 
   return (
     <Link
@@ -116,6 +119,8 @@ export function PendingLink({
       target={target}
       scroll={scroll}
       {...rest}
+      aria-busy={active || rest["aria-busy"] || undefined}
+      data-navigation-pending={active || undefined}
       onClick={(e) => {
         onClick?.(e);
         if (
@@ -125,14 +130,18 @@ export function PendingLink({
           e.ctrlKey ||
           e.shiftKey ||
           e.altKey ||
+          e.currentTarget.hasAttribute("download") ||
           (target && target !== "_self")
         ) {
           return;
         }
         e.preventDefault();
+        if (active) return;
         navigate(href, { scroll: scroll ?? true });
       }}
-    />
+    >
+      {active && pendingChildren !== undefined ? pendingChildren : children}
+    </Link>
   );
 }
 

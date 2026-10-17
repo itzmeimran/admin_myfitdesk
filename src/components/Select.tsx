@@ -5,7 +5,7 @@ import { Button } from "@/components/Button";
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronIcon, ConfirmIcon, type IconType } from "@/core/ui/icons";
+import { ChevronIcon, ConfirmIcon, SpinnerIcon, type IconType } from "@/core/ui/icons";
 
 export type SelectOption = { value: string; label: string; hint?: string };
 
@@ -39,6 +39,7 @@ export function Select({
   required,
   requiredMessage = "Choose an option.",
   disabled,
+  pending = false,
   "aria-label": ariaLabel,
   className = "",
   triggerClassName = "",
@@ -58,6 +59,7 @@ export function Select({
   required?: boolean;
   requiredMessage?: string;
   disabled?: boolean;
+  pending?: boolean;
   "aria-label"?: string;
   className?: string;
   /** Preserve form field height, typography and error borders in adapters. */
@@ -258,7 +260,8 @@ export function Select({
         aria-label={ariaLabel ?? placeholder}
         aria-invalid={invalid || ariaInvalid || undefined}
         aria-describedby={ariaDescribedBy}
-        disabled={disabled}
+        disabled={disabled || pending}
+        aria-busy={pending || undefined}
         onClick={() => (open ? setOpen(false) : openList())}
         onKeyDown={onKeyDown}
         className={`flex w-full items-center justify-between border-[1.5px] bg-paper text-left outline-none transition-colors ${
@@ -267,17 +270,17 @@ export function Select({
             : "min-h-[42px] gap-2 px-3 py-2.5 text-[13px]"
         } ${invalid || ariaInvalid ? "border-accent" : open ? "border-ink" : "border-line hover:border-mute3"} ${triggerClassName}`}
       >
-        {LeadingIcon ? (
+        {LeadingIcon && !pending ? (
           <LeadingIcon size={size === "compact" ? 13 : 15} aria-hidden className="flex-shrink-0 text-mute" />
         ) : null}
         <span className={`min-w-0 flex-1 truncate ${selected ? "text-ink" : "text-mute"}`}>
           {selected ? selected.label : placeholder}
         </span>
-        <ChevronIcon
+        {pending ? <SpinnerIcon size={size === "compact" ? 13 : 15} aria-hidden className="flex-shrink-0 animate-spin text-mute" /> : <ChevronIcon
           size={size === "compact" ? 13 : 15}
           aria-hidden
           className={`flex-shrink-0 text-mute transition-transform ${open ? "rotate-180" : ""}`}
-        />
+        />}
       </Button>
 
       <input
@@ -285,7 +288,7 @@ export function Select({
         name={name}
         value={value}
         required={required}
-        disabled={disabled}
+        disabled={disabled || pending}
         onChange={() => {}}
         onInvalid={(e) => {
           e.preventDefault();
@@ -299,7 +302,7 @@ export function Select({
 
       {invalid ? <span className="text-[11px] font-medium text-accent">{requiredMessage}</span> : null}
 
-      {open && position && !disabled
+      {open && position && !disabled && !pending
         ? createPortal(
             <ul
               data-form-control-popup=""

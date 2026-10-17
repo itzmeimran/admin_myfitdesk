@@ -1,7 +1,9 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Dropdown } from "./Dropdown";
+import { useNavigationPending } from "./NavigationPending";
 import { PAGE_SIZE_OPTIONS } from "@/core/ui/pagination";
 
 const OPTIONS = PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(n) }));
@@ -10,7 +12,8 @@ const OPTIONS = PAGE_SIZE_OPTIONS.map((n) => ({ value: String(n), label: String(
  * plain server-rendered Link. Uses the design-system `Dropdown` (which opens
  * upward from the footer and is never clipped by the table wrapper). */
 export function PageSizeSelect({ pageSize }: { pageSize: number }) {
-  const router = useRouter();
+  const { pending, pendingHref, navigate } = useNavigationPending();
+  const [target, setTarget] = useState<string | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -24,11 +27,15 @@ export function PageSizeSelect({ pageSize }: { pageSize: number }) {
           ariaLabel="Rows per page"
           value={String(pageSize)}
           options={OPTIONS}
+          disabled={pending}
+          pending={pending && pendingHref === target}
           onChange={(next) => {
             const params = new URLSearchParams(searchParams.toString());
             params.set("pageSize", next);
             params.set("page", "1");
-            router.push(`${pathname}?${params.toString()}`);
+            const href = `${pathname}?${params.toString()}`;
+            setTarget(href);
+            navigate(href, { scroll: false });
           }}
         />
       </div>

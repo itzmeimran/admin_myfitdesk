@@ -1,8 +1,9 @@
 "use client";
 
-import { useTransition } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Dropdown } from "./Dropdown";
+import { useNavigationPending } from "./NavigationPending";
 
 export type CustomFilterOption = { value: string; label: string; hint?: string };
 
@@ -20,10 +21,10 @@ export function CustomFilterDropdown({
   options: CustomFilterOption[];
   className?: string;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [pending, startTransition] = useTransition();
+  const { pending, pendingHref, navigate } = useNavigationPending();
+  const [target, setTarget] = useState<string | null>(null);
   const selected = searchParams.get(param) ?? "";
 
   function choose(value: string) {
@@ -31,7 +32,9 @@ export function CustomFilterDropdown({
     if (value) next.set(param, value);
     else next.delete(param);
     next.delete("page");
-    startTransition(() => router.push(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
+    const href = `${pathname}${next.size ? `?${next}` : ""}`;
+    setTarget(href);
+    navigate(href, { scroll: false });
   }
 
   return (
@@ -39,6 +42,7 @@ export function CustomFilterDropdown({
       <Dropdown
         size="sm"
         disabled={pending}
+        pending={pending && pendingHref === target}
         ariaLabel={placeholder}
         value={selected}
         onChange={choose}

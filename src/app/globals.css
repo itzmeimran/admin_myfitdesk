@@ -187,10 +187,10 @@ html[data-admin-env="prod"] body::before {
     animation: slide-up 0.22s cubic-bezier(0.32, 0.72, 0, 1);
   }
   .press-scale {
-    transition: transform 0.1s ease-out;
+    transition: background-color 0.12s ease-out;
   }
   .press-scale:active {
-    transform: scale(0.97);
+    transform: none;
   }
 }
 
@@ -239,7 +239,7 @@ html[data-admin-env="prod"] body::before {
   .mfd-button--icon.mfd-button--lg { width: 44px; height: 44px; }
   .mfd-button > svg { width: 15px; height: 15px; flex-shrink: 0; }
   .mfd-button--icon > svg { width: 16px; height: 16px; }
-  .mfd-button--primary { border-color: var(--ink); background: var(--ink); color: var(--hi); }
+  .mfd-button--primary { border-color: var(--ink); background: var(--ink); color: var(--paper); }
   .mfd-button--secondary { border-color: var(--line); background: var(--paper); color: var(--ink); }
   .mfd-button--ghost { background: transparent; color: var(--mute); }
   .mfd-button--text { background: transparent; color: var(--accent); padding: 0; }
@@ -253,28 +253,28 @@ html[data-admin-env="prod"] body::before {
   .mfd-button--inverse-tone { color: var(--paper); }
   .mfd-button--overlay-layout { border: 0; padding: 0; }
   .mfd-button--primary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
-    background: var(--ink2); color: var(--hi);
+    background: var(--ink2); color: var(--paper);
   }
   .mfd-button--secondary:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
-    border-color: var(--accent); background: var(--sand);
+    border-color: var(--mute3); background: color-mix(in srgb, var(--sand) 30%, var(--paper));
   }
   .mfd-button--primary.mfd-button--danger-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
     background: color-mix(in srgb, var(--accent) 88%, var(--ink)); border-color: var(--accent);
   }
   .mfd-button--secondary.mfd-button--danger-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
-    background: var(--accent); color: var(--paper);
+    background: color-mix(in srgb, var(--accent) 6%, var(--paper)); color: var(--accent);
   }
   .mfd-button--ghost:not(.mfd-button--overlay-layout):not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) {
-    background: var(--sand); color: var(--ink);
+    background: color-mix(in srgb, var(--sand) 40%, var(--paper)); color: var(--ink);
   }
   .mfd-button--text:not(:disabled):not([aria-disabled="true"]):hover { text-decoration: underline; text-underline-offset: 3px; }
   .mfd-button--ghost.mfd-button--inverse-tone:not(:disabled):not([aria-disabled="true"]):is(:hover, :focus-visible) { background: var(--ink2); color: var(--hi); }
-  .mfd-button--secondary[data-selected="true"] { border-color: var(--ink); background: var(--ink); color: var(--hi); }
+  .mfd-button--secondary[data-selected="true"] { border-color: var(--accent); background: var(--paper); color: var(--ink); }
   @media (prefers-reduced-motion: no-preference) {
     .mfd-button:not(.mfd-button--overlay-layout) {
-      transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, opacity 160ms ease-out, transform 120ms ease-out;
+      transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out, opacity 120ms ease-out;
     }
-    .mfd-button:is(.mfd-button--primary, .mfd-button--secondary, .mfd-button--ghost, .mfd-button--text):not(.mfd-button--overlay-layout):not(:disabled):not([aria-disabled="true"]):active { transform: scale(0.985); }
+    .mfd-button:not(.mfd-button--overlay-layout):active { transform: none; }
   }
 }
 
@@ -336,7 +336,7 @@ html[data-admin-env="prod"] body::before {
   transition: background-color 0.12s ease-out;
 }
 .mfd-table-row:hover {
-  background-color: color-mix(in srgb, var(--sand) 70%, transparent);
+  background-color: color-mix(in srgb, var(--sand) 30%, var(--paper));
 }
 
 /* 4. 168px flex-basis for KPI tiles — the tenant app has no equivalent
@@ -407,10 +407,19 @@ html[data-admin-env="prod"] body::before {
   outline-offset: -1.5px;
 }
 
-@media (hover: hover) {
-  .mfd-button--content-layout:not(:disabled):not([aria-disabled="true"]):hover {
-    background-color: color-mix(in srgb, var(--sand) 65%, var(--paper));
-  }
+/* Selection keeps its own border and readable text through hover. Compound
+   cards use the same contract as ordinary selected secondary controls. */
+.mfd-button--secondary:is([data-selected="true"], [aria-current="true"]) {
+  border-color: var(--accent);
+  background: var(--paper);
+  color: var(--ink);
+}
+.mfd-button--secondary:is([data-selected="true"], [aria-current="true"]):hover {
+  background: color-mix(in srgb, var(--sand) 20%, var(--paper));
+}
+.mfd-button--content-layout[data-navigation-pending="true"] {
+  border-color: var(--accent);
+  opacity: 0.75;
 }
 
 /* Button casing and unavailable states are part of the shared contract, even
@@ -421,11 +430,14 @@ html[data-admin-env="prod"] body::before {
 }
 .mfd-button:is(:disabled, [aria-disabled="true"]) {
   border-color: var(--line);
-  background: var(--line);
+  background: color-mix(in srgb, var(--sand) 30%, var(--paper));
   color: var(--mute);
   opacity: 1;
   transform: none;
   box-shadow: none;
+}
+.mfd-button[aria-busy="true"] {
+  cursor: wait;
 }
 .mfd-button:is(.mfd-button--text, .mfd-button--ghost):is(:disabled, [aria-disabled="true"]) {
   border-color: transparent;

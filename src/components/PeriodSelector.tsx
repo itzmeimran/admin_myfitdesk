@@ -15,9 +15,9 @@ export function PeriodSelector<T extends string>({ value, options, onChange, ari
   const [pending, startTransition] = useTransition();
   return <div role="group" aria-label={ariaLabel} aria-busy={pending || undefined} className="flex max-w-full flex-wrap gap-0">
     {options.map((option) => option.href ? (
-      <ButtonLink key={option.value} href={option.href} variant="secondary" size="sm" selected={value === option.value} disabled={disabled || pending}
+      <ButtonLink key={option.value} icon={CalendarIcon} href={option.href} variant="secondary" size="sm" selected={value === option.value} disabled={disabled || pending}
         aria-current={value === option.value ? "true" : undefined} className="-ml-[1.5px] first:ml-0">
-        <CalendarIcon aria-hidden />{option.label}
+        {option.label}
       </ButtonLink>
     ) : (
       <Button key={option.value} icon={CalendarIcon} variant="secondary" size="sm" selected={value === option.value}

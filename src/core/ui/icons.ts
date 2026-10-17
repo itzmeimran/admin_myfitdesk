@@ -71,6 +71,7 @@ export {
   LuChevronRight as NextPageIcon,
   LuChevronDown as LoadMoreIcon,
   LuChevronDown as ChevronIcon,
+  LuTriangle as ColumnSortIcon,
 
   // Attention / status actions
   LuTriangleAlert as AlertIcon,

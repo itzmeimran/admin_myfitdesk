@@ -2,10 +2,9 @@ import type { GymDetail } from "@/features/gyms/detail";
 import { formatZonedDate } from "@/core/dates/format";
 import { IST_TIME_ZONE, istDayDifference } from "@/core/dates/ist";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
+import { EXPIRY_WARNING_DAYS } from "@/features/gyms/subscription-rules";
 
 const DAY = 86_400_000;
-/** At or below this many days left, a trial is "ending soon" and the panel turns to the accent tone. */
-const TRIAL_WARN_DAYS = 7;
 /** Meter ticks are one per day, which only reads as a calendar for short periods. */
 const MAX_TICKS = 31;
 
@@ -119,7 +118,7 @@ export function buildSubscriptionPanelView(gym: GymDetail, now: Date = new Date(
       : null;
 
   const trialing = gym.status === "Trialing";
-  const endingSoon = trialing && daysLeft <= TRIAL_WARN_DAYS;
+  const endingSoon = trialing && daysLeft <= EXPIRY_WARNING_DAYS;
   return {
     ...base,
     tone: endingSoon ? "warn" : "calm",

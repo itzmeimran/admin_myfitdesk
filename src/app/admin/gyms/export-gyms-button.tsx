@@ -25,8 +25,8 @@ const GYMS_CSV_HEADERS = [
   "Member cap",
   "Branches",
   "Staff",
-  "Renews",
-  "Lifetime paid",
+  "Next date",
+  "Total collected",
   "Created",
 ];
 

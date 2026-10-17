@@ -5,6 +5,7 @@ import { formatMinorWhole } from "@/core/money/format";
 import { formatShortDate, daysBetween } from "@/core/dates/format";
 import { capitalizeBillingPeriod } from "@/core/text/billing-period";
 import type { Gym, GymStatus } from "./mock-data";
+import { expiryWindow, memberUsage, nextSubscriptionDate, trialDuration } from "./list-display";
 
 /**
  * Real replacement for mock-data.ts's `listGyms()` — same output shape
@@ -35,7 +36,7 @@ type AdminGymRow = {
   billing_period: string | null;
   price_minor: number | null;
   currency: string | null;
-  state: "trialing" | "active" | "grace" | "read_only" | "cancelled";
+  state: "trialing" | "active" | "grace" | "read_only" | "cancelled" | "suspended";
   current_period_end: string | null;
   grace_days: number | null;
   member_count: number;
@@ -54,6 +55,7 @@ const STATE_TO_STATUS: Record<AdminGymRow["state"], GymStatus> = {
   grace: "Grace",
   read_only: "Read-only",
   cancelled: "Cancelled",
+  suspended: "Suspended",
 };
 
 function formatPeriod(row: AdminGymRow): string {
@@ -217,6 +219,9 @@ const LIST_STATE_TO_STATUS: Record<string, GymStatus> = {
 };
 
 export type GymListRow = {
+  displayStatus: string;
+  usage: ReturnType<typeof memberUsage>;
+  nextDate: ReturnType<typeof nextSubscriptionDate>;
   organizationId: string;
   name: string;
   ownerName: string;
@@ -258,54 +263,84 @@ type AdminGymsListRow = AdminGymRow & { owner_email: string | null; suspended_at
 /**
  * Server-side search + filter + sort + pagination for the Gyms table —
  * reads `admin_gyms_list()` (supabase/migrations/1009_admin_gym_detail.sql),
- * which does the filtering, the allowlisted ORDER BY, and the LIMIT/OFFSET
- * in SQL and returns the filtered total via `count(*) over()` in the same
- * round trip. This is the real replacement for the old client-side
- * `useMemo` filter over `listGyms()`'s full table — the whole point of
- * P0/§12 in the task brief (never load the entire dataset just to filter or
- * paginate it in the browser).
+ * which supplies search, package filters and aggregate counts. PostgREST
+ * applies additional subscription filters, exact count, stable ordering and
+ * range in the database; only the requested page reaches the application.
  */
 export async function listGymsPage(
   supabase: SupabaseClient<Database>,
   params: GymListParams,
 ): Promise<GymListResult> {
-  const { data, error } = await supabase.rpc("admin_gyms_list", {
+  const now = new Date();
+  const dateFilter = params.status === "expired" || params.status === "expiring_soon";
+  let query = supabase.rpc("admin_gyms_list", {
     p_search: params.search || undefined,
-    p_status: params.status || undefined,
+    p_status: dateFilter ? undefined : params.status || undefined,
     p_package_id: params.packageId || undefined,
     p_billing_period: params.billingPeriod || undefined,
     p_min_branches: params.minBranches,
     p_sort_col: params.sortCol,
     p_sort_dir: params.sortDir,
-    p_limit: params.limit ?? 25,
-    p_offset: params.offset ?? 0,
-  });
+    // SQL LIMIT NULL removes the inner limit. PostgREST applies filters/count
+    // before the outer range, so date filters cover the entire directory.
+    // Generated input types omit SQL's accepted NULL for this integer.
+    p_limit: null as unknown as number,
+    p_offset: 0,
+  }, { count: "exact" });
+  if (params.status === "expired") query = query.in("state", ["grace", "read_only"]).lt("current_period_end", now.toISOString());
+  if (params.status === "expiring_soon") {
+    const window = expiryWindow(now);
+    query = query.in("state", ["active", "trialing"]).gte("current_period_end", window.now).lt("current_period_end", window.before);
+  }
+  // Explicit ordering on the outer query guarantees stable pagination too.
+  const sortable = new Set(["name", "owner_name", "package_name", "state", "member_count", "branch_count", "staff_count", "current_period_end", "lifetime_paid_minor", "created_at"]);
+  const sort = sortable.has(params.sortCol ?? "") ? params.sortCol! : "created_at";
+  const offset = params.offset ?? 0;
+  const { data, error, count } = await query.order(sort, { ascending: params.sortDir === "asc", nullsFirst: false })
+    .order("organization_id").range(offset, offset + (params.limit ?? 25) - 1);
   if (error) throw new Error(`Failed to load the gyms list: ${error.message}`);
 
   const rows = (data ?? []) as AdminGymsListRow[];
-  const now = new Date();
-  const total = rows[0]?.total_count ?? 0;
+  const total = count ?? rows[0]?.total_count ?? 0;
+  // One batched platform-plane read per UI page supplies actual trial start
+  // and renewal behaviour. Chunk larger CSV requests to keep URLs bounded.
+  const batches = Array.from({ length: Math.ceil(rows.length / 100) }, (_, index) => rows.slice(index * 100, (index + 1) * 100));
+  const subscriptionResults = await Promise.all(batches.map(batch => supabase.from("organization_subscriptions")
+    .select("organization_id, status, current_period_start, auto_renew, cancel_at_period_end")
+    .in("organization_id", batch.map(row => row.organization_id))));
+  for (const result of subscriptionResults) {
+    if (result.error) throw new Error(`Failed to load subscription details: ${result.error.message}`);
+  }
+  const subscriptionByGym = new Map(subscriptionResults.flatMap(result => result.data ?? []).map(sub => [sub.organization_id, sub]));
 
   return {
     total,
     rows: rows.map((row) => {
       const gym = toGym(row, now);
+      const subscription = subscriptionByGym.get(row.organization_id);
+      const trial = subscription?.status === "trialing" || row.state === "trialing";
+      const nextDate = nextSubscriptionDate(row.current_period_end, trial, subscription?.auto_renew === true, now, subscription?.cancel_at_period_end || subscription?.status === "cancelled");
+      const usage = memberUsage(row.member_count, row.member_cap, !!row.package_id);
       return {
+        displayStatus: row.state === "suspended" ? "Suspended" : !subscription ? "No subscription" : row.state === "trialing" ? "Trial" : row.state === "read_only" ? "Expired" : LIST_STATE_TO_STATUS[row.state] ?? "Unknown",
+        usage,
+        nextDate,
         organizationId: row.organization_id,
         name: gym.name,
         ownerName: gym.owner,
         ownerEmail: row.owner_email?.endsWith("@staff.myfitdesk.internal") ? "Phone login" : row.owner_email ?? "—",
         city: gym.city,
         packageId: row.package_id,
-        packageName: gym.package,
-        period: gym.period,
+        packageName: trial ? "Free trial" : row.package_name ?? "No plan assigned",
+        period: trial ? trialDuration(subscription?.current_period_start ?? null, row.current_period_end)
+          : !row.package_name ? "—" : row.price_minor == null ? row.billing_period ? capitalizeBillingPeriod(row.billing_period) : "Billing details unavailable" : gym.period,
         status: LIST_STATE_TO_STATUS[row.state] ?? gym.status,
         members: gym.members,
-        cap: gym.cap,
+        cap: usage.note === "Unlimited" ? "Unlimited" : row.member_cap == null ? "Unknown" : String(row.member_cap),
         pct: gym.pct,
         branches: gym.branches,
         staff: gym.staff,
-        renews: gym.renews,
+        renews: `${nextDate.label}: ${nextDate.date}`,
         ltv: gym.ltv,
         createdAt: row.created_at,
       };

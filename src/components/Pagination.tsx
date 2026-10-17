@@ -50,6 +50,7 @@ export function Pagination({
   pageSize,
   total,
   itemLabel = "results",
+  compact = false,
 }: {
   pathname: string;
   searchParams: Record<string, string | string[] | undefined>;
@@ -57,18 +58,20 @@ export function Pagination({
   pageSize: number;
   total: number;
   itemLabel?: string;
+  compact?: boolean;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-[11.5px] text-mute">
+    <div className={`flex flex-wrap items-center justify-between border-t border-line px-4 ${compact ? "gap-2 py-1.5" : "gap-3 py-2.5"} text-[11.5px] text-mute`}>
       <span>
         {total === 0 ? `No ${itemLabel}` : `Showing ${from}–${to} of ${total} ${itemLabel}`}
       </span>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <PageSizeSelect pageSize={pageSize} />
+        {!compact || totalPages > 1 ? <>
         <span className="font-bold text-ink">
           Page {page} of {totalPages}
         </span>
@@ -92,6 +95,7 @@ export function Pagination({
             <NextPageIcon size={14} aria-hidden />
           </ButtonLink>
         </div>
+        </> : null}
       </div>
     </div>
   );

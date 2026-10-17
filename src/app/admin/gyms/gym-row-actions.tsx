@@ -9,9 +9,10 @@ import { ManageSubscriptionSheet, type SubscriptionSheetGym } from "@/features/g
 import { ActionMenu, type ActionMenuItem } from "@/components/ActionMenu";
 import { Sheet } from "@/components/Sheet";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { useNavigationPending } from "@/components/NavigationPending";
 import { useToast } from "@/components/Toast";
 import { useAdminEnvironment } from "@/core/env/context";
-import { PackagesIcon, RestoreIcon, AlertIcon, UsageIcon, NextPageIcon } from "@/core/ui/icons";
+import { PackagesIcon, RestoreIcon, AlertIcon, UsageIcon, NextPageIcon, RevenueIcon } from "@/core/ui/icons";
 import { CancelIcon, DeleteIcon } from '@/core/ui/icons';
 
 /**
@@ -25,7 +26,7 @@ import { CancelIcon, DeleteIcon } from '@/core/ui/icons';
  * action).
  */
 export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: AssignablePackage[] }) {
-  const router = useRouter();
+  const { navigate } = useNavigationPending();
   const [subscriptionSheetOpen, setSubscriptionSheetOpen] = useState(false);
   const [suspendSheetOpen, setSuspendSheetOpen] = useState(false);
   const [confirmReactivate, setConfirmReactivate] = useState(false);
@@ -50,18 +51,19 @@ export function GymRowActions({ gym, packages }: { gym: GymListRow; packages: As
   };
 
   const menuItems: ActionMenuItem[] = [
-    { key: "view", label: "View gym", icon: NextPageIcon, onSelect: () => router.push(`/admin/gyms/${gym.organizationId}`) },
+    { key: "view", label: "View details", icon: NextPageIcon, onSelect: () => navigate(`/admin/gyms/${gym.organizationId}`) },
     {
       key: "subscription",
       label: gym.status === "Trialing" ? "Extend trial / manage" : "Manage subscription",
       icon: PackagesIcon,
       onSelect: () => setSubscriptionSheetOpen(true),
     },
-    { key: "members", label: "View members", icon: UsageIcon, onSelect: () => router.push(`/admin/gyms/${gym.organizationId}/members`) },
+    { key: "members", label: "View members", icon: UsageIcon, onSelect: () => navigate(`/admin/gyms/${gym.organizationId}/members`) },
+    { key: "payments", label: "View payments", icon: RevenueIcon, onSelect: () => navigate(`/admin/gyms/${gym.organizationId}/billing`) },
     isSuspended
       ? { key: "reactivate", label: "Reactivate gym", icon: RestoreIcon, separated: true, onSelect: () => setConfirmReactivate(true) }
       : { key: "suspend", label: "Suspend gym", icon: AlertIcon, danger: true, separated: true, onSelect: () => setSuspendSheetOpen(true) },
-    { key: "deletion", label: "Manage gym deletion", icon: DeleteIcon, danger: true, onSelect: () => router.push(`/admin/gyms/${gym.organizationId}/operations?section=danger`) },
+    { key: "deletion", label: "Manage gym deletion", icon: DeleteIcon, danger: true, onSelect: () => navigate(`/admin/gyms/${gym.organizationId}/operations?section=danger`) },
   ];
 
   return (

@@ -14,6 +14,7 @@
     "test:activity": "node --test scripts/activity-log.test.cjs",
     "test:activity:sql": "node scripts/activity-log-sql.test.mjs",
     "test:buttons": "node --test scripts/button-system.test.cjs",
+    "test:smart-access-devices": "node --test scripts/biometric-devices.test.cjs",
     "test:book-demo": "node --test scripts/book-demo.test.cjs",
     "test:whatsapp-inbox": "node --test scripts/whatsapp-inbox.test.cjs",
     "backup:pre-migration": "node scripts/create-pre-migration-backup.mjs"

@@ -2062,6 +2062,13 @@ export type Database = {
       admin_set_package_smart_access: { Args: { p_package_id: string; p_included: boolean; p_reason: string }; Returns: Json }
       admin_list_smart_access_packages: { Args: Record<string, never>; Returns: Json[] }
       admin_list_biometric_sync_jobs: { Args: { p_organization_id: string; p_limit?: number }; Returns: Json[] }
+      admin_list_biometric_devices: { Args: { p_organization_id?: string | null }; Returns: Json[] }
+      admin_list_unclaimed_biometric_devices: { Args: Record<string, never>; Returns: Json[] }
+      admin_link_biometric_device: { Args: { p_serial: string; p_organization_id: string; p_branch_id: string; p_label: string | null; p_reason: string }; Returns: string }
+      admin_update_biometric_device: { Args: { p_device_id: string; p_label: string | null; p_branch_id: string | null; p_status: string | null; p_reason: string }; Returns: undefined }
+      admin_unlink_biometric_device: { Args: { p_device_id: string; p_reason: string }; Returns: undefined }
+      admin_change_biometric_device_serial: { Args: { p_device_id: string; p_new_serial: string; p_reason: string }; Returns: undefined }
+      admin_list_biometric_device_history: { Args: { p_organization_id: string; p_device_id?: string | null; p_limit?: number }; Returns: Json[] }
       admin_delete_gym_note: { Args: { p_note_id: string }; Returns: undefined }
       admin_set_alert_status: { Args: { p_action: string; p_alert_id: string; p_note?: string }; Returns: undefined }
       admin_adjust_whatsapp_credits: { Args: { p_delta: number; p_organization_id: string; p_reason: string }; Returns: Json }

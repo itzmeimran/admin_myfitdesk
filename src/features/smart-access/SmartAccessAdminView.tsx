@@ -18,6 +18,9 @@ import {
   type SyncJobRow,
 } from "./actions";
 import type { SmartAccessPackageRow, SmartAccessRequestRow, SmartAccessRequestStatus } from "./queries";
+import { BiometricDevicesPanel } from "./BiometricDevicesPanel";
+import { UnclaimedDevicesSection } from "./UnclaimedDevicesSection";
+import type { BiometricDeviceRow, UnclaimedDeviceRow } from "./devices";
 
 const FILTERS: { value: SmartAccessRequestStatus | "all"; label: string }[] = [
   { value: "pending", label: "Pending" },
@@ -52,6 +55,11 @@ export function SmartAccessAdminView({
   error,
   canManage,
   canManagePackages,
+  devicesByGym,
+  unclaimedDevices,
+  approvedGyms,
+  deviceError,
+  nowIso,
 }: {
   requests: SmartAccessRequestRow[];
   packages: SmartAccessPackageRow[];
@@ -59,6 +67,11 @@ export function SmartAccessAdminView({
   error: string | null;
   canManage: boolean;
   canManagePackages: boolean;
+  devicesByGym: Record<string, BiometricDeviceRow[]>;
+  unclaimedDevices: UnclaimedDeviceRow[];
+  approvedGyms: { id: string; name: string }[];
+  deviceError: string | null;
+  nowIso: string;
 }) {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [notes, setNotes] = useState("");
@@ -116,6 +129,11 @@ export function SmartAccessAdminView({
           ))}
         </div>
         {error ? <p className="text-[13px] text-accent">{error}</p> : null}
+        {deviceError ? (
+          <p className="text-[13px] text-accent">
+            Device tools aren&apos;t available yet: {deviceError}. They need migrations 0121 to 0123 and 1034 to 1035 on this database.
+          </p>
+        ) : null}
         {requests.length === 0 && !error ? (
           <EmptyState message="No requests here. Gym owners request Smart Access from Settings → Smart Access." />
         ) : null}
@@ -164,6 +182,15 @@ export function SmartAccessAdminView({
                     <Button variant="ghost" icon={ListIcon} onClick={() => loadJobs(row.organizationId)} pending={rowJobs === "loading"} pendingLabel="Loading…">Sync history</Button>
                   ) : null}
                 </div>
+                {row.status === "approved" && row.integrationStatus ? (
+                  <BiometricDevicesPanel
+                    organizationId={row.organizationId}
+                    gymName={row.gymName}
+                    devices={devicesByGym[row.organizationId] ?? []}
+                    canManage={canManage}
+                    nowIso={nowIso}
+                  />
+                ) : null}
                 {Array.isArray(rowJobs) ? (
                   rowJobs.length === 0 ? (
                     <p className="text-[12px] text-mute">No sync jobs yet.</p>
@@ -186,6 +213,8 @@ export function SmartAccessAdminView({
           })}
         </ul>
       </section>
+
+      <UnclaimedDevicesSection devices={unclaimedDevices} gyms={approvedGyms} canManage={canManage} nowIso={nowIso} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.12em] text-mute">Packages that include Smart Access</h2>

@@ -5,7 +5,10 @@ import { z } from "zod";
 import { createClient } from "@/core/db/server-client";
 import { checkPermission } from "@/core/auth/access";
 import type { Permission } from "@/core/auth/permissions";
+import { listBranchOptions } from "@/features/gyms/branches";
 import { CONFIGURATION_STATUSES, type ConfigurationStatus } from "./config";
+import { listDeviceHistory } from "./queries";
+import { normalizeSerial, serialProblem, type DeviceHistoryRow } from "./devices";
 
 /**
  * Smart Access admin writes. Thin wrappers over the permission-gated,
@@ -136,5 +139,139 @@ export async function listBiometricSyncJobs(organizationId: string): Promise<{ e
       error: typeof j.error_summary === "string" ? j.error_summary : null,
       createdAt: String(j.created_at),
     })),
+  };
+}
+
+// ── Devices (migrations 1034 and 1035) ──
+
+const label = z.string().trim().max(80, "Keep the name under 80 characters.").optional();
+
+/** Branch choices for one gym, for the add / edit device forms. */
+export async function listGymBranchChoices(organizationId: string): Promise<{ error: string | null; branches: { id: string; name: string }[] }> {
+  if (!uuid.safeParse(organizationId).success) return { error: "Unknown gym.", branches: [] };
+  const no = await denied("gyms.view");
+  if (no) return { error: no.error, branches: [] };
+  try {
+    const supabase = await createClient();
+    return { error: null, branches: await listBranchOptions(supabase, organizationId) };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Couldn't load the branches.", branches: [] };
+  }
+}
+
+/** Links a serial to a gym and branch. The gym must already have an approved Smart Access request. */
+export async function linkBiometricDevice(input: {
+  serial: string;
+  organizationId: string;
+  branchId: string;
+  label?: string;
+  reason: string;
+}): Promise<SmartAccessResult> {
+  const problem = serialProblem(input.serial);
+  if (problem) return { error: problem };
+  const parsed = z.object({ organizationId: uuid, branchId: uuid, label, reason }).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the details." };
+  const no = await denied("gyms.manage");
+  if (no) return no;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_link_biometric_device", {
+    p_serial: normalizeSerial(input.serial),
+    p_organization_id: parsed.data.organizationId,
+    p_branch_id: parsed.data.branchId,
+    p_label: parsed.data.label || null,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return { error: error.message };
+  refresh();
+  return { error: null, message: "Device linked." };
+}
+
+/** Rename, move to another branch of the same gym, or disable / enable. Only what is passed changes. */
+export async function updateBiometricDevice(input: {
+  deviceId: string;
+  label?: string | null;
+  branchId?: string | null;
+  status?: "active" | "disabled" | null;
+  reason: string;
+}): Promise<SmartAccessResult> {
+  const parsed = z
+    .object({
+      deviceId: uuid,
+      label: z.string().trim().max(80, "Keep the name under 80 characters.").nullish(),
+      branchId: uuid.nullish(),
+      status: z.enum(["active", "disabled"]).nullish(),
+      reason,
+    })
+    .safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the details." };
+  const no = await denied("gyms.manage");
+  if (no) return no;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_update_biometric_device", {
+    p_device_id: parsed.data.deviceId,
+    p_label: parsed.data.label ?? null,
+    p_branch_id: parsed.data.branchId ?? null,
+    p_status: parsed.data.status ?? null,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return { error: error.message };
+  refresh();
+  return { error: null, message: "Device updated." };
+}
+
+/** Changes a device's serial (a typo, or a replacement unit). The reason is required and kept in the device's history. */
+export async function changeBiometricDeviceSerial(input: { deviceId: string; newSerial: string; reason: string }): Promise<SmartAccessResult> {
+  const problem = serialProblem(input.newSerial);
+  if (problem) return { error: problem };
+  const parsed = z.object({ deviceId: uuid, reason }).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the details." };
+  const no = await denied("gyms.manage");
+  if (no) return no;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_change_biometric_device_serial", {
+    p_device_id: parsed.data.deviceId,
+    p_new_serial: normalizeSerial(input.newSerial),
+    p_reason: parsed.data.reason,
+  });
+  if (error) return { error: error.message };
+  refresh();
+  return { error: null, message: "Serial changed." };
+}
+
+/** Removes the link. The serial becomes unknown again; the history and every stored punch are kept. */
+export async function unlinkBiometricDevice(input: { deviceId: string; reason: string }): Promise<SmartAccessResult> {
+  const parsed = z.object({ deviceId: uuid, reason }).safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check the details." };
+  const no = await denied("gyms.manage");
+  if (no) return no;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_unlink_biometric_device", {
+    p_device_id: parsed.data.deviceId,
+    p_reason: parsed.data.reason,
+  });
+  if (error) return { error: error.message };
+  refresh();
+  return { error: null, message: "Device unlinked." };
+}
+
+/** A gym's device history (or one device's), with branch names resolved for the screen. */
+export async function loadBiometricDeviceHistory(
+  organizationId: string,
+  deviceId: string | null,
+): Promise<{ error: string | null; rows: DeviceHistoryRow[]; branchNames: Record<string, string> }> {
+  if (!uuid.safeParse(organizationId).success || (deviceId !== null && !uuid.safeParse(deviceId).success)) {
+    return { error: "Unknown device.", rows: [], branchNames: {} };
+  }
+  const no = await denied("gyms.view");
+  if (no) return { error: no.error, rows: [], branchNames: {} };
+  const supabase = await createClient();
+  const [history, branches] = await Promise.all([
+    listDeviceHistory(supabase, organizationId, deviceId),
+    listGymBranchChoices(organizationId),
+  ]);
+  return {
+    error: history.error,
+    rows: history.rows,
+    branchNames: Object.fromEntries(branches.branches.map((b) => [b.id, b.name])),
   };
 }

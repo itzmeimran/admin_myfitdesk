@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/core/db/database.types";
+import type { BiometricDeviceRow, DeviceHistoryRow, DeviceStatus, UnclaimedDeviceRow } from "./devices";
 
 /**
  * Smart Access (eSSL biometric) review data. Every read goes through a
@@ -90,6 +91,77 @@ export async function listSmartAccessPackages(
       status: s(r.status) ?? "active",
       includesSmartAccess: r.includes_smart_access === true,
       gymCount: Number(r.gym_count ?? 0),
+    })),
+  };
+}
+
+/** Every linked device, gym by gym (migration 1034). */
+export async function listBiometricDevices(
+  supabase: SupabaseClient<Database>,
+): Promise<{ rows: BiometricDeviceRow[]; error: string | null }> {
+  const { data, error } = await supabase.rpc("admin_list_biometric_devices", { p_organization_id: null });
+  if (error) return { rows: [], error: error.message };
+  return {
+    error: null,
+    rows: ((data ?? []) as unknown as Row[]).map((r) => ({
+      id: String(r.id),
+      serial: String(r.serial),
+      organizationId: String(r.organization_id),
+      gymName: s(r.gym_name) ?? "Unnamed gym",
+      branchId: String(r.branch_id),
+      branchName: s(r.branch_name) ?? "Branch",
+      label: s(r.label),
+      firmware: s(r.firmware),
+      status: (r.status === "disabled" ? "disabled" : "active") as DeviceStatus,
+      firstSeenAt: s(r.first_seen_at),
+      lastSeenAt: s(r.last_seen_at),
+      coveredUntil: s(r.covered_until),
+      integrationStatus: s(r.integration_status),
+      integrationEnabled: r.integration_enabled === true,
+    })),
+  };
+}
+
+/** Serials that called the receiver but belong to no gym yet (migration 1034). */
+export async function listUnclaimedDevices(
+  supabase: SupabaseClient<Database>,
+): Promise<{ rows: UnclaimedDeviceRow[]; error: string | null }> {
+  const { data, error } = await supabase.rpc("admin_list_unclaimed_biometric_devices");
+  if (error) return { rows: [], error: error.message };
+  return {
+    error: null,
+    rows: ((data ?? []) as unknown as Row[]).map((r) => ({
+      serial: String(r.serial),
+      firmware: s(r.firmware),
+      firstSeenAt: String(r.first_seen_at),
+      lastSeenAt: String(r.last_seen_at),
+    })),
+  };
+}
+
+/** A gym's device history, newest first; one device's when `deviceId` is given (migration 1035). */
+export async function listDeviceHistory(
+  supabase: SupabaseClient<Database>,
+  organizationId: string,
+  deviceId: string | null,
+): Promise<{ rows: DeviceHistoryRow[]; error: string | null }> {
+  const { data, error } = await supabase.rpc("admin_list_biometric_device_history", {
+    p_organization_id: organizationId,
+    p_device_id: deviceId,
+    p_limit: 200,
+  });
+  if (error) return { rows: [], error: error.message };
+  return {
+    error: null,
+    rows: ((data ?? []) as unknown as Row[]).map((r) => ({
+      id: String(r.id),
+      deviceId: String(r.device_id),
+      serial: String(r.serial),
+      event: String(r.event) as DeviceHistoryRow["event"],
+      details: r.details && typeof r.details === "object" ? (r.details as Record<string, unknown>) : {},
+      reason: String(r.reason ?? ""),
+      actorEmail: s(r.actor_email),
+      at: String(r.at),
     })),
   };
 }
